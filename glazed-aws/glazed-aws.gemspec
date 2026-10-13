@@ -33,5 +33,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "glazed"
   spec.add_dependency "aws-sdk-s3"
+  spec.add_dependency "aws-sdk-ssm"
   spec.add_dependency "dry-cli"
 end

@@ -66,7 +66,8 @@ Until the next execution starts, nothing wakes for due nodes. Any signal starts 
 The function runs on the Ruby 4.0 runtime, from a zip with vendored gems or from a container image, with `glazed`, `glazed-aws` and any plugin gems:
 
 - **Handler:** `glazed/aws/lambda.Glazed::Aws::Lambda.handler`
-- **`GLAZED_CONFIG_FILE`:** the config file, bundled with the function. Secrets referenced as `{"env": ...}` come from the function's environment.
+- **`GLAZED_CONFIG_FILE`:** the config file, bundled with the function.
+- **Secrets:** keep them in Parameter Store as SecureString parameters and refer to them as `{"ssm": {"name": "/glazed/backup/password"}}`, rather than in the function's environment variables, which anyone allowed `lambda:GetFunctionConfiguration` can read. A warm function reuses a fetched value for `cache_seconds` (default 300), so a rotated value is picked up within that time and without a deploy.
 - **Timeout:** enough for the slowest node of the slowest step. Each invocation runs one step for one node, or one batch step.
 - **Network:** reach the devices, for example by placing the function in a VPC.
 - **Logs:** JSON lines on standard error, in CloudWatch Logs.
@@ -81,7 +82,7 @@ Keep the state in S3: `{"sqlite": {"storage": "state", "key": "glazed/state.sqli
 
 IAM permissions:
 
-- **The function:** S3 read and write for the state and the storages, and whatever the secrets need.
+- **The function:** S3 read and write for the state and the storages, `ssm:GetParameter` on the secret parameters, and `kms:Decrypt` on the key encrypting them when it is not the AWS managed key.
 - **The state machine role:** `lambda:InvokeFunction` on the function.
 - **The roles of EventBridge rules, Pipes and Scheduler schedules:** `states:StartExecution` on the state machine.
 

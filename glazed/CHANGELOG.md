@@ -11,6 +11,7 @@
 - Storages: `subdirectory` for `git` and `github` places files in a directory of the repository instead of its root
 - `glazed signal --all`, and `all_nodes` and `workflows` on `glazed.v1.Signal`, signal every node of chosen workflows, for scheduled runs
 - `Glazed::Coordinator` and the `glazed.v1.CoordinatorTask` protocol let an external coordinator, such as AWS Step Functions with glazed-aws, drive the orchestrated workflows one step at a time
+- `SecretRef` gains `ssm`, an AWS Systems Manager parameter read by glazed-aws
 - `sqlite` state backend: schema version 2 keeps the waiting coordinator execution. Version 1 databases are upgraded on first use, after which glazed 0.1.0 refuses them
 
 ## [0.1.0] - 2026-10-14

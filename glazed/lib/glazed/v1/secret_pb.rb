@@ -8,7 +8,7 @@ require 'buf/validate/validate_pb'
 require 'google/protobuf/any_pb'
 
 
-descriptor_data = "\n\x16glazed/v1/secret.proto\x12\tglazed.v1\x1a\x1b\x62uf/validate/validate.proto\x1a\x19google/protobuf/any.proto\"\xb8\x01\n\tSecretRef\x12\x16\n\x05value\x18\x01 \x01(\tH\x00R\x05value\x12\x33\n\x03\x65nv\x18\x02 \x01(\tB\x1f\xbaH\x1cr\x1a\x32\x18^[A-Za-z_][A-Za-z0-9_]*$H\x00R\x03\x65nv\x12\x1d\n\x04\x66ile\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01H\x00R\x04\x66ile\x12.\n\x06plugin\x18\x04 \x01(\x0b\x32\x14.google.protobuf.AnyH\x00R\x06pluginB\x0f\n\x06source\x12\x05\xbaH\x02\x08\x01\x42\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
+descriptor_data = "\n\x16glazed/v1/secret.proto\x12\tglazed.v1\x1a\x1b\x62uf/validate/validate.proto\x1a\x19google/protobuf/any.proto\"\xe5\x01\n\tSecretRef\x12\x16\n\x05value\x18\x01 \x01(\tH\x00R\x05value\x12\x33\n\x03\x65nv\x18\x02 \x01(\tB\x1f\xbaH\x1cr\x1a\x32\x18^[A-Za-z_][A-Za-z0-9_]*$H\x00R\x03\x65nv\x12\x1d\n\x04\x66ile\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01H\x00R\x04\x66ile\x12.\n\x06plugin\x18\x04 \x01(\x0b\x32\x14.google.protobuf.AnyH\x00R\x06plugin\x12+\n\x03ssm\x18\x05 \x01(\x0b\x32\x17.glazed.v1.SsmParameterH\x00R\x03ssmB\x0f\n\x06source\x12\x05\xbaH\x02\x08\x01\"h\n\x0cSsmParameter\x12\x1b\n\x04name\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04name\x12\x16\n\x06region\x18\x02 \x01(\tR\x06region\x12#\n\rcache_seconds\x18\x03 \x01(\rR\x0c\x63\x61\x63heSecondsB\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
 
 pool = ::Google::Protobuf::DescriptorPool.generated_pool
 pool.add_serialized_file(descriptor_data)
@@ -17,6 +17,7 @@ module Glazed
   module Proto
     module V1
       SecretRef = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.SecretRef").msgclass
+      SsmParameter = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.SsmParameter").msgclass
     end
   end
 end

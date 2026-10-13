@@ -2,6 +2,7 @@
 
 ### Enhancements
 
+- `ssm` secret source: `{"ssm": {"name": ...}}` reads an AWS Systems Manager Parameter Store parameter, decrypted, and reuses it for `cache_seconds`
 - Run the orchestrated workflows on AWS Step Functions: a Lambda function performing each task (`Glazed::Aws::Lambda`), and `glazed-aws state-machine` printing the state machine definition. Signals come from EventBridge rules, Pipes and Scheduler, and debounce waits in the state machine ([docs/aws-step-functions.md](../docs/aws-step-functions.md))
 
 ## [0.1.0] - 2026-10-14
