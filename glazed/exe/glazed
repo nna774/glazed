@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# SPDX-License-Identifier: Apache-2.0
+
+require 'glazed/command'
+
+exit Glazed::Command.start(ARGV)

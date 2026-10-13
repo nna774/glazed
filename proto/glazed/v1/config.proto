@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package glazed.v1;
+
+import "glazed/v1/redaction.proto";
+import "glazed/v1/storage.proto";
+
+option ruby_package = "Glazed::Proto::V1";
+
+// Settings of the glazed command. Relative paths are resolved from the current directory.
+message Config {
+  // Inventory file paths or glob patterns.
+  repeated string inventory = 1;
+  // Storage for unredacted configuration.
+  StorageConfig raw = 2;
+  // Storage for redacted configuration.
+  StorageConfig redacted = 3;
+  // How secrets are hidden in redacted configuration.
+  Redaction redaction = 4;
+  // Nodes collected in parallel. 4 is used when 0.
+  uint32 jobs = 5;
+  // Seconds to wait for each expected device output. 60 is used when 0.
+  uint32 timeout_seconds = 6;
+}

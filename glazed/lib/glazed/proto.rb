@@ -3,6 +3,7 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
+require 'glazed/v1/config_pb'
 require 'glazed/v1/inventory_pb'
 require 'glazed/v1/redaction_pb'
 require 'glazed/v1/secret_pb'
