@@ -15,6 +15,9 @@ message Artifact {
   string storage = 1;
   // Location within that storage.
   Pointer pointer = 2;
+  // Whether writing it changed the content stored at its key. Steps that move
+  // data must not skip work because an upstream artifact is unchanged.
+  bool changed = 3;
 }
 
 // A node and the artifacts produced for it so far. Input and output of per-node steps.

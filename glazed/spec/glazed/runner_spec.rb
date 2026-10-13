@@ -39,7 +39,7 @@ RSpec.describe Glazed::Runner do
     expect(seen).to eq([%w[a c]])
     expect(result.failures.map { [it.node.name, it.step, it.error.message] }).to eq([['b', 'two', 'b broke']])
     expect(events).to include({level: 'error', step: 'two', node: 'b', error: 'Glazed::Error', message: 'b broke'})
-    expect(events).to include({level: 'info', step: 'batch', message: 'done for 2 nodes'})
+    expect(events).to include({level: 'info', step: 'batch', nodes: 2, message: 'done'})
   end
 
   it 'propagates batch step failures' do

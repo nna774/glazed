@@ -73,12 +73,27 @@ RSpec.describe 'glazed run' do
 
     logs = err.string.lines.map { JSON.parse(it) }
     expect(logs).to contain_exactly(
-      {'level' => 'info', 'step' => 'fetch', 'node' => 'sw1', 'message' => 'done'},
-      {'level' => 'info', 'step' => 'redact', 'node' => 'sw1', 'message' => 'done'},
+      {'level' => 'info', 'step' => 'fetch', 'node' => 'sw1', 'changed' => true, 'message' => 'done'},
+      {'level' => 'info', 'step' => 'redact', 'node' => 'sw1', 'changed' => true, 'message' => 'done'},
       include('level' => 'error', 'step' => 'fetch', 'node' => 'sw2'),
-      {'level' => 'info', 'step' => 'publish', 'message' => 'done for 1 nodes'},
+      {'level' => 'info', 'step' => 'publish', 'nodes' => 1, 'message' => 'done'},
     )
-    expect(out.string).to eq("completed 1 of 2 nodes, 1 failed\n")
+    expect(out.string).to eq("completed 1 of 2 nodes, 1 changed, 1 failed\n")
+  end
+
+  it 'writes nothing new when no device changed' do
+    nodes.pop
+    run_command
+    commits = %w[vault staging team].to_h { [it, git_show(it, 'HEAD')] }
+    out.truncate(0)
+    out.rewind
+    err.truncate(0)
+    err.rewind
+
+    expect(run_command).to eq(0)
+    expect(out.string).to eq("completed 1 of 1 nodes, 0 changed, 0 failed\n")
+    expect(%w[vault staging team].to_h { [it, git_show(it, 'HEAD')] }).to eq(commits)
+    expect(err.string.lines.map { JSON.parse(it) }.select { it['node'] }).to all(include('changed' => false))
   end
 
   it 'exits 0 when every node succeeds' do
@@ -88,7 +103,7 @@ RSpec.describe 'glazed run' do
 
   it 'runs only for the named nodes' do
     expect(run_command('--only', 'sw1')).to eq(0)
-    expect(out.string).to eq("completed 1 of 1 nodes, 0 failed\n")
+    expect(out.string).to eq("completed 1 of 1 nodes, 1 changed, 0 failed\n")
   end
 
   it 'runs a raw-only workflow' do

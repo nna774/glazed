@@ -60,8 +60,8 @@ module Glazed
       def call(state)
         node = state.node or raise ArgumentError, "#{name}: state has no node"
         config = Collector.new(node:, timeout: @timeout).call
-        pointer = @storage.write(key: Storages.key_for(node), content: config, message: "#{node.name}: #{name}").pointer
-        with_artifacts(state, @output => Proto::V1::Artifact.new(storage: @storage_name, pointer:))
+        result = @storage.write(key: Storages.key_for(node), content: config, message: "#{node.name}: #{name}")
+        with_artifacts(state, @output => stored(@storage_name, result))
       end
     end
   end

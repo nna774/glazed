@@ -38,6 +38,11 @@ RSpec.describe Glazed::Steps::Fetch do
     expect(context.read(artifact)).to eq("hostname rt1\n")
   end
 
+  it 'marks the artifact unchanged when the device returns the same configuration' do
+    expect(step.call(Glazed::Proto::V1::NodeState.new(node:)).artifacts['raw'].changed).to be(true)
+    expect(step.call(Glazed::Proto::V1::NodeState.new(node:)).artifacts['raw'].changed).to be(false)
+  end
+
   it 'leaves the given state untouched and round-trips through ProtoJSON' do
     input = Glazed::Proto::V1::NodeState.new(node:)
     state = step.call(input)

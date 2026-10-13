@@ -61,6 +61,8 @@ A workflow (`glazed.v1.Workflow`) is an ordered list of steps passing named arti
 
 Per-node steps take and return a `glazed.v1.NodeState` (a node and its artifacts); batch steps a `glazed.v1.BatchState`. Steps are looked up by their oneof case as `Glazed::Steps::<Name>`, like inventory providers and storages, and each is meant to become one state when a workflow is rendered for an orchestrator such as Step Functions: per-node steps inside a Map state, batch steps after it. Wiring is checked before anything runs: every input must be produced by an earlier step, and storages must exist.
 
+Storages write only content that differs from what they hold: git and GitHub make no commit, S3 makes no new version (it compares SHA-256 checksums and writes conditionally). Each artifact records whether its write `changed` stored content, which shows in the JSON logs and the run summary. Steps that move data still run on unchanged input, so a change that failed to publish once is published by the next run.
+
 Inventory comes from a list of `glazed.v1.InventorySource`, a oneof of providers. A provider is looked up by its case name as `Glazed::Sources::<Name>` (requiring `glazed/sources/<name>`), so another gem can implement one added to the schema; node names must be unique across all sources. The `json_files` provider reads files such as `inventory/core.json` (`glazed.v1.InventoryFile`), where `defaults` fill fields each node leaves unset:
 
 ```json

@@ -73,7 +73,7 @@ module Glazed
 
         jobs = @jobs || (config.jobs.zero? ? DEFAULT_JOBS : config.jobs)
         result = Runner.new(workflow:, jobs:, listener: ->(event) { err.puts(JSON.generate(event)) }).call(nodes)
-        out.puts "completed #{result.states.size} of #{nodes.size} nodes, #{result.failures.size} failed"
+        out.puts "completed #{result.states.size} of #{nodes.size} nodes, #{result.changed.size} changed, #{result.failures.size} failed"
         result.failures.empty? ? 0 : 1
       end
 

@@ -6,6 +6,7 @@
 require 'google/protobuf'
 require 'glazed'
 require 'glazed/proto'
+require 'glazed/storages/base'
 
 module Glazed
   module Steps
@@ -48,6 +49,14 @@ module Glazed
       #: (Proto::V1::NodeState state, String artifact) -> Proto::V1::Artifact
       private def artifact(state, artifact)
         state.artifacts[artifact] or raise MissingArtifact, "#{name}: #{state.node&.name} has no artifact #{artifact.inspect}"
+      end
+
+      # @param storage_name [String] name of the storage written to
+      # @param result [Storages::Base::WriteResult] outcome of the write
+      # @return [Proto::V1::Artifact] artifact naming the stored content and whether it changed
+      #: (String storage_name, Storages::Base::WriteResult result) -> Proto::V1::Artifact
+      private def stored(storage_name, result)
+        Proto::V1::Artifact.new(storage: storage_name, pointer: result.pointer, changed: result.changed?)
       end
 
       # @param state [Proto::V1::NodeState] state to extend

@@ -79,7 +79,7 @@ module Glazed
         return batch unless output
 
         nodes = states.zip(results).map do |state, result|
-          with_artifacts(state, output => Proto::V1::Artifact.new(storage: @storage_name, pointer: result&.pointer))
+          with_artifacts(state, output => stored(@storage_name, Must.expect(result)))
         end
         Proto::V1::BatchState.new(nodes:)
       end

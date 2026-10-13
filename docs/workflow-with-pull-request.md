@@ -9,8 +9,8 @@ devices ──fetch──▶ S3 raw/ ──redact──▶ S3 redacted/ ──pu
 ## Requirements
 
 - `glazed` and `glazed-aws` (for the `s3` storage).
-- An S3 bucket with versioning enabled. Pointers record the object version written, and versioning keeps the history of raw configuration, which never leaves S3.
-- AWS credentials through the SDK's default chain, allowed `s3:PutObject` on both prefixes, and `s3:GetObject` and `s3:GetObjectVersion` on `redacted/`.
+- An S3 bucket with versioning enabled. Pointers record the object version written, and versioning keeps the history of raw configuration, which never leaves S3. A new version appears only when a configuration changed.
+- AWS credentials through the SDK's default chain, allowed `s3:PutObject`, `s3:GetObject` and `s3:GetObjectVersion` on both prefixes, and `s3:ListBucket` on the bucket. Without `s3:ListBucket`, S3 answers a check for a missing object with 403 instead of 404, and the first write of a node fails.
 - A GitHub repository whose default branch is `main`, and a token (a fine-grained personal access token, or a GitHub App installation token) with Contents read and write permission on it. glazed only writes to its own branch, so `main` can be protected to require pull requests.
 - In the repository settings, enable "Automatically delete head branches". See [Branch lifecycle](#branch-lifecycle) for why.
 
@@ -59,11 +59,11 @@ devices ──fetch──▶ S3 raw/ ──redact──▶ S3 redacted/ ──pu
 }
 ```
 
-What each step does on every run:
+What each step does on every run. Every step runs for every node, but a storage only writes when the content differs from what it holds:
 
-1. `fetch` logs into each node and writes its configuration to `s3://example-netconf/raw/core/<node>`.
-2. `redact` reads that object, replaces each secret located by the dialect with `<secret hmac:…>`, and writes `s3://example-netconf/redacted/core/<node>`.
-3. `publish` commits the redacted configuration of every node that got this far to `glazed/auto` as one commit, `publish: update rt1, sw1`. Nothing is committed when no configuration changed, so the branch only moves when a device changed.
+1. `fetch` logs into each node and writes its configuration to `s3://example-netconf/raw/core/<node>`. The storage compares SHA-256 checksums and skips the put when they match; otherwise it puts conditionally on the version it checked, so concurrent runs cannot overwrite each other unseen.
+2. `redact` reads that object, replaces each secret located by the dialect with `<secret hmac:…>`, and writes `s3://example-netconf/redacted/core/<node>` the same way. It always redacts again, so a new HMAC key or a fixed dialect pattern reaches the redacted copy even when the device did not change.
+3. `publish` commits the redacted configuration of every node that got this far to `glazed/auto`, sending only files that differ from the branch. The commit message names those nodes, `publish: update sw1`. Nothing is committed when none differ, so the branch only moves when a device changed. Every node is offered on every run, so a change that failed to publish once is published by the next run.
 
 With `MODE_HMAC`, a changed secret still shows up in the diff without being revealed. Keep `GLAZED_HMAC_KEY` stable: a new key changes every digest at once. Use `MODE_REMOVE` to hide secrets entirely.
 
@@ -91,7 +91,7 @@ OnCalendar=*:0/15
 WantedBy=timers.target
 ```
 
-The environment file provides `GITHUB_TOKEN`, `GLAZED_HMAC_KEY`, `BACKUP_PASSWORD` and `ENABLE_SECRET`. Each run logs one JSON line per node and step on stderr. A node that fails is skipped for that run and does not hold back the others; the exit status is then 1, which is worth alerting on.
+The environment file provides `GITHUB_TOKEN`, `GLAZED_HMAC_KEY`, `BACKUP_PASSWORD` and `ENABLE_SECRET`. Each run logs one JSON line per node and step on stderr, with `"changed"` telling whether the step stored new content, and ends with a summary such as `completed 12 of 12 nodes, 1 changed, 0 failed`. A node that fails is skipped for that run and does not hold back the others; the exit status is then 1, which is worth alerting on.
 
 ## Opening the pull request
 
@@ -115,5 +115,4 @@ If the branch was not deleted, delete it by hand before the next run.
 ## Limitations
 
 - A node removed from the inventory leaves its file in the repository. Delete it in a pull request of its own.
-- The commit message lists every node published in that run, not only those whose configuration changed. The diff shows what changed.
 - glazed does not open pull requests itself.

@@ -18,7 +18,8 @@ module Glazed
   #   result = Glazed::Runner.new(workflow:, jobs: 4).call(nodes)
   #   result.failures.each { warn "#{it.node.name}: #{it.error.message}" }
   class Runner
-    #: type listener = ^(Hash[Symbol, String?] event) -> void
+    #: type event_value = String | Integer | bool | nil
+    #: type listener = ^(Hash[Symbol, Runner::event_value] event) -> void
 
     # A node that failed a step.
     class Failure
@@ -59,6 +60,10 @@ module Glazed
       # @return [Array<Failure>] nodes that failed a step
       #: Array[Failure]
       attr_reader :failures
+
+      # @return [Array<Proto::V1::NodeState>] states with at least one artifact whose write changed stored content
+      #: () -> Array[Proto::V1::NodeState]
+      def changed = states.select { |state| state.artifacts.values.any?(&:changed) }
     end
 
     # @param workflow [Workflow] the workflow
@@ -95,8 +100,13 @@ module Glazed
     #: (Steps::BatchStep step, Array[Proto::V1::NodeState] states) -> Array[Proto::V1::NodeState]
     private def run_batch(step, states)
       batch = step.call(Proto::V1::BatchState.new(nodes: states))
-      notify(level: 'info', step: step.name, message: "done for #{states.size} nodes")
-      batch.nodes.to_a
+      after = batch.nodes.to_a
+      if step.outputs.empty?
+        notify(level: 'info', step: step.name, nodes: after.size, message: 'done')
+      else
+        notify(level: 'info', step: step.name, nodes: after.size, changed: after.count { changed?(it, step) }, message: 'done')
+      end
+      after
     end
 
     # @param steps [Array<Steps::NodeStep>] consecutive per-node steps
@@ -137,14 +147,20 @@ module Glazed
           notify(level: 'error', step: step.name, node: node.name, error: e.class.name, message: e.message)
           return nil
         end
-        notify(level: 'info', step: step.name, node: node.name, message: 'done')
+        notify(level: 'info', step: step.name, node: node.name, changed: changed?(current, step), message: 'done')
         current
       end
     end
 
-    # @param event [Hash{Symbol => String, nil}] event fields
+    # @param state [Proto::V1::NodeState] state after the step
+    # @param step [Steps::Base] the step
+    # @return [Boolean] whether any artifact the step produced changed stored content
+    #: (Proto::V1::NodeState state, Steps::Base step) -> bool
+    private def changed?(state, step) = step.outputs.any? { state.artifacts[it]&.changed }
+
+    # @param event [Hash{Symbol => String, Integer, Boolean, nil}] event fields
     # @return [void]
-    #: (**String? event) -> void
+    #: (**Runner::event_value event) -> void
     private def notify(**event)
       @lock.synchronize { @listener.call(event) }
     end

@@ -6,8 +6,23 @@
 
 
 class Glazed::Proto::V1::Artifact < Google::Protobuf::AbstractMessage
-  sig { params(pointer: T.nilable(Glazed::Proto::V1::Pointer), storage: T.nilable(String)).void }
-  def initialize(pointer: nil, storage: nil); end
+  sig do
+    params(
+      changed: T.nilable(T::Boolean),
+      pointer: T.nilable(Glazed::Proto::V1::Pointer),
+      storage: T.nilable(String)
+    ).void
+  end
+  def initialize(changed: nil, pointer: nil, storage: nil); end
+
+  sig { returns(T::Boolean) }
+  def changed; end
+
+  sig { params(value: T::Boolean).void }
+  def changed=(value); end
+
+  sig { void }
+  def clear_changed; end
 
   sig { void }
   def clear_pointer; end
