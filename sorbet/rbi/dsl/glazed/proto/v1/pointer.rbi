@@ -6,11 +6,19 @@
 
 
 class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
-  sig { params(git: T.nilable(Glazed::Proto::V1::GitLocation)).void }
-  def initialize(git: nil); end
+  sig do
+    params(
+      git: T.nilable(Glazed::Proto::V1::GitLocation),
+      github: T.nilable(Glazed::Proto::V1::GithubLocation)
+    ).void
+  end
+  def initialize(git: nil, github: nil); end
 
   sig { void }
   def clear_git; end
+
+  sig { void }
+  def clear_github; end
 
   sig { returns(T.nilable(Glazed::Proto::V1::GitLocation)) }
   def git; end
@@ -18,8 +26,17 @@ class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
   sig { params(value: T.nilable(Glazed::Proto::V1::GitLocation)).void }
   def git=(value); end
 
+  sig { returns(T.nilable(Glazed::Proto::V1::GithubLocation)) }
+  def github; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::GithubLocation)).void }
+  def github=(value); end
+
   sig { returns(Object) }
   def has_git?; end
+
+  sig { returns(Object) }
+  def has_github?; end
 
   sig { returns(T.nilable(Symbol)) }
   def location; end

@@ -6,8 +6,13 @@
 
 
 class Glazed::Proto::V1::StorageConfig < Google::Protobuf::AbstractMessage
-  sig { params(git: T.nilable(Glazed::Proto::V1::GitStorage)).void }
-  def initialize(git: nil); end
+  sig do
+    params(
+      git: T.nilable(Glazed::Proto::V1::GitStorage),
+      github: T.nilable(Glazed::Proto::V1::GithubStorage)
+    ).void
+  end
+  def initialize(git: nil, github: nil); end
 
   sig { returns(T.nilable(Symbol)) }
   def backend; end
@@ -15,12 +20,24 @@ class Glazed::Proto::V1::StorageConfig < Google::Protobuf::AbstractMessage
   sig { void }
   def clear_git; end
 
+  sig { void }
+  def clear_github; end
+
   sig { returns(T.nilable(Glazed::Proto::V1::GitStorage)) }
   def git; end
 
   sig { params(value: T.nilable(Glazed::Proto::V1::GitStorage)).void }
   def git=(value); end
 
+  sig { returns(T.nilable(Glazed::Proto::V1::GithubStorage)) }
+  def github; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::GithubStorage)).void }
+  def github=(value); end
+
   sig { returns(Object) }
   def has_git?; end
+
+  sig { returns(Object) }
+  def has_github?; end
 end

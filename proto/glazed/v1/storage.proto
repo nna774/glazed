@@ -4,6 +4,8 @@ syntax = "proto3";
 
 package glazed.v1;
 
+import "glazed/v1/secret.proto";
+
 option ruby_package = "Glazed::Proto::V1";
 
 // Where configuration files are stored.
@@ -12,6 +14,8 @@ message StorageConfig {
   oneof backend {
     // Local git repository.
     GitStorage git = 1;
+    // GitHub repository, written through the API.
+    GithubStorage github = 2;
   }
 }
 
@@ -29,12 +33,32 @@ message GitStorage {
   string author_email = 5;
 }
 
+// GitHub repository written through the Git Data API, one commit per write.
+message GithubStorage {
+  // Repository as "owner/name".
+  string repository = 1;
+  // Branch to commit to. It is created from base_branch when missing.
+  string branch = 2;
+  // Branch to start a missing branch from. The repository default branch is used when empty.
+  string base_branch = 3;
+  // Token with contents write permission.
+  SecretRef token = 4;
+  // API endpoint. "https://api.github.com" is used when empty.
+  string api_url = 5;
+  // Commit author name. The token owner is used when empty.
+  string author_name = 6;
+  // Commit author email. The token owner is used when empty.
+  string author_email = 7;
+}
+
 // Location of one stored file.
 message Pointer {
   // Storage-specific location.
   oneof location {
     // File in a git repository.
     GitLocation git = 1;
+    // File in a GitHub repository.
+    GithubLocation github = 2;
   }
 }
 
@@ -44,4 +68,14 @@ message GitLocation {
   string path = 1;
   // Commit holding the file content.
   string commit = 2;
+}
+
+// File at a commit of a GitHub repository.
+message GithubLocation {
+  // Repository as "owner/name".
+  string repository = 1;
+  // Path of the file within the repository.
+  string path = 2;
+  // Commit holding the file content.
+  string commit = 3;
 }
