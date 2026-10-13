@@ -16,6 +16,8 @@ module Glazed
       DEFAULT_PORT = 22 #: Integer
       # PTY requested for the shell, wide enough to avoid line wrapping.
       DEFAULT_PTY_OPTIONS = {term: 'vt100', chars_wide: 512}.freeze #: Hash[Symbol, untyped]
+      # Seconds {#close} waits for the device to acknowledge closing channels.
+      CLOSE_TIMEOUT = 5 #: Integer
 
       # @param host [String] hostname or address
       # @param port [Integer, nil] port, or nil for 22
@@ -110,7 +112,8 @@ module Glazed
         output
       end
 
-      # Closes the shell and the session.
+      # Closes the shell and the session. The connection is dropped when the
+      # device does not acknowledge closing the channels within {CLOSE_TIMEOUT}.
       #
       # @return [void]
       #: () -> void
@@ -120,7 +123,12 @@ module Glazed
 
         @session = nil
         @shell = nil
-        session.close unless session.closed?
+        return if session.closed?
+
+        session.channels.each_value(&:close)
+        deadline = now + CLOSE_TIMEOUT
+        session.loop(0.1) { session.channels.any? && now < deadline }
+        session.channels.empty? ? session.close : session.shutdown!
       rescue IOError, SystemCallError, Net::SSH::Disconnect
         # The device may already have dropped the connection after logout.
         nil
@@ -139,6 +147,7 @@ module Glazed
 
       # @return [Net::SSH::Connection::Channel] a channel running a PTY shell
       # @raise [Glazed::Error] when the device refuses the PTY or shell
+      # @raise [Glazed::TimeoutError] when the device does not answer within the connect timeout
       #: () -> Net::SSH::Connection::Channel
       private def open_shell
         ready = false #: bool
@@ -155,7 +164,12 @@ module Glazed
           ch.on_extended_data { |_, _, data| @inbox << data }
           ch.on_close { @eof = true }
         end
-        session.loop(0.1) { !ready && !@eof }
+        deadline = now + connect_timeout.to_f
+        session.loop(0.1) do
+          raise Glazed::TimeoutError, "#{host}: shell did not open in #{connect_timeout}s" if !ready && now > deadline
+
+          !ready && !@eof
+        end
         channel
       end
     end
