@@ -2,6 +2,8 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
+# Under Ruby::Box on Ruby 4.0.7, rspec fails to shellsplit .rspec lines, so there is no .rspec.
+require 'spec_helper'
 require 'glazed/collector'
 
 RSpec.describe Glazed::Oxidized do
