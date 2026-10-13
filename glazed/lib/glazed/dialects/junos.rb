@@ -13,8 +13,8 @@ module Glazed
   module Dialects
     # Juniper Junos OS.
     #
-    # Node params: "junos_license_usage" set to "false" omits the license usage
-    # table, whose counts change without configuration changes.
+    # Node params: "junos_license" set to "false" skips the license commands,
+    # whose usage counts change without configuration changes.
     class Junos < Base
       prompt(/^(\r?[\w.@:\/-]+[#>]\s?)$/)
       comment_prefix '# '
@@ -37,18 +37,18 @@ module Glazed
           run.emit(comment(output))
         end
         book.command('show chassis hardware') { comment(it.output) }
-        book.raw('show system license') do |run|
-          output = run.command('show system license').output
-          output = output.sub(/^License usage:.*?\n[ \t]*\n/m, '') if run.param('junos_license_usage') == 'false'
+        book.raw('licenses') do |run|
+          next if run.param('junos_license') == 'false'
+
           run.emit(
             comment(
-              output
+              run.command('show system license').output
                 .gsub(/  fib-scale\s+(\d+)/, '  fib-scale                       <count>')
                 .gsub(/  rib-scale\s+(\d+)/, '  rib-scale                       <count>'),
             ),
           )
+          run.emit(comment(run.command('show system license keys').output))
         end
-        book.command('show system license keys') { comment(it.output) }
         book.command('show configuration | display omit')
         book.raw('model-specific status') do |run|
           case run.vars[:model]
