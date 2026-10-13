@@ -28,18 +28,17 @@ RSpec.describe Glazed::Redactor do
   it 'removes only the secret within each match' do
     expect(described_class.new(patterns:, mode: :remove).call(config)).to eq(<<~CONFIG)
       hostname rt1
-      username admin password 7 <secret removed>
-      snmp-server community <secret removed> RO
+      username admin password 7 [~REDACTED~]
+      snmp-server community [~REDACTED~] RO
       tacacs server t1
        address ipv4 192.0.2.1
-       key <secret removed>
+       key [~REDACTED~]
     CONFIG
   end
 
   it 'replaces secrets with a stable keyed digest in hmac mode' do
     redactor = described_class.new(patterns:, mode: :hmac, key: 'k')
-    digest = OpenSSL::HMAC.hexdigest('SHA256', 'k', 'public')[0, 16]
-    expect(redactor.call(config)).to include("snmp-server community <secret hmac:#{digest}> RO\n")
+    expect(redactor.call(config)).to include("snmp-server community [~REDACTED:dgst=u0xNJmeMH-E~] RO\n")
     expect(redactor.call(config)).to eq(redactor.call(config))
     expect(described_class.new(patterns:, mode: :hmac, key: 'other').call(config)).not_to eq(redactor.call(config))
   end
@@ -51,7 +50,7 @@ RSpec.describe Glazed::Redactor do
 
   it 'keeps the first of overlapping secrets' do
     overlapping = [pattern(/^key (\S+ \S+)/), pattern(/^key \S+ (\S+)/)]
-    expect(described_class.new(patterns: overlapping, mode: :remove).call("key a b\n")).to eq("key <secret removed>\n")
+    expect(described_class.new(patterns: overlapping, mode: :remove).call("key a b\n")).to eq("key [~REDACTED~]\n")
   end
 
   it 'skips matches whose determiner returns nil or empty' do

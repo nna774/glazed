@@ -32,12 +32,12 @@ RSpec.describe Glazed::Steps::Redact do
   it 'stores the redacted artifact next to the input' do
     state = step.call(state_with_raw)
     expect(state.artifacts.keys).to contain_exactly('raw', 'redacted')
-    expect(context.read(state.artifacts['redacted'])).to eq("password <secret removed>\n")
+    expect(context.read(state.artifacts['redacted'])).to eq("password [~REDACTED~]\n")
   end
 
   it 'uses the configured redaction' do
     settings.redaction = Glazed::Proto::V1::Redaction.new(mode: :MODE_HMAC, hmac_key: {value: 'aw=='})
-    expect(context.read(step.call(state_with_raw).artifacts['redacted'])).to match(/<secret hmac:\h{16}>/)
+    expect(context.read(step.call(state_with_raw).artifacts['redacted'])).to match(/\[~REDACTED:dgst=[\w-]{11}~\]/)
   end
 
   it 'raises MissingArtifact without its input' do

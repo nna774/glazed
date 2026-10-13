@@ -5,8 +5,8 @@
 # Backup Boot Image................................ 8.5.182.0
 #
 config sysname wlc1
-config snmp community create <secret removed>
-config radius auth add 1 192.0.2.10 1812 ascii <secret removed>
+config snmp community create [~REDACTED~]
+config radius auth add 1 192.0.2.10 1812 ascii [~REDACTED~]
 config wlan create 1 corp corp
-config wlan security wpa akm psk set-key ascii <secret removed> 1
+config wlan security wpa akm psk set-key ascii [~REDACTED~] 1
 config wlan enable 1

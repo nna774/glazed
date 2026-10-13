@@ -57,7 +57,7 @@ vrf definition Mgmt-intf
 !
 security passwords min-length 8
 logging buffered 200000
-enable secret 5 <secret removed>
+enable secret 5 [~REDACTED~]
 !
 aaa new-model
 !
@@ -144,7 +144,7 @@ sdm prefer default
 diagnostic bootup level minimal
 !
 !
-username root secret 5 <secret removed>
+username root secret 5 [~REDACTED~]
 !
 redundancy
 !

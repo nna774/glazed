@@ -14,11 +14,11 @@ service password-encryption
 !
 hostname awplus
 !
-username manager privilege 15 password 8 <secret removed>
+username manager privilege 15 password 8 [~REDACTED~]
 !
-snmp-server community <secret removed> ro
+snmp-server community [~REDACTED~] ro
 !
-radius-server key <secret removed>
+radius-server key [~REDACTED~]
 !
 interface port1.0.1-1.0.10
  switchport

@@ -25,14 +25,14 @@
 version 22.4R3-S2.11;
 system {
     root-authentication {
-        encrypted-password "<secret removed>"; ## SECRET-DATA
+        encrypted-password "[~REDACTED~]"; ## SECRET-DATA
     }
     login {
         user oxidized {
             uid 2002;
             class super-user;
             authentication {
-                encrypted-password "<secret removed>"; ## SECRET-DATA
+                encrypted-password "[~REDACTED~]"; ## SECRET-DATA
             }
         }
     }

@@ -75,11 +75,11 @@ vrf definition Mgmt-intf
  exit-address-family
 !
 logging monitor informational
-enable secret 9 <secret removed>
+enable secret 9 [~REDACTED~]
 !
 !
 aaa server radius dynamic-author
- client 10.42.0.7 server-key 7 <secret removed>
+ client 10.42.0.7 server-key 7 [~REDACTED~]
 !
 aaa session-id common
 clock timezone CET 1 0
@@ -148,17 +148,17 @@ Unauthorized access prohibited!
 !
 ! ...
 wlan test 1 test
- security wpa psk set-key ascii 0 <secret removed>
+ security wpa psk set-key ascii 0 [~REDACTED~]
 wlan test-spaces 2 test-spaces
- security wpa psk set-key ascii 0 <secret removed>
+ security wpa psk set-key ascii 0 [~REDACTED~]
 wlan hex 1000 hex
- security wpa psk set-key hex 0 <secret removed>
+ security wpa psk set-key hex 0 [~REDACTED~]
 ap profile default-ap-profile
- dot1x username dot1x-username password 0 <secret removed>
- mgmtuser username apmgmtuser password 0 <secret removed> secret 0 <secret removed>
+ dot1x username dot1x-username password 0 [~REDACTED~]
+ mgmtuser username apmgmtuser password 0 [~REDACTED~] secret 0 [~REDACTED~]
 ap profile "spaces profile"
- dot1x username dot1x-username password 0 <secret removed>
- mgmtuser username username password 0 <secret removed> secret 0 <secret removed>
+ dot1x username dot1x-username password 0 [~REDACTED~]
+ mgmtuser username username password 0 [~REDACTED~] secret 0 [~REDACTED~]
 netconf-yang
 end
 

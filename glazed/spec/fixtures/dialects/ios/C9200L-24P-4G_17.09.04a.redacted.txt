@@ -104,10 +104,10 @@ errdisable recovery cause dhcp-rate-limit
 errdisable recovery cause arp-inspection
 errdisable recovery cause loopback
 !
-enable secret 9 <secret removed>
+enable secret 9 [~REDACTED~]
 !
-username oxidized secret 9 <secret removed>
-username rocks secret 9 <secret removed>
+username oxidized secret 9 [~REDACTED~]
+username rocks secret 9 [~REDACTED~]
 !
 transceiver type all
  monitoring
@@ -172,11 +172,11 @@ ip access-list standard 5
  10 permit 10.0.0.0 0.0.0.255
  20 deny   any
 !
-snmp-server community <secret removed> RW 5
+snmp-server community [~REDACTED~] RW 5
 snmp-server location Here and there
-snmp-server host 10.42.0.33 version 2c <secret removed> 
-snmp-server host 10.42.0.34 version 2c <secret removed> 
-snmp-server host 10.42.0.35 vrf Mgmt-vrf informs version 2c <secret removed>  tty vtp
+snmp-server host 10.42.0.33 version 2c [~REDACTED~] 
+snmp-server host 10.42.0.34 version 2c [~REDACTED~] 
+snmp-server host 10.42.0.35 vrf Mgmt-vrf informs version 2c [~REDACTED~]  tty vtp
 snmp-server host 10.42.0.36 vrf Mgmt-vrf informs version 3 auth oxidized  bfd bridge transceiver
 !
 snmp mib expression owner nat name 1

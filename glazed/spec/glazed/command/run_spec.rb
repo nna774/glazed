@@ -68,7 +68,7 @@ RSpec.describe 'glazed run' do
     expect(git_show('vault', 'HEAD:core/sw1')).to eq(simulation.expected('collected'))
 
     redacted = git_show('team', 'HEAD:core/sw1')
-    expect(redacted).to include('enable secret 9 <secret hmac:')
+    expect(redacted).to include('enable secret 9 [~REDACTED:dgst=')
     simulation.secrets.each { expect(redacted).not_to include(it) }
     expect(Open3.capture2('git', '-C', path('team'), 'log', '--format=%s').first).to eq("publish: update sw1\n")
 
@@ -102,7 +102,7 @@ RSpec.describe 'glazed run' do
     nodes.pop
     vault.replace(memory: {})
     expect(run_command).to eq(0)
-    expect(git_show('team', 'HEAD:core/sw1')).to include('enable secret 9 <secret hmac:')
+    expect(git_show('team', 'HEAD:core/sw1')).to include('enable secret 9 [~REDACTED:dgst=')
     expect(File.exist?(path('vault'))).to be(false)
     expect(Dir.children(@dir)).to contain_exactly('inventory.json', 'glazed.json', 'staging', 'team')
   end

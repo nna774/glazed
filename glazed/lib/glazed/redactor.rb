@@ -12,9 +12,10 @@ require 'glazed/secret'
 module Glazed
   # Hides secrets located by a dialect's sensitive patterns.
   #
-  # Only the secret within each match is replaced. In :hmac mode the
-  # replacement is a truncated HMAC-SHA256 of the secret, so a changed secret
-  # shows up in diffs without being revealed.
+  # Only the secret within each match is replaced, by +[~REDACTED~]+ in :remove
+  # mode or +[~REDACTED:dgst=...~]+ in :hmac mode. The digest is a truncated
+  # HMAC-SHA256 of the secret in unpadded base64url, so a changed secret shows
+  # up in diffs without being revealed.
   #
   # @example
   #   Glazed::Redactor.new(patterns: Glazed::Dialects::Ios.sensitive_patterns, mode: :remove).call(config)
@@ -23,9 +24,9 @@ module Glazed
     class InvalidConfiguration < Glazed::Error; end
 
     # Replacement in :remove mode.
-    REMOVED = '<secret removed>' #: String
-    # Hex digits of the HMAC kept in :hmac mode.
-    HMAC_LENGTH = 16 #: Integer
+    REMOVED = '[~REDACTED~]' #: String
+    # Bytes of the HMAC kept in :hmac mode.
+    HMAC_BYTES = 8 #: Integer
 
     # Supported modes.
     MODES = %i[remove hmac].freeze #: Array[Symbol]
@@ -145,7 +146,8 @@ module Glazed
     private def replacement(secret)
       return REMOVED unless @mode == :hmac
 
-      "<secret hmac:#{OpenSSL::HMAC.hexdigest('SHA256', @key.to_s, secret)[0, HMAC_LENGTH]}>"
+      digest = OpenSSL::HMAC.digest('SHA256', @key.to_s, secret).byteslice(0, HMAC_BYTES)
+      "[~REDACTED:dgst=#{[digest].pack('m0').tr('+/', '-_').delete('=')}~]"
     end
   end
 end
