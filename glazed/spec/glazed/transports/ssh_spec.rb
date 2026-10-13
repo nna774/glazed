@@ -6,7 +6,7 @@ require 'glazed/transports/ssh'
 
 RSpec.describe Glazed::Transports::Ssh do
   describe '#open' do
-    let(:password) { Glazed::Secret.new(Glazed::Proto::V1::SecretRef.new(value: 'pw')) }
+    let(:password) { Glazed::SecretsResolver.new.secret(Glazed::Proto::V1::SecretRef.new(value: 'pw')) }
     let(:transport_options) { nil }
     let(:transport) { described_class.new(host: 'rt1', port: 2222, username: 'admin', password:, transport_options:) }
     let(:session) { instance_double(Net::SSH::Connection::Session) }

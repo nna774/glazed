@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### Breaking changes
+
+- Secrets are read through a `Glazed::SecretsResolver`, which `StepContext` holds and passes to the collector, dialect runs, the redactor and storages. `Glazed::Secret.new` takes the resolver, and `Secret.maybe` is replaced by `SecretsResolver#maybe`
+- Storages are built with `from_proto(settings, context:)`, where a `Glazed::StorageContext` carries the secrets resolver; plugin storages must accept it
+
 ### Enhancements
 
 - Redaction hides additional secrets given as secret references, as literal text or regular expressions and optionally split by a delimiter, in a `redact` step or in the top-level `redaction` shared by all of them

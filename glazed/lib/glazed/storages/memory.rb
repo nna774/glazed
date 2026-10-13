@@ -32,10 +32,11 @@ module Glazed
       # Builds a storage from {Proto::V1::MemoryStorage}.
       #
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::MemoryStorage}
+      # @param context [StorageContext] secrets the settings refer to
       # @return [Memory] the storage
       # @raise [Must::Violation] when settings is another message
-      #: (Google::Protobuf::MessageExts settings) -> Memory
-      def self.from_proto(settings)
+      #: (Google::Protobuf::MessageExts settings, context: StorageContext) -> Memory
+      def self.from_proto(settings, context:)
         Must.be_a(settings, Proto::V1::MemoryStorage)
         new
       end

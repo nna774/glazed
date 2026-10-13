@@ -55,7 +55,7 @@ module Glazed
       #: (Dialect::Run run, untyped input) -> void
       def attach(run, input)
         @run = run
-        node = NodeView.new(node: run.node, prompt: session.prompt)
+        node = NodeView.new(node: run.node, prompt: session.prompt, secrets: run.secrets)
         input.glazed_attach(self, node)
         model.node = node
         model.input = input

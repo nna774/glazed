@@ -51,11 +51,12 @@ module Glazed
       # Builds a storage from {Proto::V1::GitStorage}.
       #
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::GitStorage}
+      # @param context [StorageContext] secrets the settings refer to
       # @return [Git] the storage
       # @raise [Must::Violation] when settings is another message
       # @raise [InvalidKey] for an unsafe subdirectory
-      #: (Google::Protobuf::MessageExts settings) -> Git
-      def self.from_proto(settings)
+      #: (Google::Protobuf::MessageExts settings, context: StorageContext) -> Git
+      def self.from_proto(settings, context:)
         git = Must.be_a(settings, Proto::V1::GitStorage)
         new(
           path: git.path,

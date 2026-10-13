@@ -4,6 +4,7 @@
 
 require 'open3'
 require 'tmpdir'
+require 'glazed/storage_context'
 require 'glazed/storages/git'
 
 RSpec.describe Glazed::Storages::Git do
@@ -117,12 +118,12 @@ RSpec.describe Glazed::Storages::Git do
 
   describe '.from_proto' do
     it 'fills defaults for empty fields' do
-      storage = described_class.from_proto(Glazed::Proto::V1::GitStorage.new(path: '/x'))
+      storage = described_class.from_proto(Glazed::Proto::V1::GitStorage.new(path: '/x'), context: Glazed::StorageContext.new)
       expect([storage.path, storage.branch, storage.remote, storage.subdirectory]).to eq(['/x', 'main', nil, nil])
     end
 
     it 'reads the path prefix' do
-      storage = described_class.from_proto(Glazed::Proto::V1::GitStorage.new(path: '/x', subdirectory: 'network/glazed'))
+      storage = described_class.from_proto(Glazed::Proto::V1::GitStorage.new(path: '/x', subdirectory: 'network/glazed'), context: Glazed::StorageContext.new)
       expect(storage.subdirectory).to eq('network/glazed')
     end
   end

@@ -69,17 +69,18 @@ module Glazed
       # Builds a storage from {Proto::V1::GithubStorage}.
       #
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::GithubStorage}
+      # @param context [StorageContext] secrets the settings refer to
       # @return [Github] the storage
       # @raise [Must::Violation] when settings is another message
       # @raise [ArgumentError] when the token is missing
       # @raise [InvalidKey] for an unsafe subdirectory
-      #: (Google::Protobuf::MessageExts settings) -> Github
-      def self.from_proto(settings)
+      #: (Google::Protobuf::MessageExts settings, context: StorageContext) -> Github
+      def self.from_proto(settings, context:)
         github = Must.be_a(settings, Proto::V1::GithubStorage)
         new(
           repository: github.repository,
           branch: github.branch,
-          token: Secret.maybe(github.token) || raise(ArgumentError, 'github storage needs a token'),
+          token: context.secrets.maybe(github.token) || raise(ArgumentError, 'github storage needs a token'),
           base_branch: github.base_branch.empty? ? nil : github.base_branch,
           api_url: github.api_url.empty? ? DEFAULT_API_URL : github.api_url,
           author_name: github.author_name.empty? ? nil : github.author_name,

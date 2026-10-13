@@ -33,10 +33,11 @@ module Glazed
       # Builds a storage from {Proto::V1::FilesystemStorage}.
       #
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::FilesystemStorage}
+      # @param context [StorageContext] secrets the settings refer to
       # @return [Filesystem] the storage
       # @raise [Must::Violation] when settings is another message
-      #: (Google::Protobuf::MessageExts settings) -> Filesystem
-      def self.from_proto(settings)
+      #: (Google::Protobuf::MessageExts settings, context: StorageContext) -> Filesystem
+      def self.from_proto(settings, context:)
         filesystem = Must.be_a(settings, Proto::V1::FilesystemStorage)
         new(path: filesystem.path)
       end

@@ -3,10 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 require 'tmpdir'
-require 'glazed/secret'
+require 'google/protobuf/wrappers_pb'
+require 'glazed/secrets_resolver'
 
-RSpec.describe Glazed::Secret do
-  def secret(**source) = described_class.new(Glazed::Proto::V1::SecretRef.new(**source))
+RSpec.describe Glazed::SecretsResolver do
+  let(:resolver) { described_class.new }
+
+  def secret(**source) = resolver.secret(Glazed::Proto::V1::SecretRef.new(**source))
 
   it 'returns a literal value' do
     expect(secret(value: 's3cret').value).to eq('s3cret')
@@ -47,6 +50,35 @@ RSpec.describe Glazed::Secret do
   end
 
   it 'wraps nil as nil' do
-    expect(described_class.maybe(nil)).to be_nil
+    expect(resolver.maybe(nil)).to be_nil
+  end
+
+  describe 'plugin sources' do
+    let(:settings_class) { Google::Protobuf::StringValue }
+    let(:built) { [] }
+    let(:ref) do
+      Glazed::Proto::V1::SecretRef.new(plugin: Google::Protobuf::Any.pack(Google::Protobuf::StringValue.new(value: 'v')))
+    end
+
+    before do
+      log = built
+      source = Class.new(Glazed::Secrets::Base) do
+        define_singleton_method(:from_proto) { |settings| new.tap { log << it } }
+        define_method(:value) { "secret-#{object_id}" }
+      end
+      Glazed::Secrets.register(settings_class, source)
+    end
+
+    after { Glazed::Secrets::PLUGINS.unregister(settings_class) }
+
+    it 'builds the source of a reference once and keeps it' do
+      expect(resolver.value(ref)).to eq(resolver.secret(ref.dup).value)
+      expect(built.size).to eq(1)
+    end
+
+    it 'keeps sources apart between resolvers' do
+      expect(resolver.value(ref)).not_to eq(described_class.new.value(ref))
+      expect(built.size).to eq(2)
+    end
   end
 end

@@ -5,6 +5,8 @@
 require 'digest'
 require 'webmock/rspec'
 require 'httpx/adapters/webmock'
+require 'glazed/secrets_resolver'
+require 'glazed/storage_context'
 require 'glazed/storages/github'
 
 RSpec.describe Glazed::Storages::Github do
@@ -12,7 +14,7 @@ RSpec.describe Glazed::Storages::Github do
   def pointer_to(**location) = Glazed::Proto::V1::Pointer.new(location: Google::Protobuf::Any.pack(Glazed::Proto::V1::GithubLocation.new(**location)))
 
   let(:api) { 'https://api.github.com/repos/org/netconf' }
-  let(:token) { Glazed::Secret.new(Glazed::Proto::V1::SecretRef.new(value: 'tok')) }
+  let(:token) { Glazed::SecretsResolver.new.secret(Glazed::Proto::V1::SecretRef.new(value: 'tok')) }
   let(:storage) { described_class.new(repository: 'org/netconf', branch: 'glazed/auto', token:) }
   let(:files) { [['core/rt1', "hostname rt1\n"]] }
   let(:message) { ->(keys) { "update #{keys.join(', ')}" } }
@@ -164,12 +166,12 @@ RSpec.describe Glazed::Storages::Github do
   describe '.from_proto' do
     it 'requires a token' do
       settings = Glazed::Proto::V1::GithubStorage.new(repository: 'org/netconf', branch: 'b')
-      expect { described_class.from_proto(settings) }.to raise_error(ArgumentError, /token/)
+      expect { described_class.from_proto(settings, context: Glazed::StorageContext.new) }.to raise_error(ArgumentError, /token/)
     end
 
     it 'reads the path prefix' do
       settings = Glazed::Proto::V1::GithubStorage.new(repository: 'org/netconf', branch: 'b', token: {value: 'tok'}, subdirectory: 'network/glazed')
-      expect(described_class.from_proto(settings).subdirectory).to eq('network/glazed')
+      expect(described_class.from_proto(settings, context: Glazed::StorageContext.new).subdirectory).to eq('network/glazed')
     end
   end
 end

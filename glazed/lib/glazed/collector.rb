@@ -8,7 +8,7 @@ require 'glazed/cli_session'
 require 'glazed/dialect/run'
 require 'glazed/dialects'
 require 'glazed/proto'
-require 'glazed/secret'
+require 'glazed/secrets_resolver'
 require 'glazed/transports'
 
 module Glazed
@@ -25,8 +25,10 @@ module Glazed
     # @param transport [Transports::Base, nil] transport to use instead of building one from the node
     # @param timeout [Numeric] seconds to wait for each expected output
     # @param progress [Proc] receives a message when connecting and whenever waiting for the device
-    #: (node: Proto::V1::Node, ?transport: Transports::Base?, ?timeout: Numeric, ?progress: ^(String) -> void) -> void
-    def initialize(node:, transport: nil, timeout: CliSession::DEFAULT_TIMEOUT, progress: ->(_message) {})
+    # @param secrets [SecretsResolver] reads the node's password and secrets
+    #: (node: Proto::V1::Node, ?transport: Transports::Base?, ?timeout: Numeric, ?progress: ^(String) -> void, ?secrets: SecretsResolver) -> void
+    def initialize(node:, transport: nil, timeout: CliSession::DEFAULT_TIMEOUT, progress: ->(_message) {}, secrets: SecretsResolver.new)
+      @secrets = secrets #: SecretsResolver
       @node = node #: Proto::V1::Node
       @dialect = Dialects.find(node.dialect) #: singleton(Dialects::Base)
       @kind = (node.transport.empty? ? DEFAULT_TRANSPORT : node.transport) #: String
@@ -60,7 +62,7 @@ module Glazed
         timeout: @timeout,
         progress: @progress,
       )
-      run = Dialect::Run.new(cli: session, node:, dialect:)
+      run = Dialect::Run.new(cli: session, node:, dialect:, secrets: @secrets)
       @transport.pty_options = @config.pty_options
       @progress.call("connecting to #{@transport.host} over #{@kind}")
       @transport.open
@@ -93,7 +95,7 @@ module Glazed
       end
       if (password_prompt = @config.password_prompt)
         session.expect(password_prompt)
-        session.write("#{Secret.maybe(node.password)&.value}\n")
+        session.write("#{@secrets.maybe(node.password)&.value}\n")
       end
       session.expect(session.prompt)
     end
@@ -106,8 +108,9 @@ module Glazed
         host: node.host.empty? ? node.name : node.host,
         port: node.port.zero? ? nil : node.port,
         username: node.username,
-        password: Secret.maybe(node.password),
+        password: @secrets.maybe(node.password),
         transport_options: node.transport_options,
+        secrets: @secrets,
       )
     end
   end

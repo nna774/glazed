@@ -9,6 +9,7 @@ require 'glazed/dialect'
 require 'glazed/dialect/actions'
 require 'glazed/proto'
 require 'glazed/secret'
+require 'glazed/secrets_resolver'
 
 module Glazed
   module Dialect
@@ -17,11 +18,13 @@ module Glazed
       # @param cli [CliSession] session to the node
       # @param node [Proto::V1::Node] node being run against
       # @param dialect [Class<Dialects::Base>] dialect of the node
-      #: (cli: CliSession, node: Proto::V1::Node, dialect: singleton(Dialects::Base)) -> void
-      def initialize(cli:, node:, dialect:)
+      # @param secrets [SecretsResolver] reads the node's secrets
+      #: (cli: CliSession, node: Proto::V1::Node, dialect: singleton(Dialects::Base), ?secrets: SecretsResolver) -> void
+      def initialize(cli:, node:, dialect:, secrets: SecretsResolver.new)
         @cli = cli #: CliSession
         @node = node #: Proto::V1::Node
         @dialect = dialect #: singleton(Dialects::Base)
+        @secrets = secrets #: SecretsResolver
         @vars = {} #: Hash[Symbol, untyped]
         @output = +'' #: String
       end
@@ -32,6 +35,9 @@ module Glazed
       # @return [Proto::V1::Node] node being run against
       #: Proto::V1::Node
       attr_reader :node
+      # @return [SecretsResolver] reads the node's secrets
+      #: SecretsResolver
+      attr_reader :secrets
       # @return [Class<Dialects::Base>] dialect of the node
       #: singleton(Dialects::Base)
       attr_reader :dialect
@@ -78,7 +84,7 @@ module Glazed
       # @param name [String] secret name
       # @return [Secret, nil] the node's secret
       #: (String name) -> Secret?
-      def secret(name) = Secret.maybe(node.secrets[name])
+      def secret(name) = secrets.maybe(node.secrets[name])
     end
   end
 end

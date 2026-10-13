@@ -5,7 +5,7 @@
 
 require 'glazed/oxidized/errors'
 require 'glazed/proto'
-require 'glazed/secret'
+require 'glazed/secrets_resolver'
 
 module Glazed
   module Oxidized
@@ -16,10 +16,12 @@ module Glazed
     class NodeView
       # @param node [Proto::V1::Node] node being collected
       # @param prompt [Regexp] prompt pattern of the dialect
-      #: (node: Proto::V1::Node, prompt: Regexp) -> void
-      def initialize(node:, prompt:)
+      # @param secrets [SecretsResolver] reads the node's password and secrets
+      #: (node: Proto::V1::Node, prompt: Regexp, secrets: SecretsResolver) -> void
+      def initialize(node:, prompt:, secrets:)
         @node = node #: Proto::V1::Node
         @prompt = prompt #: Regexp
+        @secrets = secrets #: SecretsResolver
         @vars = nil #: Hash[Symbol, untyped]?
       end
 
@@ -42,7 +44,7 @@ module Glazed
       # @return [Hash{Symbol => String, nil}] login credentials
       # @raise [Secret::Unavailable] when the password cannot be read
       #: () -> Hash[Symbol, String?]
-      def auth = {username: @node.username, password: Secret.maybe(@node.password)&.value}
+      def auth = {username: @node.username, password: @secrets.maybe(@node.password)&.value}
 
       # @return [Hash{Symbol => Object}] params and secrets of the node
       # @raise [Secret::Unavailable] when a secret cannot be read
@@ -50,7 +52,7 @@ module Glazed
       def vars
         @vars ||= {}.tap do |vars|
           @node.params.each { |key, value| vars[key.to_sym] = cast(value) }
-          @node.secrets.each { |key, ref| vars[key.to_sym] = Secret.new(ref).value }
+          @node.secrets.each { |key, ref| vars[key.to_sym] = @secrets.value(ref) }
         end
       end
 

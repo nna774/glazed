@@ -64,9 +64,10 @@ module Glazed
       # Builds a storage from its settings message.
       #
       # @param settings [Google::Protobuf::MessageExts] backend settings from {Proto::V1::StorageConfig}
+      # @param context [StorageContext] secrets the settings refer to
       # @return [Base] the storage
-      #: (Google::Protobuf::MessageExts settings) -> Base
-      def self.from_proto(settings) = raise NotImplementedError
+      #: (Google::Protobuf::MessageExts settings, context: StorageContext) -> Base
+      def self.from_proto(settings, context:) = raise NotImplementedError
 
       # Writes one file.
       #

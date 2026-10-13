@@ -6,6 +6,7 @@
 require 'glazed'
 require 'glazed/proto'
 require 'glazed/secret'
+require 'glazed/secrets_resolver'
 
 module Glazed
   module Transports
@@ -20,14 +21,16 @@ module Glazed
       # @param password [Secret, nil] login password
       # @param connect_timeout [Numeric] seconds to wait for a connection
       # @param transport_options [Proto::V1::TransportOptions, nil] per-transport connection options
-      #: (host: String, port: Integer?, username: String, password: Secret?, ?connect_timeout: Numeric, ?transport_options: Proto::V1::TransportOptions?) -> void
-      def initialize(host:, port:, username:, password:, connect_timeout: DEFAULT_CONNECT_TIMEOUT, transport_options: nil)
+      # @param secrets [SecretsResolver] reads secrets in the transport options
+      #: (host: String, port: Integer?, username: String, password: Secret?, ?connect_timeout: Numeric, ?transport_options: Proto::V1::TransportOptions?, ?secrets: SecretsResolver) -> void
+      def initialize(host:, port:, username:, password:, connect_timeout: DEFAULT_CONNECT_TIMEOUT, transport_options: nil, secrets: SecretsResolver.new)
         @host = host #: String
         @port = port #: Integer?
         @username = username #: String
         @password = password #: Secret?
         @connect_timeout = connect_timeout #: Numeric
         @transport_options = transport_options #: Proto::V1::TransportOptions?
+        @secrets = secrets #: SecretsResolver
         @pty_options = {} #: Hash[Symbol, untyped]
       end
 
@@ -49,6 +52,9 @@ module Glazed
       # @return [Proto::V1::TransportOptions, nil] per-transport connection options
       #: Proto::V1::TransportOptions?
       attr_reader :transport_options
+      # @return [SecretsResolver] reads secrets in the transport options
+      #: SecretsResolver
+      attr_reader :secrets
       # @return [Hash{Symbol => Object}] terminal settings overriding the transport's defaults; ignored by transports without a PTY
       #: Hash[Symbol, untyped]
       attr_accessor :pty_options

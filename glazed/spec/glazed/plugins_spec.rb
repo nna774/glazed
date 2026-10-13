@@ -5,7 +5,7 @@
 require 'json'
 require 'google/protobuf/wrappers_pb'
 require 'glazed/proto_json'
-require 'glazed/secret'
+require 'glazed/secrets_resolver'
 require 'glazed/sources'
 require 'glazed/steps'
 require 'glazed/storages'
@@ -30,7 +30,7 @@ RSpec.describe 'plugins' do
 
   it 'builds a registered storage' do
     storage = Class.new(Glazed::Storages::Base) do
-      define_singleton_method(:from_proto) { |settings| new.tap { it.instance_variable_set(:@root, settings.value) } }
+      define_singleton_method(:from_proto) { |settings, context:| new.tap { it.instance_variable_set(:@root, settings.value) } }
       attr_reader :root
     end
     Glazed::Storages.register(settings_class, storage)
@@ -50,7 +50,7 @@ RSpec.describe 'plugins' do
       define_method(:value) { @value }
     end
     Glazed::Secrets.register(settings_class, source)
-    secret = Glazed::Secret.new(load(Glazed::Proto::V1::SecretRef, plugin: plugin))
+    secret = Glazed::SecretsResolver.new.secret(load(Glazed::Proto::V1::SecretRef, plugin: plugin))
     expect(secret.value).to eq('secret-v')
     expect(secret.inspect).to eq('#<Glazed::Secret plugin:google.protobuf.StringValue>')
   end
