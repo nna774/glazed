@@ -20,12 +20,12 @@ module Glazed
     # reloads the inventory.
     class Orchestrate < Base
       desc 'Run the orchestrated workflows for each node as it becomes due, until terminated'
-      option :config, aliases: ['-c'], desc: 'Config file, ProtoJSON of glazed.v1.Config (required)'
+      option :config, aliases: ['-c'], desc: 'Config file, ProtoJSON of glazed.v1.Config; $GLAZED_CONFIG_FILE when omitted'
       option :jobs, aliases: ['-j'], type: :integer, desc: 'Nodes processed in parallel'
 
       # Runs the orchestrator until a signal stops it.
       #
-      # @param config [String, nil] path of the config file
+      # @param config [String, nil] path of the config file; {Base::CONFIG_FILE_ENV} when nil
       # @param jobs [Integer, nil] parallelism overriding the config
       # @param _options [Hash] other options dry-cli passes, unused
       # @return [void]
@@ -33,10 +33,7 @@ module Glazed
       # @raise [Interrupt] when a second TERM or INT interrupts a batch
       #: (?config: String?, ?jobs: Integer?, **untyped _options) -> void
       def call(config: nil, jobs: nil, **_options)
-        unless config
-          err.puts 'glazed orchestrate: --config is required'
-          exit 1
-        end
+        config = config_path(config, 'orchestrate')
 
         settings = load_config(config)
         orchestration = orchestrator_settings(settings, config)

@@ -24,7 +24,7 @@ module Glazed
     class SendSignal < Base
       desc 'Make nodes due soon for glazed orchestrate'
       argument :nodes, type: :array, required: true, desc: 'Names of the nodes'
-      option :config, aliases: ['-c'], desc: 'Config file, ProtoJSON of glazed.v1.Config (required)'
+      option :config, aliases: ['-c'], desc: 'Config file, ProtoJSON of glazed.v1.Config; $GLAZED_CONFIG_FILE when omitted'
       option :workflow, aliases: ['-w'], type: :array, desc: 'Signal only these orchestrated workflows, comma-separated'
       option :source, default: 'manual', desc: 'What sent the signal, recorded as the reason the node is due'
       option :now, type: :boolean, default: false, desc: 'Make the nodes due now, without the debounce delay'
@@ -32,7 +32,7 @@ module Glazed
       # Records the signals.
       #
       # @param nodes [Array<String>] node names
-      # @param config [String, nil] path of the config file
+      # @param config [String, nil] path of the config file; {Base::CONFIG_FILE_ENV} when nil
       # @param workflow [Array<String>, nil] workflows to signal; every orchestrated one when nil
       # @param source [String] what sent the signal
       # @param now [Boolean] whether to skip the debounce delay
@@ -41,10 +41,7 @@ module Glazed
       # @raise [Glazed::Error, Google::Protobuf::ParseError] when the config is invalid, a node is unknown, or the state backend fails
       #: (nodes: Array[String], ?config: String?, ?workflow: Array[String]?, ?source: String, ?now: bool, **untyped _options) -> void
       def call(nodes:, config: nil, workflow: nil, source: 'manual', now: false, **_options)
-        unless config
-          err.puts 'glazed signal: --config is required'
-          exit 1
-        end
+        config = config_path(config, 'signal')
 
         settings = load_config(config)
         orchestration = orchestrator_settings(settings, config)

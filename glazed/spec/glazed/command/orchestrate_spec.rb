@@ -86,6 +86,12 @@ RSpec.describe 'glazed orchestrate and glazed signal' do
     expect(Time.iso8601(out.string.split.last)).to be_within(2).of(Time.now)
   end
 
+  it 'signals with the config named by GLAZED_CONFIG_FILE' do
+    stub_const('ENV', ENV.to_h.merge('GLAZED_CONFIG_FILE' => config))
+    expect(Glazed::Command.start(['signal', '-w', 'backup', 'sw1'], out:, err:)).to eq(0)
+    expect(out.string).to start_with('sw1 backup due at ')
+  end
+
   it 'refuses to signal a workflow not orchestrated' do
     expect { Glazed::Command.start(['signal', '-c', config, '-w', 'nope', 'sw1'], out:, err:) }.to raise_error(Glazed::Error, /not orchestrated workflows: nope/)
   end

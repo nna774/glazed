@@ -18,6 +18,8 @@ module Glazed
     class Base < Dry::CLI::Command
       # Nodes processed in parallel when the config sets none.
       DEFAULT_JOBS = 4 #: Integer
+      # Environment variable naming the config file when --config is omitted.
+      CONFIG_FILE_ENV = 'GLAZED_CONFIG_FILE' #: String
 
       # @return [IO] standard output
       #: () -> IO
@@ -26,6 +28,20 @@ module Glazed
       # @return [IO] standard error
       #: () -> IO
       private def err = instance_variable_get(:@err) || $stderr
+
+      # Exits 1 with a message when neither --config nor {CONFIG_FILE_ENV} names the config file.
+      #
+      # @param config [String, nil] the --config option
+      # @param command [String] command name, for the message
+      # @return [String] path of the config file
+      #: (String? config, String command) -> String
+      private def config_path(config, command)
+        path = config || ENV.fetch(CONFIG_FILE_ENV, '')
+        return path unless path.empty?
+
+        err.puts "glazed #{command}: --config or #{CONFIG_FILE_ENV} is required"
+        exit 1
+      end
 
       # @return [Proc] listener writing each event to standard error as a JSON line
       #: () -> Runner::listener

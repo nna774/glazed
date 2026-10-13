@@ -110,7 +110,7 @@ glazed signal -c CONFIG [-w WORKFLOW,...] [--source SOURCE] [--now] NAME...
 glazed version
 ```
 
-- `-c, --config PATH`: config file, ProtoJSON of `glazed.v1.Config`
+- `-c, --config PATH`: config file, ProtoJSON of `glazed.v1.Config`; the `GLAZED_CONFIG_FILE` environment variable when omitted
 - `-w, --workflow NAME`: workflow to run; optional when the config defines only one
 - `--only NAME,...`: run only for these nodes, comma-separated
 - `-j, --jobs N`: nodes processed in parallel (default: `jobs` in the config, or 4)

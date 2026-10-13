@@ -125,8 +125,19 @@ RSpec.describe 'glazed run' do
   end
 
   it 'exits 1 without a config' do
+    stub_const('ENV', ENV.to_h.except('GLAZED_CONFIG_FILE'))
     expect(Glazed::Command.start(%w[run], out:, err:)).to eq(1)
-    expect(err.string).to include('--config')
+    expect(err.string).to include('--config or GLAZED_CONFIG_FILE is required')
+  end
+
+  it 'reads the config named by GLAZED_CONFIG_FILE' do
+    nodes.pop
+    run_command
+    stub_const('ENV', ENV.to_h.merge('GLAZED_CONFIG_FILE' => path('glazed.json')))
+    out.truncate(0)
+    out.rewind
+    expect(Glazed::Command.start(%w[run], out:, err:)).to eq(0)
+    expect(out.string).to eq("completed 1 of 1 nodes, 0 changed, 0 failed\n")
   end
 end
 
