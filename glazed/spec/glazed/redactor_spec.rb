@@ -69,10 +69,15 @@ RSpec.describe Glazed::Redactor do
       expect(described_class.from_proto(Glazed::Proto::V1::Redaction.new, patterns:).mode).to eq(:remove)
     end
 
-    it 'reads the hmac key from its secret' do
-      redaction = Glazed::Proto::V1::Redaction.new(mode: :MODE_HMAC, hmac_key: {value: 'k'})
+    it 'reads the hmac key from its secret as base64' do
+      redaction = Glazed::Proto::V1::Redaction.new(mode: :MODE_HMAC, hmac_key: {value: ['k'].pack('m0')})
       expect(described_class.from_proto(redaction, patterns:).call(config))
         .to eq(described_class.new(patterns:, mode: :hmac, key: 'k').call(config))
+    end
+
+    it 'rejects an hmac key that is not base64' do
+      redaction = Glazed::Proto::V1::Redaction.new(mode: :MODE_HMAC, hmac_key: {value: 'not base64!'})
+      expect { described_class.from_proto(redaction, patterns:) }.to raise_error(described_class::InvalidConfiguration, /base64/)
     end
   end
 end

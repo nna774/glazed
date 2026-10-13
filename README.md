@@ -162,7 +162,7 @@ For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed
 `workflows` maps names to ordered steps (`glazed.v1.Workflow`). Steps pass named artifacts, each a pointer into a named storage:
 
 - `fetch` (per node): `{"output": "raw", "storage": "raw", "timeout_seconds": 60}` collects the configuration
-- `redact` (per node): `{"input": "raw", "output": "redacted", "storage": "...", "redaction": {...}}` hides secrets. `redaction.mode` is `MODE_REMOVE` (default) or `MODE_HMAC`, which needs `hmac_key`
+- `redact` (per node): `{"input": "raw", "output": "redacted", "storage": "...", "redaction": {...}}` hides secrets. `redaction.mode` is `MODE_REMOVE` (default) or `MODE_HMAC`, which needs `hmac_key` holding the key in base64
 - `publish` (batch): `{"input": "redacted", "storage": "team"}` writes the artifact of every node as one change, such as one commit naming the changed nodes
 - `shell` (per node): `{"run": "sed -e '/^ntp clock-period/d'", "input": "raw", "output": "normalized", "storage": "...", "timeout_seconds": 300}` runs a command with `/bin/sh -c`. The input artifact's content is on stdin and stdout becomes the output artifact, both optional. `GLAZED_STEP`, `GLAZED_NODE_NAME`, `GLAZED_NODE_GROUP`, `GLAZED_NODE_DIALECT`, `GLAZED_NODE_HOST` and `GLAZED_NODE` (the node as ProtoJSON, secrets unresolved) are set, and a non-zero exit fails the node
 - `batch_shell` (batch): `{"run": "bin/notify-changes"}` runs a command once, with the `glazed.v1.BatchState` of every node that got this far (artifacts and their `changed` flags) as ProtoJSON on stdin. A non-zero exit fails the run

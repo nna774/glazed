@@ -49,15 +49,27 @@ module Glazed
     # @param redaction [Proto::V1::Redaction] redaction settings
     # @param patterns [Array<Dialect::SensitivePattern>] where secrets appear
     # @return [Redactor] the redactor
-    # @raise [InvalidConfiguration] when the mode is unknown or HMAC has no key
+    # @raise [InvalidConfiguration] when the mode is unknown, or the HMAC key is missing or not base64
     # @raise [Secret::Unavailable] when the HMAC key cannot be read
     #: (Proto::V1::Redaction redaction, patterns: Array[Dialect::SensitivePattern]) -> Redactor
     def self.from_proto(redaction, patterns:)
       case redaction.mode
       when :MODE_UNSPECIFIED, :MODE_REMOVE then new(patterns:, mode: :remove)
-      when :MODE_HMAC then new(patterns:, mode: :hmac, key: Secret.maybe(redaction.hmac_key)&.value)
+      when :MODE_HMAC then new(patterns:, mode: :hmac, key: hmac_key(redaction))
       else raise InvalidConfiguration, "unknown redaction mode #{redaction.mode.inspect}"
       end
+    end
+
+    # @param redaction [Proto::V1::Redaction] redaction settings
+    # @return [String, nil] the HMAC key, decoded from base64
+    # @raise [InvalidConfiguration] when the key is not base64
+    # @raise [Secret::Unavailable] when the key cannot be read
+    #: (Proto::V1::Redaction redaction) -> String?
+    private_class_method def self.hmac_key(redaction)
+      encoded = Secret.maybe(redaction.hmac_key)&.value or return nil
+      encoded.unpack1('m0')
+    rescue ArgumentError
+      raise InvalidConfiguration, 'hmac_key is not base64'
     end
 
     # @return [Symbol] :remove or :hmac

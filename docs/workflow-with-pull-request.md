@@ -65,7 +65,7 @@ What each step does on every run. Every step runs for every node, but a storage 
 2. `redact` reads that object, replaces each secret located by the dialect with `<secret hmac:…>`, and writes `s3://example-netconf/redacted/core/<node>` the same way. It always redacts again, so a new HMAC key or a fixed dialect pattern reaches the redacted copy even when the device did not change.
 3. `publish` commits the redacted configuration of every node that got this far to `glazed/auto`, sending only files that differ from the branch. The commit message names those nodes, `publish: update sw1`. Nothing is committed when none differ, so the branch only moves when a device changed. Every node is offered on every run, so a change that failed to publish once is published by the next run.
 
-With `MODE_HMAC`, a changed secret still shows up in the diff without being revealed. Keep `GLAZED_HMAC_KEY` stable: a new key changes every digest at once. Use `MODE_REMOVE` to hide secrets entirely.
+With `MODE_HMAC`, a changed secret still shows up in the diff without being revealed. `GLAZED_HMAC_KEY` holds the key in base64, such as the output of `openssl rand -base64 32`. Keep it stable: a new key changes every digest at once. Use `MODE_REMOVE` to hide secrets entirely.
 
 ## Running it continuously
 

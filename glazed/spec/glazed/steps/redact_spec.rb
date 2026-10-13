@@ -36,7 +36,7 @@ RSpec.describe Glazed::Steps::Redact do
   end
 
   it 'uses the configured redaction' do
-    settings.redaction = Glazed::Proto::V1::Redaction.new(mode: :MODE_HMAC, hmac_key: {value: 'k'})
+    settings.redaction = Glazed::Proto::V1::Redaction.new(mode: :MODE_HMAC, hmac_key: {value: 'aw=='})
     expect(context.read(step.call(state_with_raw).artifacts['redacted'])).to match(/<secret hmac:\h{16}>/)
   end
 

@@ -28,6 +28,6 @@ message Redaction {
 
   // Replacement applied to each secret.
   Mode mode = 1 [(buf.validate.field).enum.defined_only = true];
-  // HMAC key, required for MODE_HMAC.
+  // HMAC key in base64, required for MODE_HMAC.
   SecretRef hmac_key = 2;
 }
