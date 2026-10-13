@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package glazed.v1;
 
+import "buf/validate/validate.proto";
 import "glazed/v1/secret.proto";
 import "google/protobuf/any.proto";
 
@@ -13,6 +14,7 @@ option ruby_package = "Glazed::Proto::V1";
 message StorageConfig {
   // Storage implementation and its settings.
   oneof backend {
+    option (buf.validate.oneof).required = true;
     // Local git repository.
     GitStorage git = 1;
     // GitHub repository, written through the API.
@@ -32,7 +34,7 @@ message StorageConfig {
 // use git or S3 storage when history matters.
 message FilesystemStorage {
   // Directory holding the files. It is created when missing.
-  string path = 1;
+  string path = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // Memory of the running process, for content that must not be persisted, such
@@ -43,7 +45,7 @@ message MemoryStorage {}
 // Local git repository, committed to on each write.
 message GitStorage {
   // Path of the working tree. A repository is initialised when missing.
-  string path = 1;
+  string path = 1 [(buf.validate.field).string.min_len = 1];
   // Branch to commit to. "main" is used when empty.
   string branch = 2;
   // Remote name or URL. When set, the branch is pulled before and pushed after each commit.
@@ -57,15 +59,18 @@ message GitStorage {
 // GitHub repository written through the Git Data API, one commit per write.
 message GithubStorage {
   // Repository as "owner/name".
-  string repository = 1;
+  string repository = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"];
   // Branch to commit to. It is created from base_branch when missing.
-  string branch = 2;
+  string branch = 2 [(buf.validate.field).string.min_len = 1];
   // Branch to start a missing branch from. The repository default branch is used when empty.
   string base_branch = 3;
   // Token with contents write permission.
-  SecretRef token = 4;
+  SecretRef token = 4 [(buf.validate.field).required = true];
   // API endpoint. "https://api.github.com" is used when empty.
-  string api_url = 5;
+  string api_url = 5 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string.uri = true
+  ];
   // Commit author name. The token owner is used when empty.
   string author_name = 6;
   // Commit author email. The token owner is used when empty.
@@ -75,7 +80,10 @@ message GithubStorage {
 // Amazon S3 bucket. Enable bucket versioning to keep history.
 message S3Storage {
   // Bucket name.
-  string bucket = 1;
+  string bucket = 1 [(buf.validate.field).string = {
+    min_len: 3
+    max_len: 63
+  }];
   // Prefix prepended to every key, such as "raw/".
   string prefix = 2;
   // Bucket region. The SDK default region is used when empty.
@@ -86,6 +94,7 @@ message S3Storage {
 message Pointer {
   // Storage-specific location.
   oneof location {
+    option (buf.validate.oneof).required = true;
     // File in a git repository.
     GitLocation git = 1;
     // File in a GitHub repository.

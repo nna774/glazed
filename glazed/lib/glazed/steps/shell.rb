@@ -48,13 +48,9 @@ module Glazed
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::ShellStep}
       # @param context [StepContext] named storages
       # @return [Shell] the step
-      # @raise [InvalidStep] when run is missing, or output and storage are not set together
       #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Shell
       def self.from_proto(name, settings, context:)
         shell = Must.be_a(settings, Proto::V1::ShellStep)
-        raise InvalidStep, "#{name}: shell needs run" if shell.run.empty?
-        raise InvalidStep, "#{name}: shell needs both output and storage, or neither" if shell.output.empty? != shell.storage.empty?
-
         new(
           name:, run: shell.run, context:,
           input: shell.input.empty? ? nil : shell.input,

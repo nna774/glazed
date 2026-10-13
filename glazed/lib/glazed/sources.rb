@@ -9,6 +9,7 @@ require 'glazed/must'
 require 'glazed/plugin_registry'
 require 'glazed/proto'
 require 'glazed/sources/base'
+require 'glazed/validation'
 
 module Glazed
   # Namespace of inventory providers, looked up by name.
@@ -51,11 +52,12 @@ module Glazed
     #
     # @param source [Proto::V1::InventorySource] provider settings
     # @return [Base] the provider
-    # @raise [MissingProvider] when no provider is set
+    # @raise [InvalidMessage] when the source breaks the rules of its schema
     # @raise [Finder::NotFound] when the provider is not available
     # @raise [PluginRegistry::UnknownPlugin] when no plugin is registered for the settings type
     #: (Proto::V1::InventorySource source) -> Base
     def self.build(source)
+      Validation.validate!(source)
       provider = source.provider or raise MissingProvider, 'inventory source sets no provider'
       if (packed = source.plugin)
         implementation, settings = PLUGINS.resolve(packed)
@@ -81,13 +83,16 @@ module Glazed
     # @param sources [Array<Proto::V1::InventorySource>] sources in order
     # @return [Array<Proto::V1::Node>] nodes in source order
     # @raise [DuplicateNode] when a node name appears twice
-    # @raise [MissingProvider] when a source names no provider
+    # @raise [Base::InvalidInventory] when a node lacks a name or dialect
+    # @raise [InvalidMessage] when a source breaks the rules of its schema
     #: (Array[Proto::V1::InventorySource] sources) -> Array[Proto::V1::Node]
     def self.nodes(sources)
       origins = {} #: Hash[String, String]
       sources.flat_map do |source|
         provider = build(source)
         provider.nodes.each do |node|
+          raise Base::InvalidInventory, "#{provider.description}: a node has no name" if node.name.empty?
+          raise Base::InvalidInventory, "#{provider.description}: node #{node.name.inspect} has no dialect" if node.dialect.empty?
           if (other = origins[node.name])
             raise DuplicateNode, "node #{node.name.inspect} is defined in both #{other} and #{provider.description}"
           end

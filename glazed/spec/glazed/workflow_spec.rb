@@ -26,10 +26,10 @@ RSpec.describe Glazed::Workflow do
   end
 
   it 'rejects repeated step names' do
-    expect { build(fetch, redact.merge(name: 'fetch')) }.to raise_error(described_class::Invalid, /repeat: fetch/)
+    expect { build(fetch, redact.merge(name: 'fetch')) }.to raise_error(Glazed::InvalidMessage, /step names must be unique/)
   end
 
   it 'rejects an empty workflow' do
-    expect { build }.to raise_error(described_class::Invalid, /no steps/)
+    expect { build }.to raise_error(Glazed::InvalidMessage, /steps/)
   end
 end

@@ -6,6 +6,7 @@
 require 'glazed'
 require 'glazed/proto'
 require 'glazed/steps'
+require 'glazed/validation'
 
 module Glazed
   # Ordered, validated steps built from a {Proto::V1::Workflow}.
@@ -31,11 +32,12 @@ module Glazed
     # @param workflow [Proto::V1::Workflow] workflow definition
     # @param context [StepContext] named storages
     # @return [Workflow] the workflow
+    # @raise [InvalidMessage] when the definition breaks the rules of its schema
     # @raise [Invalid] when steps are wired inconsistently
-    # @raise [Steps::InvalidStep] when a step definition is incomplete
     # @raise [StepContext::UnknownStorage] when a step names an unknown storage
     #: (Proto::V1::Workflow workflow, context: StepContext) -> Workflow
     def self.from_proto(workflow, context:)
+      Validation.validate!(workflow)
       new(steps: workflow.steps.map { Steps.build(it, context:) })
     end
 

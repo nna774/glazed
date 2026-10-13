@@ -9,6 +9,7 @@ require 'glazed/proto'
 require 'glazed/proto_json'
 require 'glazed/sources'
 require 'glazed/sources/base'
+require 'glazed/validation'
 
 module Glazed
   module Sources
@@ -30,9 +31,12 @@ module Glazed
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::InventoryFile}
       # @return [Inline] the provider
       # @raise [Must::Violation] when settings is another message
+      # @raise [InvalidMessage] when the inventory breaks the rules of its schema
       #: (Google::Protobuf::MessageExts settings) -> Inline
       def self.from_proto(settings)
-        new(inventory: Must.be_a(settings, Proto::V1::InventoryFile))
+        inventory = Must.be_a(settings, Proto::V1::InventoryFile)
+        Validation.validate!(inventory, origin: 'inline inventory')
+        new(inventory:)
       end
 
       # @return [Array<Proto::V1::Node>] the nodes with defaults applied

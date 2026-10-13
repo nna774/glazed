@@ -68,12 +68,10 @@ module Glazed
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::GithubStorage}
       # @return [Github] the storage
       # @raise [Must::Violation] when settings is another message
-      # @raise [ArgumentError] when repository, branch or token is missing
+      # @raise [ArgumentError] when the token is missing
       #: (Google::Protobuf::MessageExts settings) -> Github
       def self.from_proto(settings)
         github = Must.be_a(settings, Proto::V1::GithubStorage)
-        raise ArgumentError, 'github storage needs repository and branch' if github.repository.empty? || github.branch.empty?
-
         new(
           repository: github.repository,
           branch: github.branch,

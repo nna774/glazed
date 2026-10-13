@@ -35,12 +35,9 @@ module Glazed
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::FilesystemStorage}
       # @return [Filesystem] the storage
       # @raise [Must::Violation] when settings is another message
-      # @raise [ArgumentError] when the path is missing
       #: (Google::Protobuf::MessageExts settings) -> Filesystem
       def self.from_proto(settings)
         filesystem = Must.be_a(settings, Proto::V1::FilesystemStorage)
-        raise ArgumentError, 'filesystem storage needs a path' if filesystem.path.empty?
-
         new(path: filesystem.path)
       end
 

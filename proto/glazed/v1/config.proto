@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package glazed.v1;
 
+import "buf/validate/validate.proto";
 import "glazed/v1/inventory.proto";
 import "glazed/v1/storage.proto";
 import "glazed/v1/workflow.proto";
@@ -15,12 +16,12 @@ message Config {
   // Sources of nodes. Node names must be unique across all of them.
   repeated InventorySource inventory = 1;
   // Storages by name, referred to by workflow steps.
-  map<string, StorageConfig> storages = 2;
+  map<string, StorageConfig> storages = 2 [(buf.validate.field).map.keys.string.min_len = 1];
   // Workflows by name.
-  map<string, Workflow> workflows = 3;
+  map<string, Workflow> workflows = 3 [(buf.validate.field).map.keys.string.min_len = 1];
   // Nodes processed in parallel by the glazed command. 4 is used when 0.
   uint32 jobs = 4;
   // Ruby features required before the rest of the config is decoded, so that
   // plugin gems register the message types their plugin settings use.
-  repeated string requires = 5;
+  repeated string requires = 5 [(buf.validate.field).repeated.items.string.min_len = 1];
 }

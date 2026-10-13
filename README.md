@@ -113,7 +113,7 @@ The exit status is 0 when every node completed, and 1 when a node failed a step 
 
 ## Configuration
 
-Configuration and inventory files are ProtoJSON of the messages in [`proto/glazed/v1`](proto/glazed/v1), with proto (snake_case) field names. Unknown fields are rejected, and relative paths resolve from the current directory. Secrets (`glazed.v1.SecretRef`) are written as `{"value": "..."}`, `{"env": "NAME"}`, `{"file": "/path"}` or `{"plugin": {...}}` (see [Extending](#extending)), and are resolved only when used.
+Configuration and inventory files are ProtoJSON of the messages in [`proto/glazed/v1`](proto/glazed/v1), with proto (snake_case) field names. Unknown fields are rejected, every message is checked against the `buf.validate` rules in its schema (violations are reported with their field paths, such as `workflows["daily"].steps[0].fetch.storage`), and relative paths resolve from the current directory. Secrets (`glazed.v1.SecretRef`) are written as `{"value": "..."}`, `{"env": "NAME"}`, `{"file": "/path"}` or `{"plugin": {...}}` (see [Extending](#extending)), and are resolved only when used.
 
 ### Inventory
 

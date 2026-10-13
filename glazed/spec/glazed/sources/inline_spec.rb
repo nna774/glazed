@@ -29,7 +29,7 @@ RSpec.describe Glazed::Sources::Inline do
 
   it 'rejects a node without a dialect' do
     expect { nodes(nodes: [{name: 'rt1'}]) }
-      .to raise_error(Glazed::Sources::Base::InvalidInventory, /inline inventory: node "rt1" has no dialect/)
+      .to raise_error(Glazed::InvalidMessage, /inline: every node needs a dialect/)
   end
 
   it 'combines with other sources under the uniqueness check' do

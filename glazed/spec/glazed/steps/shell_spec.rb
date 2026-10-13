@@ -54,8 +54,9 @@ RSpec.describe Glazed::Steps::Shell do
   end
 
   it 'requires run, and output together with storage' do
-    expect { step(input: 'raw') }.to raise_error(Glazed::Steps::InvalidStep, /needs run/)
-    expect { step(run: 'true', output: 'x') }.to raise_error(Glazed::Steps::InvalidStep, /output and storage/)
+    expect { Glazed::Steps.build(Glazed::Proto::V1::Step.new(name: 'x', shell: {input: 'raw'}), context:) }.to raise_error(Glazed::InvalidMessage, /shell.run/)
+    expect { Glazed::Steps.build(Glazed::Proto::V1::Step.new(name: 'x', shell: {run: 'true', output: 'x'}), context:) }
+      .to raise_error(Glazed::InvalidMessage, /output and storage go together/)
   end
 
   it 'takes part in workflow wiring checks' do

@@ -58,14 +58,14 @@ RSpec.describe Glazed::Sources::JsonFiles do
     expect { nodes('a.json') }.to raise_error(described_class::InvalidFile, /a\.json/)
   end
 
-  it 'raises InvalidFile for a node without a dialect' do
+  it 'rejects a node without a dialect, naming the file' do
     write('a.json', nodes: [{name: 'rt1'}])
-    expect { nodes('a.json') }.to raise_error(described_class::InvalidFile, /"rt1" has no dialect/)
+    expect { nodes('a.json') }.to raise_error(Glazed::InvalidMessage, %r{/a\.json: every node needs a dialect})
   end
 
-  it 'raises InvalidFile for a node without a name' do
+  it 'rejects a node without a name' do
     write('a.json', nodes: [{dialect: 'ios'}])
-    expect { nodes('a.json') }.to raise_error(described_class::InvalidFile, /no name/)
+    expect { nodes('a.json') }.to raise_error(Glazed::InvalidMessage, /every node needs a name/)
   end
 
   it 'raises for a missing literal path' do

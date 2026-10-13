@@ -4,10 +4,11 @@
 
 require 'google/protobuf'
 
+require 'buf/validate/validate_pb'
 require 'glazed/v1/secret_pb'
 
 
-descriptor_data = "\n\x19glazed/v1/redaction.proto\x12\tglazed.v1\x1a\x16glazed/v1/secret.proto\"\xa9\x01\n\tRedaction\x12-\n\x04mode\x18\x01 \x01(\x0e\x32\x19.glazed.v1.Redaction.ModeR\x04mode\x12/\n\x08hmac_key\x18\x02 \x01(\x0b\x32\x14.glazed.v1.SecretRefR\x07hmacKey\"<\n\x04Mode\x12\x14\n\x10MODE_UNSPECIFIED\x10\x00\x12\x0f\n\x0bMODE_REMOVE\x10\x01\x12\r\n\tMODE_HMAC\x10\x02\x42\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
+descriptor_data = "\n\x19glazed/v1/redaction.proto\x12\tglazed.v1\x1a\x1b\x62uf/validate/validate.proto\x1a\x16glazed/v1/secret.proto\"\x8e\x02\n\tRedaction\x12\x37\n\x04mode\x18\x01 \x01(\x0e\x32\x19.glazed.v1.Redaction.ModeB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x04mode\x12/\n\x08hmac_key\x18\x02 \x01(\x0b\x32\x14.glazed.v1.SecretRefR\x07hmacKey\"<\n\x04Mode\x12\x14\n\x10MODE_UNSPECIFIED\x10\x00\x12\x0f\n\x0bMODE_REMOVE\x10\x01\x12\r\n\tMODE_HMAC\x10\x02:Y\xbaHV\x1aT\n\x12redaction.hmac_key\x12\x18MODE_HMAC needs hmac_key\x1a$this.mode != 2 || has(this.hmac_key)B\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
 
 pool = ::Google::Protobuf::DescriptorPool.generated_pool
 pool.add_serialized_file(descriptor_data)

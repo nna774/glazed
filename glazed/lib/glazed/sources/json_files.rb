@@ -10,6 +10,7 @@ require 'glazed/proto'
 require 'glazed/proto_json'
 require 'glazed/sources'
 require 'glazed/sources/base'
+require 'glazed/validation'
 
 module Glazed
   module Sources
@@ -80,11 +81,12 @@ module Glazed
 
       # @param path [String] inventory file
       # @return [Array<Proto::V1::Node>] nodes with defaults applied
-      # @raise [InvalidFile] when the file is malformed or a node is incomplete
+      # @raise [InvalidFile] when the file is malformed
+      # @raise [InvalidMessage] when the file breaks the rules of its schema
       #: (String path) -> Array[Proto::V1::Node]
       private def load_file(path)
         json = File.read(path)
-        ProtoJson.load(Proto::V1::InventoryFile, json)
+        Validation.validate!(ProtoJson.load(Proto::V1::InventoryFile, json), origin: path)
         document = JSON.parse(json) #: Hash[String, untyped]
         nodes_from(document, origin: path)
       rescue Google::Protobuf::ParseError, JSON::ParserError => e

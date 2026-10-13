@@ -13,8 +13,8 @@ RSpec.describe Glazed::Storages do
       expect(storage.branch).to eq('b')
     end
 
-    it 'raises MissingBackend for an empty config' do
-      expect { described_class.build(Glazed::Proto::V1::StorageConfig.new) }.to raise_error(described_class::MissingBackend)
+    it 'rejects a config without a backend' do
+      expect { described_class.build(Glazed::Proto::V1::StorageConfig.new) }.to raise_error(Glazed::InvalidMessage, /backend/)
     end
   end
 

@@ -9,6 +9,7 @@ require 'glazed/must'
 require 'glazed/plugin_registry'
 require 'glazed/proto'
 require 'glazed/storages/base'
+require 'glazed/validation'
 
 module Glazed
   # Namespace of storage implementations, looked up by name.
@@ -49,11 +50,12 @@ module Glazed
     #
     # @param config [Proto::V1::StorageConfig] storage settings
     # @return [Base] the storage
-    # @raise [MissingBackend] when no backend is set
+    # @raise [InvalidMessage] when the config breaks the rules of its schema
     # @raise [Finder::NotFound] when the backend is not available
     # @raise [PluginRegistry::UnknownPlugin] when no plugin is registered for the settings type
     #: (Proto::V1::StorageConfig config) -> Base
     def self.build(config)
+      Validation.validate!(config)
       backend = config.backend or raise MissingBackend, 'storage config sets no backend'
       if (packed = config.plugin)
         implementation, settings = PLUGINS.resolve(packed)

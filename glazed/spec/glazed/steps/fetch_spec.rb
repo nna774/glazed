@@ -55,8 +55,8 @@ RSpec.describe Glazed::Steps::Fetch do
   end
 
   it 'rejects a definition without a storage' do
-    expect { described_class.from_proto('fetch', Glazed::Proto::V1::FetchStep.new(output: 'raw'), context:) }
-      .to raise_error(Glazed::Steps::InvalidStep)
+    expect { Glazed::Steps.build(Glazed::Proto::V1::Step.new(name: 'x', fetch: {output: 'raw'}), context:) }
+      .to raise_error(Glazed::InvalidMessage, /fetch.storage/)
   end
 
   it 'rejects an unknown storage' do

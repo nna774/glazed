@@ -6,6 +6,7 @@
 require 'google/protobuf'
 require 'google/protobuf/well_known_types'
 require 'glazed'
+require 'glazed/validation'
 
 module Glazed
   # Implementations of one kind of plugin, keyed by the full name of the
@@ -49,6 +50,7 @@ module Glazed
     # @param any [Google::Protobuf::Any] packed settings
     # @return [Array(Module, Google::Protobuf::MessageExts)] the implementation and the settings message
     # @raise [UnknownPlugin] when no implementation is registered for the settings type
+    # @raise [InvalidMessage] when the settings break the rules of their schema
     #: (Google::Protobuf::Any any) -> [Module[untyped], Google::Protobuf::MessageExts]
     def resolve(any)
       type = any.type_name.to_s
@@ -61,6 +63,7 @@ module Glazed
       settings = settings_class && any.unpack(settings_class)
       raise UnknownPlugin, "cannot unpack #{type} settings" unless settings.is_a?(Google::Protobuf::MessageExts)
 
+      Validation.validate!(settings, origin: type)
       [implementation, settings]
     end
   end

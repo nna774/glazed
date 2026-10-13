@@ -43,12 +43,9 @@ module Glazed
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::S3Storage}
       # @return [S3] the storage
       # @raise [Must::Violation] when settings is another message
-      # @raise [ArgumentError] when the bucket is missing
       #: (Google::Protobuf::MessageExts settings) -> S3
       def self.from_proto(settings)
         s3 = Must.be_a(settings, Proto::V1::S3Storage)
-        raise ArgumentError, 's3 storage needs a bucket' if s3.bucket.empty?
-
         new(bucket: s3.bucket, prefix: s3.prefix, region: s3.region.empty? ? nil : s3.region)
       end
 

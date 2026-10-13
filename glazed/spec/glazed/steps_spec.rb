@@ -13,8 +13,9 @@ RSpec.describe Glazed::Steps do
   end
 
   it 'requires a name and an action' do
-    expect { described_class.build(Glazed::Proto::V1::Step.new(fetch: {}), context:) }.to raise_error(described_class::InvalidStep, /no name/)
-    expect { described_class.build(Glazed::Proto::V1::Step.new(name: 'x'), context:) }.to raise_error(described_class::InvalidStep, /no action/)
+    expect { described_class.build(Glazed::Proto::V1::Step.new(fetch: {output: 'raw', storage: 'vault'}), context:) }
+      .to raise_error(Glazed::InvalidMessage, /name/)
+    expect { described_class.build(Glazed::Proto::V1::Step.new(name: 'x'), context:) }.to raise_error(Glazed::InvalidMessage, /action/)
   end
 
   it 'does not treat the step bases as steps' do

@@ -43,14 +43,9 @@ module Glazed
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::RedactStep}
       # @param context [StepContext] named storages
       # @return [Redact] the step
-      # @raise [InvalidStep] when input, output or storage is missing
       #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Redact
       def self.from_proto(name, settings, context:)
         redact = Must.be_a(settings, Proto::V1::RedactStep)
-        if redact.input.empty? || redact.output.empty? || redact.storage.empty?
-          raise InvalidStep, "#{name}: redact needs input, output and storage"
-        end
-
         new(
           name:, input: redact.input, output: redact.output, storage_name: redact.storage,
           redaction: redact.redaction || Proto::V1::Redaction.new, context:,

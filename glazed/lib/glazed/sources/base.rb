@@ -43,7 +43,7 @@ module Glazed
       # @param document [Hash{String => Object}] the inventory file as decoded JSON
       # @param origin [String] where the document comes from, for error messages
       # @return [Array<Proto::V1::Node>] the nodes
-      # @raise [InvalidInventory] when a node is malformed or lacks a name or dialect
+      # @raise [InvalidInventory] when a node is malformed
       #: (Hash[String, untyped] document, origin: String) -> Array[Proto::V1::Node]
       private def nodes_from(document, origin:)
         defaults = document.fetch('defaults', {}) #: Hash[String, untyped]
@@ -52,11 +52,7 @@ module Glazed
           merged = defaults.merge(attributes) do |key, default, value|
             MAP_FIELDS.include?(key) ? default.merge(value) : value
           end
-          node = ProtoJson.load(Proto::V1::Node, JSON.generate(merged))
-          raise InvalidInventory, "#{origin}: a node has no name" if node.name.empty?
-          raise InvalidInventory, "#{origin}: node #{node.name.inspect} has no dialect" if node.dialect.empty?
-
-          node
+          ProtoJson.load(Proto::V1::Node, JSON.generate(merged))
         rescue Google::Protobuf::ParseError => e
           raise InvalidInventory, "#{origin}: #{e.message}"
         end

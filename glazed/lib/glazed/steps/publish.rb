@@ -41,12 +41,9 @@ module Glazed
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::PublishStep}
       # @param context [StepContext] named storages
       # @return [Publish] the step
-      # @raise [InvalidStep] when input or storage is missing
       #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Publish
       def self.from_proto(name, settings, context:)
         publish = Must.be_a(settings, Proto::V1::PublishStep)
-        raise InvalidStep, "#{name}: publish needs input and storage" if publish.input.empty? || publish.storage.empty?
-
         new(name:, input: publish.input, storage_name: publish.storage, output: publish.output.empty? ? nil : publish.output, context:)
       end
 

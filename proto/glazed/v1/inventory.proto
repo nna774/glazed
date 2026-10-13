@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package glazed.v1;
 
+import "buf/validate/validate.proto";
 import "glazed/v1/secret.proto";
 import "google/protobuf/any.proto";
 
@@ -12,29 +13,55 @@ option ruby_package = "Glazed::Proto::V1";
 // Network device to collect configuration from.
 message Node {
   // Unique node name, also used as its storage key within the group.
-  string name = 1;
+  string name = 1 [(buf.validate.field).string = {
+    pattern: "^[^/]*$"
+    not_in: [
+      ".",
+      ".."
+    ]
+  }];
   // Group of the node, used as a storage key prefix.
-  string group = 2;
+  string group = 2 [(buf.validate.field).string.pattern = "^([^/]+(/[^/]+)*)?$"];
   // Hostname or address to connect to. The name is used when empty.
   string host = 3;
   // Port to connect to. The transport's standard port is used when 0.
-  uint32 port = 4;
+  uint32 port = 4 [(buf.validate.field).uint32.lte = 65535];
   // Dialect name, such as "ios" or "junos".
-  string dialect = 5;
+  string dialect = 5 [(buf.validate.field).string.pattern = "^([a-z][a-z0-9_]*)?$"];
   // Transport name, "ssh" or "telnet". "ssh" is used when empty.
-  string transport = 6;
+  string transport = 6 [(buf.validate.field).string.pattern = "^([a-z][a-z0-9_]*)?$"];
   // Login user name.
   string username = 7;
   // Login password.
   SecretRef password = 8;
   // Dialect-specific parameters that are not secret.
-  map<string, string> params = 9;
+  map<string, string> params = 9 [(buf.validate.field).map.keys.string.min_len = 1];
   // Dialect-specific secrets, such as "enable".
-  map<string, SecretRef> secrets = 10;
+  map<string, SecretRef> secrets = 10 [(buf.validate.field).map.keys.string.min_len = 1];
 }
 
 // Contents of one inventory file.
 message InventoryFile {
+  option (buf.validate.message).cel = {
+    id: "inventory_file.names"
+    message: "every node needs a name"
+    expression: "this.nodes.all(n, n.name != '')"
+  };
+  option (buf.validate.message).cel = {
+    id: "inventory_file.defaults_name"
+    message: "defaults must not set a name"
+    expression: "this.defaults.name == ''"
+  };
+  option (buf.validate.message).cel = {
+    id: "inventory_file.unique_names"
+    message: "node names must be unique"
+    expression: "this.nodes.map(n, n.name).unique()"
+  };
+  option (buf.validate.message).cel = {
+    id: "inventory_file.dialect"
+    message: "every node needs a dialect, from itself or the defaults"
+    expression: "this.defaults.dialect != '' || this.nodes.all(n, n.dialect != '')"
+  };
   // Field values applied to every node in this file unless the node sets them.
   Node defaults = 1;
   // Nodes defined in this file.
@@ -46,6 +73,7 @@ message InventoryFile {
 message InventorySource {
   // Provider and its settings.
   oneof provider {
+    option (buf.validate.oneof).required = true;
     // ProtoJSON files of InventoryFile.
     JsonFilesInventory json_files = 1;
     // Nodes written in the config itself.
@@ -58,5 +86,10 @@ message InventorySource {
 // ProtoJSON files of InventoryFile.
 message JsonFilesInventory {
   // File paths or glob patterns. Relative paths resolve from the current directory.
-  repeated string paths = 1;
+  repeated string paths = 1 [(buf.validate.field).repeated = {
+    min_items: 1
+    items: {
+      string: {min_len: 1}
+    }
+  }];
 }

@@ -26,8 +26,8 @@ RSpec.describe Glazed::Sources do
       expect(provider).to be_a(Glazed::Sources::JsonFiles).and(have_attributes(paths: ['a.json']))
     end
 
-    it 'raises MissingProvider for an empty source' do
-      expect { described_class.build(Glazed::Proto::V1::InventorySource.new) }.to raise_error(described_class::MissingProvider)
+    it 'rejects a source without a provider' do
+      expect { described_class.build(Glazed::Proto::V1::InventorySource.new) }.to raise_error(Glazed::InvalidMessage, /provider/)
     end
   end
 
@@ -45,13 +45,22 @@ RSpec.describe Glazed::Sources do
         .to raise_error(described_class::DuplicateNode, /json_files #{a} and json_files #{b}/)
     end
 
+    it 'rejects a provider node without a dialect' do
+      provider = Class.new(Glazed::Sources::Base) do
+        define_singleton_method(:from_proto) { |_settings| new }
+        define_method(:nodes) { [Glazed::Proto::V1::Node.new(name: 'ext1')] }
+      end
+      stub_const('Glazed::Sources::JsonFiles', provider)
+      expect { described_class.nodes([json_files('unused')]) }.to raise_error(Glazed::Sources::Base::InvalidInventory, /"ext1" has no dialect/)
+    end
+
     it 'reads providers registered outside the core' do
       provider = Class.new(Glazed::Sources::Base) do
         define_singleton_method(:from_proto) { |_settings| new }
         define_method(:nodes) { [Glazed::Proto::V1::Node.new(name: 'ext1', dialect: 'ios')] }
       end
       stub_const('Glazed::Sources::JsonFiles', provider)
-      expect(described_class.nodes([json_files]).map(&:name)).to eq(['ext1'])
+      expect(described_class.nodes([json_files('unused')]).map(&:name)).to eq(['ext1'])
     end
   end
 end

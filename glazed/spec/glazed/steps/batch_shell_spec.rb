@@ -30,6 +30,6 @@ RSpec.describe Glazed::Steps::BatchShell do
   end
 
   it 'requires run' do
-    expect { step }.to raise_error(Glazed::Steps::InvalidStep, /needs run/)
+    expect { Glazed::Steps.build(Glazed::Proto::V1::Step.new(name: 'x', batch_shell: {}), context:) }.to raise_error(Glazed::InvalidMessage, /run/)
   end
 end

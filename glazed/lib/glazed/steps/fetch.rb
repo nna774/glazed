@@ -38,12 +38,9 @@ module Glazed
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::FetchStep}
       # @param context [StepContext] named storages
       # @return [Fetch] the step
-      # @raise [InvalidStep] when output or storage is missing
       #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Fetch
       def self.from_proto(name, settings, context:)
         fetch = Must.be_a(settings, Proto::V1::FetchStep)
-        raise InvalidStep, "#{name}: fetch needs output and storage" if fetch.output.empty? || fetch.storage.empty?
-
         timeout = fetch.timeout_seconds.zero? ? CliSession::DEFAULT_TIMEOUT : fetch.timeout_seconds
         new(name:, output: fetch.output, storage_name: fetch.storage, context:, timeout:)
       end

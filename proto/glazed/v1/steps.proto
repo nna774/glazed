@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package glazed.v1;
 
+import "buf/validate/validate.proto";
 import "glazed/v1/inventory.proto";
 import "glazed/v1/storage.proto";
 
@@ -12,9 +13,9 @@ option ruby_package = "Glazed::Proto::V1";
 // Stored content produced by a step.
 message Artifact {
   // Storage holding the content, by name in Config.storages.
-  string storage = 1;
+  string storage = 1 [(buf.validate.field).string.min_len = 1];
   // Location within that storage.
-  Pointer pointer = 2;
+  Pointer pointer = 2 [(buf.validate.field).required = true];
   // Whether writing it changed the content stored at its key. Steps that move
   // data must not skip work because an upstream artifact is unchanged.
   bool changed = 3;
@@ -23,7 +24,7 @@ message Artifact {
 // A node and the artifacts produced for it so far. Input and output of per-node steps.
 message NodeState {
   // The node.
-  Node node = 1;
+  Node node = 1 [(buf.validate.field).required = true];
   // Artifacts by name.
   map<string, Artifact> artifacts = 2;
 }
