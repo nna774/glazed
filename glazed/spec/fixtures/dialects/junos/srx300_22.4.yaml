@@ -1,4 +1,6 @@
-# From oxidized spec/model/data/junos:srx300_22.4:simulation.yaml (Apache-2.0).
+# From Oxidized (https://github.com/ytti/oxidized) spec/model/data/junos:srx300_22.4:simulation.yaml at d7f51c2,
+# Copyright Oxidized contributors, licensed under the Apache License, Version 2.0.
+# Modified: "secrets" lists strings that must not survive redaction.
 init_prompt: |-
   Last login: Fri Dec  6 11:32:31 2024 from 192.168.1.2\r
   --- JUNOS 22.4R3-S2.11 built 2024-05-10 20:45:39 UTC

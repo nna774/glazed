@@ -1,4 +1,6 @@
-# From oxidized spec/model/data/ios:C9200L-24P-4G_17.09.04a:simulation.yaml (Apache-2.0).
+# From Oxidized (https://github.com/ytti/oxidized) spec/model/data/ios:C9200L-24P-4G_17.09.04a:simulation.yaml at d7f51c2,
+# Copyright Oxidized contributors, licensed under the Apache License, Version 2.0.
+# Modified: "secrets" lists strings that must not survive redaction.
 init_prompt: |-
   
   ### EXAMPLE IOS-XE 17.09.04a config on a C9200L-24P-4G ###

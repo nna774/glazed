@@ -4,7 +4,8 @@
 
 require 'yaml'
 
-# Device capture in oxidized's spec/model/data simulation format: an initial
+# Device capture in Oxidized's spec/model/data simulation format (read the same
+# way as its spec/model/model_helper.rb, Apache License 2.0): an initial
 # prompt and, per command, the raw response including the echoed command and
 # the trailing prompt. Escapes such as \x20 are interpreted.
 class Simulation

@@ -1,4 +1,6 @@
-# From oxidized spec/model/data/ios:C9800-L-F-K9_17.06.05:simulation.yaml (Apache-2.0).
+# From Oxidized (https://github.com/ytti/oxidized) spec/model/data/ios:C9800-L-F-K9_17.06.05:simulation.yaml at d7f51c2,
+# Copyright Oxidized contributors, licensed under the Apache License, Version 2.0.
+# Modified: "secrets" lists strings that must not survive redaction.
 init_prompt: |-
   OXIDIZED-WLC1#
 commands:

@@ -93,3 +93,11 @@ hk fix --all                # autocorrect what can be; `hk install` runs it as a
 ```
 
 After editing `proto/`, run `buf lint && buf generate && bin/tapioca dsl`. Dialect specs replay device sessions in oxidized's simulation format under `glazed/spec/fixtures/dialects`; `GLAZED_UPDATE_GOLDEN=1 bundle exec rspec spec/glazed/dialects` rewrites the expected outputs for review.
+
+## Acknowledgements
+
+glazed builds on [Oxidized](https://github.com/ytti/oxidized). Its dialects for Cisco IOS, Cisco WLC (AireOS), Juniper Junos, NEC IX and AlliedWare Plus are ported from Oxidized's models, and its dialect tests replay device captures from Oxidized's test suite. Thanks to Saku Ytti, Samer Abdel-Hafez and all Oxidized contributors. See [NOTICE](NOTICE) for details.
+
+## License
+
+Apache License, Version 2.0. See [LICENSE.txt](LICENSE.txt) and [NOTICE](NOTICE).

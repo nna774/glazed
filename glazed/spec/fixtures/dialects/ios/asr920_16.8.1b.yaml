@@ -1,4 +1,5 @@
-# From oxidized spec/model/data/ios:asr920_16.8.1b:simulation.yaml (Apache-2.0).
+# From Oxidized (https://github.com/ytti/oxidized) spec/model/data/ios:asr920_16.8.1b:simulation.yaml at d7f51c2,
+# Copyright Oxidized contributors, licensed under the Apache License, Version 2.0.
 init_prompt: |-
   
   *******************************************************************************

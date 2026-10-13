@@ -1,0 +1,21 @@
+glazed
+Copyright 2025-2026 Sorah Fukumori
+
+This product includes software derived from Oxidized
+(https://github.com/ytti/oxidized), licensed under the Apache License,
+Version 2.0:
+
+  Copyright 2013-2015 Saku Ytti <saku@ytti.fi>
+  Copyright 2013-2015 Samer Abdel-Hafez <sam@arahant.net>
+  and Oxidized contributors
+
+Derived from Oxidized as of commit d7f51c2, and modified for glazed:
+
+- glazed/lib/glazed/dialects/{awplus,ios,junos,nec_ix,wlc}.rb
+  Prompts, command sequences, output cleanup and secret patterns ported
+  from lib/oxidized/model/{awplus,ios,junos,necix,aireos}.rb.
+- glazed/spec/fixtures/dialects/ios/*.yaml, glazed/spec/fixtures/dialects/junos/*.yaml
+  Device simulations from spec/model/data, and the outputs collected
+  from them (*.collected.txt, *.redacted.txt).
+- glazed/spec/support/simulation.rb
+  Reads Oxidized's device simulation format (spec/model/model_helper.rb).
