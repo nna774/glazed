@@ -8,15 +8,15 @@
 class Glazed::Proto::V1::InventorySource < Google::Protobuf::AbstractMessage
   sig do
     params(
-      embedded: T.nilable(Glazed::Proto::V1::InventoryFile),
+      inline: T.nilable(Glazed::Proto::V1::InventoryFile),
       json_files: T.nilable(Glazed::Proto::V1::JsonFilesInventory),
       plugin: T.nilable(Google::Protobuf::Any)
     ).void
   end
-  def initialize(embedded: nil, json_files: nil, plugin: nil); end
+  def initialize(inline: nil, json_files: nil, plugin: nil); end
 
   sig { void }
-  def clear_embedded; end
+  def clear_inline; end
 
   sig { void }
   def clear_json_files; end
@@ -24,20 +24,20 @@ class Glazed::Proto::V1::InventorySource < Google::Protobuf::AbstractMessage
   sig { void }
   def clear_plugin; end
 
-  sig { returns(T.nilable(Glazed::Proto::V1::InventoryFile)) }
-  def embedded; end
-
-  sig { params(value: T.nilable(Glazed::Proto::V1::InventoryFile)).void }
-  def embedded=(value); end
-
   sig { returns(Object) }
-  def has_embedded?; end
+  def has_inline?; end
 
   sig { returns(Object) }
   def has_json_files?; end
 
   sig { returns(Object) }
   def has_plugin?; end
+
+  sig { returns(T.nilable(Glazed::Proto::V1::InventoryFile)) }
+  def inline; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::InventoryFile)).void }
+  def inline=(value); end
 
   sig { returns(T.nilable(Glazed::Proto::V1::JsonFilesInventory)) }
   def json_files; end

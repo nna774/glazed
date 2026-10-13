@@ -186,7 +186,7 @@ RSpec.describe 'glazed run with plugins' do
     config = File.join(@dir, 'glazed.json')
     File.write(config, JSON.generate(
       requires:,
-      inventory: [{embedded: {nodes: []}}],
+      inventory: [{inline: {nodes: []}}],
       workflows: {hooks: {steps: [{name: 'mark', plugin: {'@type' => "type.googleapis.com/#{type}", 'text' => 'hello'}}]}},
     ))
     Glazed::Command.start(['run', '-c', config], out: StringIO.new, err: StringIO.new)

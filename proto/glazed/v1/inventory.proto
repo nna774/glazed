@@ -49,7 +49,7 @@ message InventorySource {
     // ProtoJSON files of InventoryFile.
     JsonFilesInventory json_files = 1;
     // Nodes written in the config itself.
-    InventoryFile embedded = 2;
+    InventoryFile inline = 2;
     // Provider implemented outside glazed, selected by the settings message type.
     google.protobuf.Any plugin = 3;
   }

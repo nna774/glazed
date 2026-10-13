@@ -4,10 +4,10 @@
 
 require 'json'
 require 'glazed/sources'
-require 'glazed/sources/embedded'
+require 'glazed/sources/inline'
 
-RSpec.describe Glazed::Sources::Embedded do
-  def source(document) = Glazed::ProtoJson.load(Glazed::Proto::V1::InventorySource, JSON.generate(embedded: document))
+RSpec.describe Glazed::Sources::Inline do
+  def source(document) = Glazed::ProtoJson.load(Glazed::Proto::V1::InventorySource, JSON.generate(inline: document))
 
   def nodes(document) = Glazed::Sources.nodes([source(document)])
 
@@ -29,11 +29,11 @@ RSpec.describe Glazed::Sources::Embedded do
 
   it 'rejects a node without a dialect' do
     expect { nodes(nodes: [{name: 'rt1'}]) }
-      .to raise_error(Glazed::Sources::Base::InvalidInventory, /embedded inventory: node "rt1" has no dialect/)
+      .to raise_error(Glazed::Sources::Base::InvalidInventory, /inline inventory: node "rt1" has no dialect/)
   end
 
   it 'combines with other sources under the uniqueness check' do
     expect { Glazed::Sources.nodes([source(nodes: [{name: 'rt1', dialect: 'ios'}])] * 2) }
-      .to raise_error(Glazed::Sources::DuplicateNode, /embedded inventory and embedded inventory/)
+      .to raise_error(Glazed::Sources::DuplicateNode, /inline inventory and inline inventory/)
   end
 end

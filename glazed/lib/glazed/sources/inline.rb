@@ -16,8 +16,8 @@ module Glazed
     # in one file. Defaults apply as in {JsonFiles}.
     #
     # @example Inventory source
-    #   {"embedded": {"defaults": {"dialect": "ios"}, "nodes": [{"name": "rt1"}]}}
-    class Embedded < Base
+    #   {"inline": {"defaults": {"dialect": "ios"}, "nodes": [{"name": "rt1"}]}}
+    class Inline < Base
       # @param inventory [Proto::V1::InventoryFile] nodes and their defaults
       #: (inventory: Proto::V1::InventoryFile) -> void
       def initialize(inventory:)
@@ -25,12 +25,12 @@ module Glazed
         @inventory = inventory #: Proto::V1::InventoryFile
       end
 
-      # Builds a provider from an embedded {Proto::V1::InventoryFile}.
+      # Builds a provider from an inline {Proto::V1::InventoryFile}.
       #
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::InventoryFile}
-      # @return [Embedded] the provider
+      # @return [Inline] the provider
       # @raise [Must::Violation] when settings is another message
-      #: (Google::Protobuf::MessageExts settings) -> Embedded
+      #: (Google::Protobuf::MessageExts settings) -> Inline
       def self.from_proto(settings)
         new(inventory: Must.be_a(settings, Proto::V1::InventoryFile))
       end
@@ -46,7 +46,7 @@ module Glazed
 
       # @return [String] where the nodes come from
       #: () -> String
-      def description = 'embedded inventory'
+      def description = 'inline inventory'
     end
   end
 end

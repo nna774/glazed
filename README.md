@@ -120,7 +120,7 @@ Configuration and inventory files are ProtoJSON of the messages in [`proto/glaze
 `inventory` lists sources of nodes, and node names must be unique across all of them:
 
 - `json_files`: `{"paths": ["inventory/*.json"]}` reads files of `glazed.v1.InventoryFile`, globs allowed
-- `embedded`: `{"defaults": {...}, "nodes": [...]}` is a `glazed.v1.InventoryFile` written in the config itself, to keep everything in one file
+- `inline`: `{"defaults": {...}, "nodes": [...]}` is a `glazed.v1.InventoryFile` written in the config itself, to keep everything in one file
 - `plugin`: a provider from a plugin gem, see [Extending](#extending)
 
 In both, `defaults` fill the fields each node leaves unset, with `params` and `secrets` merged key by key. Each node (`glazed.v1.Node`) has:
