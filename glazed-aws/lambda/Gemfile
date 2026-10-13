@@ -1,0 +1,13 @@
+# frozen_string_literal: true
+
+# SPDX-License-Identifier: Apache-2.0
+
+# Gems of the Lambda container image, built from this repository (see Dockerfile).
+
+source 'https://rubygems.org'
+
+root = File.join('..', '..')
+
+gem 'glazed', path: File.join(root, 'glazed')
+gem 'glazed-aws', path: File.join(root, 'glazed-aws')
+gem 'glazed-oxidized', path: File.join(root, 'glazed-oxidized')

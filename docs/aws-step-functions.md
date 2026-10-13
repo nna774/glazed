@@ -63,10 +63,17 @@ Until the next execution starts, nothing wakes for due nodes. Any signal starts 
 
 ### Lambda function
 
-The function runs on the Ruby 4.0 runtime, from a zip with vendored gems or from a container image, with `glazed`, `glazed-aws` and any plugin gems:
+The prebuilt container image `ghcr.io/sorah/glazed-lambda` holds glazed, glazed-aws and glazed-oxidized with Oxidized's models; see [glazed-aws/lambda](../glazed-aws/lambda/README.md). Build an image from it that adds the config at `/var/task/glazed.json`:
 
-- **Handler:** `glazed/aws/lambda.Glazed::Aws::Lambda.handler`
-- **`GLAZED_CONFIG_FILE`:** the config file, bundled with the function.
+```dockerfile
+FROM ghcr.io/sorah/glazed-lambda:2026.10.14.01
+COPY glazed.json /var/task/glazed.json
+```
+
+Lambda runs images from Amazon ECR only, so push this image to an ECR repository. Alternatively, the function can run on the Ruby 4.0 runtime from a zip with vendored gems:
+
+- **Handler:** `glazed/aws/lambda.Glazed::Aws::Lambda.handler`, or `glazed_lambda_entrypoint.Glazed::Aws::Lambda.handler` in the image
+- **`GLAZED_CONFIG_FILE`:** the config file, bundled with the function. The image sets it to `/var/task/glazed.json`.
 - **Secrets:** keep them in Parameter Store as SecureString parameters and refer to them as `{"ssm": {"name": "/glazed/backup/password"}}`, rather than in the function's environment variables, which anyone allowed `lambda:GetFunctionConfiguration` can read. A warm function reuses a fetched value for `cache_seconds` (default 300), so a rotated value is picked up within that time and without a deploy.
 - **Timeout:** enough for the slowest node of the slowest step. Each invocation runs one step for one node, or one batch step.
 - **Network:** reach the devices, for example by placing the function in a VPC.

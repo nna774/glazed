@@ -1,0 +1,14 @@
+.bundle/
+.git/
+.ruby-lsp/
+.yardoc
+_yardoc/
+coverage/
+doc/
+pkg/
+spec/reports/
+tmp/
+vendor/
+
+# rspec failure tracking
+.rspec_status

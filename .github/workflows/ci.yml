@@ -13,3 +13,14 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/_test.yml # zizmor: ignore[self-repository]
+
+  lambda-image:
+    needs: [test]
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/_lambda-image.yml # zizmor: ignore[self-repository]
+    with:
+      tags: "${{ github.sha }},main"
+      cache: true
