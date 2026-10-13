@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 require 'aws-sdk-s3'
+require 'dry/cli'
 require 'google/protobuf'
 require 'google/protobuf/descriptor_pb'
 require 'google/protobuf/well_known_types'

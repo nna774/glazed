@@ -3,23 +3,20 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
-require 'optparse'
+require 'dry/cli'
 require 'glazed'
-require 'glazed/version'
+require 'glazed/command/run'
+require 'glazed/command/version'
 
 module Glazed
-  # Entry point of the glazed executable.
+  # Commands of the glazed executable.
   module Command
-    # Usage shown for unknown or missing subcommands.
-    USAGE = <<~TEXT #: String
-      Usage: glazed <command> [options]
+    extend Dry::CLI::Registry
 
-      Commands:
-        run      Collect configuration from every node, store it raw and publish it redacted
-        version  Print the version
-    TEXT
+    register 'run', Run
+    register 'version', Version, aliases: ['--version']
 
-    # Runs a subcommand.
+    # Runs a command line.
     #
     # @param argv [Array<String>] command line arguments
     # @param out [IO] standard output
@@ -27,21 +24,10 @@ module Glazed
     # @return [Integer] exit status
     #: (Array[String] argv, ?out: IO, ?err: IO) -> Integer
     def self.start(argv, out: $stdout, err: $stderr)
-      command, *args = argv
-      case command
-      when 'run'
-        require 'glazed/command/run'
-        Run.parse(args).call(out:, err:)
-      when 'version'
-        out.puts Glazed::VERSION
-        0
-      else
-        err.puts USAGE
-        2
-      end
-    rescue OptionParser::ParseError => e
-      err.puts e.message
-      2
+      Dry::CLI.new(self).call(arguments: argv, out:, err:)
+      0
+    rescue SystemExit => e
+      e.status
     end
   end
 end

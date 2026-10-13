@@ -100,16 +100,16 @@ Each node and step logs one JSON line on stderr, and the run ends with a summary
 ## Usage
 
 ```
-glazed run -c CONFIG [-w WORKFLOW] [--only NAME]... [--jobs N]
+glazed run -c CONFIG [-w WORKFLOW] [--only NAME,...] [-j N]
 glazed version
 ```
 
 - `-c, --config PATH`: config file, ProtoJSON of `glazed.v1.Config`
 - `-w, --workflow NAME`: workflow to run; optional when the config defines only one
-- `--only NAME`: run only for this node; repeatable
+- `--only NAME,...`: run only for these nodes, comma-separated
 - `-j, --jobs N`: nodes processed in parallel (default: `jobs` in the config, or 4)
 
-The exit status is 0 when every node completed, 1 when a node failed a step (the other nodes still complete), and 2 for invalid arguments. A failure of a batch step such as `publish` aborts the run.
+The exit status is 0 when every node completed, and 1 when a node failed a step (the other nodes still complete) or the arguments are invalid. Invalid configuration and failures of a batch step such as `publish` abort the run with an error. `glazed COMMAND --help` describes each command.
 
 ## Configuration
 

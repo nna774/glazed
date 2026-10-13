@@ -123,8 +123,8 @@ RSpec.describe 'glazed run' do
     expect(File.exist?(path('team'))).to be(false)
   end
 
-  it 'exits 2 without a config' do
-    expect(Glazed::Command.start(%w[run], out:, err:)).to eq(2)
+  it 'exits 1 without a config' do
+    expect(Glazed::Command.start(%w[run], out:, err:)).to eq(1)
     expect(err.string).to include('--config')
   end
 end
@@ -167,8 +167,8 @@ RSpec.describe Glazed::Command do
 
   it 'prints usage for an unknown command' do
     err = StringIO.new
-    expect(described_class.start(['nope'], err:)).to eq(2)
-    expect(err.string).to include('Usage: glazed')
+    expect(described_class.start(['nope'], err:)).to eq(1)
+    expect(err.string).to include('# Run a workflow', '# Print the version')
   end
 end
 
