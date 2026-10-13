@@ -65,14 +65,14 @@ Each workflow keeps its own due dates. Nodes of a workflow due at the same time 
 ## Signals
 
 ```
-glazed signal -c glazed.json [-w WORKFLOW,...] [--source SOURCE] [--now] NAME...
+glazed signal -c glazed.json [-w WORKFLOW,...] [--source SOURCE] [--now] (NAME... | --all)
 ```
 
-`glazed signal` records the signal in the state for every orchestrated workflow, or those given with `-w`, and prints when each node is due in each; the orchestrator does not need to be reachable. `--source` is recorded as the reason the node is due (default `manual`), and `--now` skips the debounce delay.
+`glazed signal` records the signal in the state for every orchestrated workflow, or those given with `-w`, and prints when each node is due in each; the orchestrator does not need to be reachable. `--all` signals every node in the inventory instead of the named ones. `--source` is recorded as the reason the node is due (default `manual`), and `--now` skips the debounce delay.
 
 Signals are debounced on the trailing edge: with each workflow's `debounce`, each one makes the node due `delay_seconds` after it, but no later than `max_wait_seconds` after the first signal not yet followed by a run. A burst of syslog messages during a configuration session therefore produces one run after the session goes quiet, and a session that never goes quiet still runs every `max_wait_seconds`. A scheduled run due earlier is kept. A signal received while the node is running makes it due again after the run.
 
-Other programs, such as a syslog or SNMP trap receiver, can send signals by running `glazed signal`, or from Ruby with `Glazed::Orchestrator.signal`, which takes `glazed.v1.Signal` messages.
+Other programs, such as a syslog or SNMP trap receiver, can send signals by running `glazed signal`, or from Ruby with `Glazed::Coordinator#signal`, which takes `glazed.v1.Signal` messages. A signal names one `node` or sets `all_nodes`, and may list the `workflows` it applies to.
 
 ## Status
 

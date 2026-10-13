@@ -106,7 +106,7 @@ Each node and step logs one JSON line on stderr, and the run ends with a summary
 ```
 glazed run -c CONFIG [-w WORKFLOW] [--only NAME,...] [-j N]
 glazed orchestrate -c CONFIG [-j N]
-glazed signal -c CONFIG [-w WORKFLOW,...] [--source SOURCE] [--now] NAME...
+glazed signal -c CONFIG [-w WORKFLOW,...] [--source SOURCE] [--now] (NAME... | --all)
 glazed status -c CONFIG [-w WORKFLOW,...] [--only NAME,...] [--failing] [--json]
 glazed version
 ```

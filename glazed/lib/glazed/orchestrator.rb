@@ -44,8 +44,11 @@ module Glazed
     # @param debounce [Proto::V1::Debounce, nil] the debounce settings
     # @param now [Time] current time, used for signals without a reception time
     # @return [Hash{String => Proto::V1::NodeSchedule}] the resulting records, by node name
+    # @raise [ArgumentError] for a signal of every node, which {Coordinator#signal} expands
     #: (backend: StateBackends::Base, workflow: String, signals: Array[Proto::V1::Signal], debounce: Proto::V1::Debounce?, ?now: Time) -> Hash[String, Proto::V1::NodeSchedule]
     def self.signal(backend:, workflow:, signals:, debounce:, now: Time.now)
+      raise ArgumentError, 'expand all_nodes signals with Coordinator#signal' if signals.any?(&:all_nodes)
+
       by_node = signals.group_by(&:node)
       backend.update_all(workflow, by_node.keys) do |node, record|
         by_node.fetch(node).inject(record) { |current, signal| Policy.signal(current, signal, workflow:, now:, debounce:) }

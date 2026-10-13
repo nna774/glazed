@@ -8,13 +8,24 @@
 class Glazed::Proto::V1::Signal < Google::Protobuf::AbstractMessage
   sig do
     params(
+      all_nodes: T.nilable(T::Boolean),
       immediate: T.nilable(T::Boolean),
       node: T.nilable(String),
       received_at: T.nilable(Google::Protobuf::Timestamp),
-      source: T.nilable(String)
+      source: T.nilable(String),
+      workflows: T.nilable(T::Array[String])
     ).void
   end
-  def initialize(immediate: nil, node: nil, received_at: nil, source: nil); end
+  def initialize(all_nodes: nil, immediate: nil, node: nil, received_at: nil, source: nil, workflows: T.unsafe(nil)); end
+
+  sig { returns(T::Boolean) }
+  def all_nodes; end
+
+  sig { params(value: T::Boolean).void }
+  def all_nodes=(value); end
+
+  sig { void }
+  def clear_all_nodes; end
 
   sig { void }
   def clear_immediate; end
@@ -27,6 +38,9 @@ class Glazed::Proto::V1::Signal < Google::Protobuf::AbstractMessage
 
   sig { void }
   def clear_source; end
+
+  sig { void }
+  def clear_workflows; end
 
   sig { returns(Object) }
   def has_received_at?; end
@@ -54,4 +68,10 @@ class Glazed::Proto::V1::Signal < Google::Protobuf::AbstractMessage
 
   sig { params(value: String).void }
   def source=(value); end
+
+  sig { returns(Google::Protobuf::RepeatedField[String]) }
+  def workflows; end
+
+  sig { params(value: Google::Protobuf::RepeatedField[String]).void }
+  def workflows=(value); end
 end

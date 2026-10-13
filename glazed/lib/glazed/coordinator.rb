@@ -90,6 +90,42 @@ module Glazed
       end
     end
 
+    # Applies signals with each workflow's debounce, one change per workflow.
+    # Signals naming a node or workflow unknown here are reported and skipped.
+    #
+    # @param signals [Array<Proto::V1::Signal>] the signals
+    # @param nodes [Array<String>] names of every node in the inventory, which all_nodes signals stand for
+    # @return [Hash{String => Hash{String => Proto::V1::NodeSchedule}}] the resulting records, by workflow and node name
+    #: (Array[Proto::V1::Signal] signals, nodes: Array[String]) -> Hash[String, Hash[String, Proto::V1::NodeSchedule]]
+    def signal(signals, nodes:)
+      now = @clock.call
+      pending = {} #: Hash[String, Hash[String, Array[Proto::V1::Signal]]]
+      signals.each do |signal|
+        targets = signal.all_nodes ? nodes : [signal.node]
+        unknown_nodes = targets - nodes
+        targets -= unknown_nodes
+        notify(level: 'warn', message: 'signal for unknown nodes skipped', source: signal.source, nodes: unknown_nodes) unless unknown_nodes.empty?
+
+        chosen = signal.workflows.empty? ? workflows : signal.workflows.to_a
+        unknown_workflows = chosen - workflows
+        unless unknown_workflows.empty?
+          notify(level: 'warn', message: 'signal for workflows not orchestrated skipped', source: signal.source, workflows: unknown_workflows)
+        end
+
+        (chosen - unknown_workflows).product(targets).each do |workflow, node|
+          ((pending[workflow] ||= {})[node] ||= []) << for_node(signal, node)
+        end
+      end
+
+      pending.to_h do |workflow, by_node|
+        debounce = orchestration(workflow).debounce
+        records = @backend.update_all(workflow, by_node.keys) do |node, record|
+          by_node.fetch(node).inject(record) { |current, signal| Orchestrator::Policy.signal(current, signal, workflow:, now:, debounce:) }
+        end
+        [workflow, records]
+      end
+    end
+
     # Leases due nodes of a workflow, at most the workflow's batch size.
     #
     # @param workflow [String] workflow name
@@ -151,6 +187,19 @@ module Glazed
         end
       end
       times.min
+    end
+
+    # @param signal [Proto::V1::Signal] a signal for one node or every node
+    # @param node [String] node name
+    # @return [Proto::V1::Signal] the signal for that node alone
+    #: (Proto::V1::Signal signal, String node) -> Proto::V1::Signal
+    private def for_node(signal, node)
+      return signal unless signal.all_nodes
+
+      signal.dup.tap do |copy|
+        copy.node = node
+        copy.all_nodes = false
+      end
     end
 
     # @param event [Hash{Symbol => String, Integer, Boolean, Array<String>, nil}] event fields

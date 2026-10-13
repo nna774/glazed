@@ -41,6 +41,32 @@ RSpec.describe Glazed::Coordinator do
     end
   end
 
+  describe '#signal' do
+    let(:settings) do
+      Glazed::Proto::V1::Orchestrator.new(workflows: {'backup' => {debounce: {delay_seconds: 60}}, 'audit' => {debounce: {delay_seconds: 120}}})
+    end
+
+    def signal(**fields) = Glazed::Proto::V1::Signal.new(source: 'syslog', **fields)
+
+    it 'applies a signal to every workflow with its debounce' do
+      result = coordinator.signal([signal(node: 'rt1')], nodes: %w[rt1 rt2])
+      expect(result.transform_values { |records| records.transform_values { it.due_at.to_time } })
+        .to eq('backup' => {'rt1' => t0 + 60}, 'audit' => {'rt1' => t0 + 120})
+    end
+
+    it 'expands a signal of every node to the chosen workflows' do
+      result = coordinator.signal([signal(all_nodes: true, workflows: ['audit'], immediate: true)], nodes: %w[rt1 rt2])
+      expect(result.keys).to eq(['audit'])
+      expect(backend.list('audit').map { [it.node, it.due_at.to_time, it.due_reason] }).to eq([['rt1', t0, 'syslog'], ['rt2', t0, 'syslog']])
+    end
+
+    it 'skips unknown nodes and workflows' do
+      expect(coordinator.signal([signal(node: 'nope'), signal(node: 'rt1', workflows: ['gone'])], nodes: ['rt1'])).to be_empty
+      expect(events).to contain_exactly(include(message: 'signal for unknown nodes skipped', nodes: ['nope']),
+        include(message: 'signal for workflows not orchestrated skipped', workflows: ['gone']))
+    end
+  end
+
   describe '#claim' do
     it 'leases due nodes up to the batch size' do
       coordinator.sync_inventory(%w[rt1 rt2 rt3])

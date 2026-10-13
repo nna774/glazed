@@ -58,14 +58,24 @@ message Debounce {
   uint32 max_wait_seconds = 2;
 }
 
-// Request to run a node soon, such as after a configuration change.
+// Request to run a node, or every node, soon, such as after a configuration
+// change or at a scheduled time.
 message Signal {
+  option (buf.validate.message).cel = {
+    id: "signal.target"
+    message: "set either node or all_nodes"
+    expression: "(this.node != '') != this.all_nodes"
+  };
   // Name of the node.
-  string node = 1 [(buf.validate.field).string.min_len = 1];
+  string node = 1;
   // What sent the signal, such as "manual" or "syslog".
   string source = 2 [(buf.validate.field).string.min_len = 1];
   // When the signal was received. The current time is used when unset.
   google.protobuf.Timestamp received_at = 3;
   // Run without waiting for the debounce delay.
   bool immediate = 4;
+  // Signal every node in the inventory instead of one.
+  bool all_nodes = 5;
+  // Orchestrated workflows to signal, by name. Every one when empty.
+  repeated string workflows = 6 [(buf.validate.field).repeated.items.string.min_len = 1];
 }
