@@ -5,7 +5,9 @@
 
 require 'dry/cli'
 require 'glazed'
+require 'glazed/command/orchestrate'
 require 'glazed/command/run'
+require 'glazed/command/send_signal'
 require 'glazed/command/version'
 
 module Glazed
@@ -13,7 +15,9 @@ module Glazed
   module Command
     extend Dry::CLI::Registry
 
+    register 'orchestrate', Orchestrate
     register 'run', Run
+    register 'signal', SendSignal
     register 'version', Version, aliases: ['--version']
 
     # Runs a command line.

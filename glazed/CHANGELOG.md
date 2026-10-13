@@ -11,3 +11,6 @@ Initial release.
 - Inventory from JSON files, the config itself, or a command printing it, through pluggable inventory providers
 - Workflows of `fetch`, `redact` and `publish` steps passing artifacts between named storages, defined as protobuf messages (`glazed.v1`) so external orchestrators can run them
 - `glazed run` command, running a workflow in-process
+- `glazed orchestrate` command, running workflows for each node on their own intervals and after signals with trailing debounce, with state in a pluggable state backend ([docs/orchestrator.md](../docs/orchestrator.md))
+- `glazed signal` command, making nodes due soon from scripts or notification receivers
+- `sqlite` state backend, kept in a local file or in any storage supporting conditional writes (`filesystem`, `memory`, glazed-aws's `s3`)

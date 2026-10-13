@@ -19,5 +19,6 @@ end
 # aws-sdk-s3 creates error classes for response codes on first reference.
 
 class Aws::S3::Errors::NotFound < Aws::S3::Errors::ServiceError; end
+class Aws::S3::Errors::NoSuchKey < Aws::S3::Errors::ServiceError; end
 class Aws::S3::Errors::PreconditionFailed < Aws::S3::Errors::ServiceError; end
 class Aws::S3::Errors::ConditionalRequestConflict < Aws::S3::Errors::ServiceError; end

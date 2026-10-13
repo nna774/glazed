@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package glazed.v1;
+
+import "buf/validate/validate.proto";
+import "glazed/v1/state.proto";
+import "google/protobuf/timestamp.proto";
+
+option ruby_package = "Glazed::Proto::V1";
+
+// Settings of `glazed orchestrate`, which runs workflows for each node when
+// the node is due. A node becomes due on a workflow's schedule, or after a signal.
+message Orchestrator {
+  // Where due dates and run results of every workflow are kept.
+  StateBackendConfig state = 1 [(buf.validate.field).required = true];
+  // Orchestrated workflows, by name in Config.workflows.
+  map<string, Orchestration> workflows = 2 [
+    (buf.validate.field).map.min_pairs = 1,
+    (buf.validate.field).map.keys.string.min_len = 1
+  ];
+  // Seconds between checks of the state backend for due nodes. 30 is used when 0.
+  uint32 poll_seconds = 3;
+  // Seconds between reloads of the inventory. 300 is used when 0.
+  uint32 inventory_refresh_seconds = 4;
+}
+
+// How one workflow is orchestrated.
+message Orchestration {
+  // When nodes run without a signal.
+  Schedule schedule = 1;
+  // How signals are coalesced.
+  Debounce debounce = 2;
+  // Nodes run together at most. Unlimited when 0.
+  uint32 batch_size = 3;
+  // Seconds a node stays claimed by an orchestrator, after which another one
+  // may run it. Must exceed the time a batch takes. 3600 is used when 0.
+  uint32 lease_seconds = 4;
+}
+
+// Interval schedule. A node is due again a fixed time after its last run finished.
+message Schedule {
+  // Seconds after a successful run. 3600 is used when 0.
+  uint32 interval_seconds = 1;
+  // Seconds after a failed run. interval_seconds is used when 0.
+  uint32 retry_interval_seconds = 2;
+  // Up to this many seconds are added at random, to spread nodes over time.
+  uint32 jitter_seconds = 3;
+}
+
+// Trailing debounce. Each signal delays the run by delay_seconds, but no more
+// than max_wait_seconds after the first signal not yet followed by a run.
+message Debounce {
+  // Seconds to wait for further signals. 60 is used when 0.
+  uint32 delay_seconds = 1;
+  // Seconds after the first signal by which the node runs. 600 is used when 0.
+  uint32 max_wait_seconds = 2;
+}
+
+// Request to run a node soon, such as after a configuration change.
+message Signal {
+  // Name of the node.
+  string node = 1 [(buf.validate.field).string.min_len = 1];
+  // What sent the signal, such as "manual" or "syslog".
+  string source = 2 [(buf.validate.field).string.min_len = 1];
+  // When the signal was received. The current time is used when unset.
+  google.protobuf.Timestamp received_at = 3;
+  // Run without waiting for the debounce delay.
+  bool immediate = 4;
+}

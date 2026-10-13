@@ -39,4 +39,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "net-ssh"
   spec.add_dependency "net-telnet"
   spec.add_dependency "protovalidate", ">= 0.1.0.beta3", "< 0.2"
+  spec.add_dependency "sqlite3", ">= 2.0"
 end

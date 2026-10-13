@@ -16,6 +16,7 @@ PATH
       net-ssh
       net-telnet
       protovalidate (>= 0.1.0.beta3, < 0.2)
+      sqlite3 (>= 2.0)
 
 GEM
   remote: https://rubygems.org/
@@ -153,6 +154,9 @@ GEM
       rexml (>= 3.2.6)
       sorbet-static-and-runtime (>= 0.5.10187)
       thor (>= 0.19.2)
+    sqlite3 (2.9.6-aarch64-linux-gnu)
+    sqlite3 (2.9.6-arm64-darwin)
+    sqlite3 (2.9.6-x86_64-linux-gnu)
     tapioca (0.20.0)
       benchmark
       bundler (>= 2.2.25)
@@ -263,6 +267,9 @@ CHECKSUMS
   sorbet-static (0.6.13554-x86_64-linux) sha256=cf8ef040e496c28e5100e9b02dd598a446c22b93f915850c5cd5b4b4158f2bd7
   sorbet-static-and-runtime (0.6.13554) sha256=5fe59348790ae7040168f838e2553bd9dc79ef18a8b0523a0845f1317974af2b
   spoom (1.8.10) sha256=58bdb16bdd193a6e72da4dd1bef85157b5649622749338fb13ddaa20a7dc36b7
+  sqlite3 (2.9.6-aarch64-linux-gnu) sha256=d8b1f7d23efd7abac285775a9566562fc7debfef79d594e3a20354406fb7907c
+  sqlite3 (2.9.6-arm64-darwin) sha256=849b5d7f795e60fe25076d62c72dd722beb45b3850b516ad978d60ee848ec15b
+  sqlite3 (2.9.6-x86_64-linux-gnu) sha256=613188ce02f614126ddbc38c5e217ccffd6306d0dcd9adca9764547aa890a634
   tapioca (0.20.0) sha256=b375ed7bf51d2c86c09543eafedd0de85513634187c0f7a062615af8bb9347a0
   thor (1.5.0) sha256=e3a9e55fe857e44859ce104a84675ab6e8cd59c650a49106a05f55f136425e73
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f

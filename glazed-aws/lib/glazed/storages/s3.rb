@@ -89,6 +89,53 @@ module Glazed
         response.body.read.to_s
       end
 
+      # @return [Boolean] true; versions are ETags
+      #: () -> bool
+      def conditional? = true
+
+      # @param key [String] file key
+      # @return [String, nil] ETag of the object, or nil when it is missing
+      # @raise [InvalidKey] for an unsafe key
+      # @raise [Aws::S3::Errors::ServiceError] for errors other than not found
+      #: (String key) -> String?
+      def version_of(key) = head("#{prefix}#{validate_key(key)}")&.etag
+
+      # @param key [String] file key
+      # @return [Versioned, nil] the content and its ETag, or nil when the object is missing
+      # @raise [InvalidKey] for an unsafe key
+      # @raise [Aws::S3::Errors::ServiceError] for errors other than not found
+      #: (String key) -> Versioned?
+      def read_versioned(key)
+        response = client.get_object(bucket:, key: "#{prefix}#{validate_key(key)}")
+        Versioned.new(content: response.body.read.to_s, version: response.etag)
+      rescue ::Aws::S3::Errors::NoSuchKey
+        nil
+      end
+
+      # Puts the object with If-Match on the expected ETag, or If-None-Match
+      # when it must not exist yet.
+      #
+      # @param key [String] file key
+      # @param content [String] new content
+      # @param expected_version [String, nil] ETag read earlier; nil to create a missing object only
+      # @return [String] ETag of the written object
+      # @raise [Conflict] when the object holds another version
+      # @raise [InvalidKey] for an unsafe key
+      # @raise [Aws::S3::Errors::ServiceError] when the request fails otherwise
+      #: (key: String, content: String, expected_version: String?) -> String
+      def write_if(key:, content:, expected_version:)
+        object_key = "#{prefix}#{validate_key(key)}"
+        checksum = Base64.strict_encode64(Digest::SHA256.digest(content))
+        response = if expected_version
+          client.put_object(bucket:, key: object_key, body: content, checksum_sha256: checksum, if_match: expected_version)
+        else
+          client.put_object(bucket:, key: object_key, body: content, checksum_sha256: checksum, if_none_match: '*')
+                   end
+        response.etag
+      rescue ::Aws::S3::Errors::PreconditionFailed, ::Aws::S3::Errors::ConditionalRequestConflict => e
+        raise Conflict, "s3://#{bucket}/#{object_key} changed: #{e.message}"
+      end
+
       # @param key [String] object key
       # @param content [String] content
       # @return [WriteResult] the version holding the content, and whether it was written

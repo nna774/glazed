@@ -19,6 +19,8 @@ RSpec.describe Glazed::Storages::Filesystem do
   let(:path) { File.join(@dir, 'latest') }
   let(:storage) { described_class.new(path:) }
 
+  it_behaves_like 'a conditional storage'
+
   it 'writes each key as a file under the directory' do
     result = storage.write(key: 'core/rt1', content: "hostname rt1\n", message: 'x')
     expect(result).to be_changed

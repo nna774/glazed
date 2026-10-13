@@ -5,8 +5,10 @@
 
 require 'glazed/v1/config_pb'
 require 'glazed/v1/inventory_pb'
+require 'glazed/v1/orchestrator_pb'
 require 'glazed/v1/redaction_pb'
 require 'glazed/v1/secret_pb'
+require 'glazed/v1/state_pb'
 require 'glazed/v1/steps_pb'
 require 'glazed/v1/storage_pb'
 require 'glazed/v1/workflow_pb'

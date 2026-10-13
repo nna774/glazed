@@ -6,6 +6,7 @@ package glazed.v1;
 
 import "buf/validate/validate.proto";
 import "glazed/v1/inventory.proto";
+import "glazed/v1/orchestrator.proto";
 import "glazed/v1/storage.proto";
 import "glazed/v1/workflow.proto";
 
@@ -24,4 +25,6 @@ message Config {
   // Ruby features required before the rest of the config is decoded, so that
   // plugin gems register the message types their plugin settings use.
   repeated string requires = 5 [(buf.validate.field).repeated.items.string.min_len = 1];
+  // Settings of `glazed orchestrate`.
+  Orchestrator orchestrator = 6;
 }

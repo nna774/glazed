@@ -10,6 +10,8 @@ RSpec.describe Glazed::Storages::Memory do
 
   let(:storage) { described_class.new }
 
+  it_behaves_like 'a conditional storage'
+
   it 'returns content written earlier in the process' do
     result = storage.write(key: 'core/rt1', content: "hostname rt1\n", message: 'x')
     expect(result).to be_changed

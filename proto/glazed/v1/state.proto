@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package glazed.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+option ruby_package = "Glazed::Proto::V1";
+
+// Orchestration state of one node in one workflow, kept by a state backend.
+message NodeSchedule {
+  // Name of the workflow in Config.workflows.
+  string workflow = 1 [(buf.validate.field).string.min_len = 1];
+  // Name of the node.
+  string node = 2 [(buf.validate.field).string.min_len = 1];
+  // When the node runs next: the earlier of scheduled_at and the due date of pending signals.
+  google.protobuf.Timestamp due_at = 3 [(buf.validate.field).required = true];
+  // What set due_at: "inventory", "schedule", "retry", or the source of a signal.
+  string due_reason = 4;
+  // First signal of the pending debounce window; unset when no signal is pending.
+  google.protobuf.Timestamp signal_window_started_at = 5;
+  // When the latest run of the node started.
+  google.protobuf.Timestamp last_started_at = 6;
+  // When the latest run of the node finished.
+  google.protobuf.Timestamp last_finished_at = 7;
+  // Whether the latest run failed.
+  bool last_failed = 8;
+  // Runs failed in a row.
+  uint32 consecutive_failures = 9;
+  // Error of the latest failed run.
+  string last_error = 10;
+  // Orchestrator process running the node; empty when none.
+  string lease_owner = 11;
+  // When the lease expires and another orchestrator may run the node.
+  google.protobuf.Timestamp lease_until = 12;
+  // When the node runs next by its schedule alone, without signals.
+  google.protobuf.Timestamp scheduled_at = 13;
+}
+
+// Where orchestration state is kept.
+message StateBackendConfig {
+  // Kind of state backend.
+  oneof backend {
+    option (buf.validate.oneof).required = true;
+    // SQLite database, optionally kept in a storage.
+    SqliteStateBackend sqlite = 1;
+    // State backend implemented outside glazed, selected by the settings message type.
+    google.protobuf.Any plugin = 2;
+  }
+}
+
+// SQLite database. With path, the local file is the state; several processes
+// on the host may share it. With storage and key, the database is kept in a
+// storage supporting conditional writes, such as s3 or filesystem; each
+// process works on a private copy and uploads it after every change, retrying
+// the change on a newer copy when another process uploaded first.
+message SqliteStateBackend {
+  option (buf.validate.message).cel = {
+    id: "sqlite_state_backend.location"
+    message: "set either path, or storage and key"
+    expression: "(this.path != '') != (this.storage != '' && this.key != '') && (this.storage == '') == (this.key == '')"
+  };
+  // Local database file, created when missing.
+  string path = 1;
+  // Storage holding the database, by name in Config.storages.
+  string storage = 2;
+  // Key of the database in the storage.
+  string key = 3;
+}

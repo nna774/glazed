@@ -11,10 +11,14 @@ require 'glazed/proto'
 module Glazed
   module Storages
     # Store of configuration files addressed by slash-separated keys, such as
-    # "core/rt1". Subclasses implement {.from_proto}, {#write_all} and {#read}.
+    # "core/rt1". Subclasses implement {.from_proto}, {#write_all} and {#read},
+    # and those reporting {#conditional?} also {#version_of}, {#read_versioned}
+    # and {#write_if}.
     class Base
       # Raised for a key that is empty or could escape the storage root.
       class InvalidKey < Glazed::Error; end
+      # Raised by {#write_if} when the key no longer holds the expected version.
+      class Conflict < Glazed::Error; end
 
       #: type file = [String, String]
       #: type message_builder = ^(Array[String] changed_keys) -> String
@@ -36,6 +40,25 @@ module Glazed
         # @return [Boolean] whether the content differs from what the key held before
         #: () -> bool
         def changed? = @changed
+      end
+
+      # Content of a key together with the version that identifies it.
+      class Versioned
+        # @param content [String] the content
+        # @param version [String] opaque version, such as an ETag
+        #: (content: String, version: String) -> void
+        def initialize(content:, version:)
+          @content = content #: String
+          @version = version #: String
+        end
+
+        # @return [String] the content
+        #: String
+        attr_reader :content
+
+        # @return [String] opaque version, such as an ETag
+        #: String
+        attr_reader :version
       end
 
       # Builds a storage from its settings message.
@@ -74,6 +97,40 @@ module Glazed
       # @return [String] the content
       #: (Proto::V1::Pointer pointer) -> String
       def read(pointer) = raise NotImplementedError
+
+      # Whether the storage implements {#version_of}, {#read_versioned} and
+      # {#write_if}, so a single key can be updated by optimistic concurrency.
+      #
+      # @return [Boolean] true when supported
+      #: () -> bool
+      def conditional? = false
+
+      # Version the key currently holds, without reading the content.
+      #
+      # @param key [String] file key
+      # @return [String, nil] the version, or nil when the key is absent
+      # @raise [InvalidKey] for an unsafe key
+      #: (String key) -> String?
+      def version_of(key) = raise NotImplementedError
+
+      # Reads the current content of a key.
+      #
+      # @param key [String] file key
+      # @return [Versioned, nil] the content and its version, or nil when the key is absent
+      # @raise [InvalidKey] for an unsafe key
+      #: (String key) -> Versioned?
+      def read_versioned(key) = raise NotImplementedError
+
+      # Writes a key only if it still holds the expected version.
+      #
+      # @param key [String] file key
+      # @param content [String] new content
+      # @param expected_version [String, nil] version read earlier; nil to create a missing key only
+      # @return [String] version of the written content
+      # @raise [Conflict] when the key holds another version, or exists when nil was expected
+      # @raise [InvalidKey] for an unsafe key
+      #: (key: String, content: String, expected_version: String?) -> String
+      def write_if(key:, content:, expected_version:) = raise NotImplementedError
 
       # Wraps a location in a pointer.
       #

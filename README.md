@@ -99,12 +99,14 @@ The comments are for this README only: ProtoJSON files must not contain them.
 BACKUP_PASSWORD=... ENABLE_SECRET=... GLAZED_HMAC_KEY=... bundle exec glazed run -c glazed.json
 ```
 
-Each node and step logs one JSON line on stderr, and the run ends with a summary such as `completed 2 of 2 nodes, 1 changed, 0 failed`. Run it from cron or a systemd timer to keep the copies current.
+Each node and step logs one JSON line on stderr, and the run ends with a summary such as `completed 2 of 2 nodes, 1 changed, 0 failed`. Run it from cron or a systemd timer to keep the copies current, or keep it running with `glazed orchestrate` ([docs/orchestrator.md](docs/orchestrator.md)), which runs workflows for each node on an interval and soon after a signal such as `glazed signal sw1`.
 
 ## Usage
 
 ```
 glazed run -c CONFIG [-w WORKFLOW] [--only NAME,...] [-j N]
+glazed orchestrate -c CONFIG [-j N]
+glazed signal -c CONFIG [-w WORKFLOW,...] [--source SOURCE] [--now] NAME...
 glazed version
 ```
 
@@ -113,7 +115,9 @@ glazed version
 - `--only NAME,...`: run only for these nodes, comma-separated
 - `-j, --jobs N`: nodes processed in parallel (default: `jobs` in the config, or 4)
 
-The exit status is 0 when every node completed, and 1 when a node failed a step (the other nodes still complete) or the arguments are invalid. Invalid configuration and failures of a batch step such as `publish` abort the run with an error. `glazed COMMAND --help` describes each command.
+`glazed orchestrate` and `glazed signal` use the `orchestrator` settings of the config; see [docs/orchestrator.md](docs/orchestrator.md).
+
+The exit status of `glazed run` is 0 when every node completed, and 1 when a node failed a step (the other nodes still complete) or the arguments are invalid. Invalid configuration and failures of a batch step such as `publish` abort the run with an error. `glazed COMMAND --help` describes each command.
 
 ## Configuration
 
@@ -237,7 +241,7 @@ Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.Batch
 
 - Oxidized keeps one copy of each configuration, optionally with secrets removed. glazed keeps the raw copy and a redacted copy in different storages with different audiences.
 - Oxidized commits whatever it collects. glazed's GitHub storage commits to a topic branch meant for pull requests, so the history on the default branch can explain why each change was made.
-- Oxidized is a daemon with a REST API and web UI (oxidized-web). glazed is a command and a set of building blocks, with steps defined as protobuf messages for external schedulers and orchestrators.
+- Oxidized is a daemon with a REST API and web UI (oxidized-web). glazed is a command and a set of building blocks, with steps defined as protobuf messages for external schedulers and orchestrators. `glazed orchestrate` fills Oxidized's role of polling nodes on an interval and after notifications, keeping its state in SQLite, optionally stored in S3, instead of serving an API.
 - Oxidized models mix collection with per-run state. glazed dialects are declarations with inheritance, and per-run state lives in the run.
 - Oxidized has years of production use behind it. Its models run on glazed through `glazed-oxidized`, redacted with patterns derived from their `cmd :secret` blocks.
 
@@ -246,7 +250,7 @@ Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.Batch
 - Not production-tested yet. The `ios` and `junos` dialects are tested against device captures from Oxidized's test suite; the `wlc`, `nec_ix` and `awplus` fixtures are written from command references and need checking against real devices.
 - SSH host keys are verified with net-ssh's defaults and `~/.ssh/known_hosts`; there is no setting for them yet.
 - A node removed from the inventory leaves its file in the storages.
-- Not yet available: opening pull requests automatically, the AWS Lambda and Step Functions coordinator, schedule and notification (syslog, SNMP trap) triggers.
+- Not yet available: opening pull requests automatically, the AWS Lambda and Step Functions coordinator, and receivers turning syslog messages or SNMP traps into signals.
 
 ## Development
 

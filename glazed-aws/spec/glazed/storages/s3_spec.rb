@@ -121,3 +121,52 @@ RSpec.describe Glazed::Storages::S3 do
     expect(built.api_requests.map { it[:operation_name] }).to eq(%i[head_object put_object])
   end
 end
+
+RSpec.describe Glazed::Storages::S3, 'conditional writes' do
+  let(:client) { Aws::S3::Client.new(stub_responses: true) }
+  let(:storage) { described_class.new(bucket: 'netconf', prefix: 'state/', client:) }
+
+  def requests(operation) = client.api_requests.select { it[:operation_name] == operation }.map { it[:params] }
+
+  it 'is conditional' do
+    expect(storage).to be_conditional
+  end
+
+  it 'reports the ETag of an object as its version' do
+    client.stub_responses(:head_object, {etag: '"e1"'})
+    expect(storage.version_of('db')).to eq('"e1"')
+    expect(requests(:head_object)).to contain_exactly(include(bucket: 'netconf', key: 'state/db'))
+  end
+
+  it 'has no version for a missing object' do
+    client.stub_responses(:head_object, 'NotFound')
+    client.stub_responses(:get_object, 'NoSuchKey')
+    expect(storage.version_of('db')).to be_nil
+    expect(storage.read_versioned('db')).to be_nil
+  end
+
+  it 'reads content with its ETag' do
+    client.stub_responses(:get_object, {body: 'data', etag: '"e1"'})
+    expect(storage.read_versioned('db')).to have_attributes(content: 'data', version: '"e1"')
+  end
+
+  it 'creates a missing object with If-None-Match' do
+    client.stub_responses(:put_object, {etag: '"e1"'})
+    expect(storage.write_if(key: 'db', content: 'data', expected_version: nil)).to eq('"e1"')
+    expect(requests(:put_object)).to contain_exactly(include(key: 'state/db', body: 'data', if_none_match: '*'))
+  end
+
+  it 'replaces an object with If-Match on the expected ETag' do
+    client.stub_responses(:put_object, {etag: '"e2"'})
+    expect(storage.write_if(key: 'db', content: 'data', expected_version: '"e1"')).to eq('"e2"')
+    expect(requests(:put_object)).to contain_exactly(include(if_match: '"e1"'))
+  end
+
+  it 'raises a conflict without retrying when the precondition fails' do
+    client.stub_responses(:put_object, 'PreconditionFailed')
+    expect { storage.write_if(key: 'db', content: 'data', expected_version: '"e1"') }.to raise_error(Glazed::Storages::Base::Conflict)
+    client.stub_responses(:put_object, 'ConditionalRequestConflict')
+    expect { storage.write_if(key: 'db', content: 'data', expected_version: '"e1"') }.to raise_error(Glazed::Storages::Base::Conflict)
+    expect(requests(:put_object).size).to eq(2)
+  end
+end

@@ -82,6 +82,50 @@ module Glazed
         content
       end
 
+      # @return [Boolean] true; versions are content digests
+      #: () -> bool
+      def conditional? = true
+
+      # @param key [String] file key
+      # @return [String, nil] SHA-256 of the file, or nil when it is missing
+      # @raise [InvalidKey] for an unsafe key
+      #: (String key) -> String?
+      def version_of(key) = read_versioned(key)&.version
+
+      # @param key [String] file key
+      # @return [Versioned, nil] the content and its SHA-256, or nil when the file is missing
+      # @raise [InvalidKey] for an unsafe key
+      #: (String key) -> Versioned?
+      def read_versioned(key)
+        content = ::File.binread(::File.join(path, validate_key(key)))
+        Versioned.new(content:, version: Digest::SHA256.hexdigest(content))
+      rescue Errno::ENOENT
+        nil
+      end
+
+      # Replaces the file while holding an exclusive lock on a sibling lock
+      # file, which every conditional writer of the key takes.
+      #
+      # @param key [String] file key
+      # @param content [String] new content
+      # @param expected_version [String, nil] SHA-256 read earlier; nil to create a missing file only
+      # @return [String] SHA-256 of the content
+      # @raise [Conflict] when the file holds other content
+      # @raise [InvalidKey] for an unsafe key
+      #: (key: String, content: String, expected_version: String?) -> String
+      def write_if(key:, content:, expected_version:)
+        file = ::File.join(path, validate_key(key))
+        FileUtils.mkdir_p(::File.dirname(file))
+        ::File.open(::File.join(::File.dirname(file), ".#{::File.basename(file)}.lock"), ::File::RDWR | ::File::CREAT, 0o644) do |lock|
+          lock.flock(::File::LOCK_EX)
+          current = version_of(key)
+          raise Conflict, "#{key} in #{path} is at #{current || 'nothing'}, not #{expected_version || 'nothing'}" unless current == expected_version
+
+          replace(file, content)
+        end
+        Digest::SHA256.hexdigest(content)
+      end
+
       # @param file [String] file to replace
       # @param content [String] new content
       # @return [void]
