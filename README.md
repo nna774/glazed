@@ -121,6 +121,7 @@ Configuration and inventory files are ProtoJSON of the messages in [`proto/glaze
 
 - `json_files`: `{"paths": ["inventory/*.json"]}` reads files of `glazed.v1.InventoryFile`, globs allowed
 - `inline`: `{"defaults": {...}, "nodes": [...]}` is a `glazed.v1.InventoryFile` written in the config itself, to keep everything in one file
+- `command`: `{"run": "bin/inventory", "timeout_seconds": 300}` runs a command with `/bin/sh -c` and reads the `glazed.v1.InventoryFile` it prints on stdout, for nodes kept in another system. A non-zero exit fails the run
 - `plugin`: a provider from a plugin gem, see [Extending](#extending)
 
 In both, `defaults` fill the fields each node leaves unset, with `params` and `secrets` merged key by key. Each node (`glazed.v1.Node`) has:

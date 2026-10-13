@@ -8,12 +8,16 @@
 class Glazed::Proto::V1::InventorySource < Google::Protobuf::AbstractMessage
   sig do
     params(
+      command: T.nilable(Glazed::Proto::V1::CommandInventory),
       inline: T.nilable(Glazed::Proto::V1::InventoryFile),
       json_files: T.nilable(Glazed::Proto::V1::JsonFilesInventory),
       plugin: T.nilable(Google::Protobuf::Any)
     ).void
   end
-  def initialize(inline: nil, json_files: nil, plugin: nil); end
+  def initialize(command: nil, inline: nil, json_files: nil, plugin: nil); end
+
+  sig { void }
+  def clear_command; end
 
   sig { void }
   def clear_inline; end
@@ -23,6 +27,15 @@ class Glazed::Proto::V1::InventorySource < Google::Protobuf::AbstractMessage
 
   sig { void }
   def clear_plugin; end
+
+  sig { returns(T.nilable(Glazed::Proto::V1::CommandInventory)) }
+  def command; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::CommandInventory)).void }
+  def command=(value); end
+
+  sig { returns(Object) }
+  def has_command?; end
 
   sig { returns(Object) }
   def has_inline?; end

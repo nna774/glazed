@@ -8,6 +8,7 @@ require 'google/protobuf'
 require 'glazed'
 require 'glazed/proto'
 require 'glazed/proto_json'
+require 'glazed/validation'
 
 module Glazed
   module Sources
@@ -35,6 +36,22 @@ module Glazed
       # @return [String] where the nodes come from, for error messages
       #: () -> String
       def description = self.class.name.to_s
+
+      # Builds the nodes of ProtoJSON of an {Proto::V1::InventoryFile}.
+      #
+      # @param json [String] the inventory file
+      # @param origin [String] where the JSON comes from, for error messages
+      # @return [Array<Proto::V1::Node>] nodes with defaults applied
+      # @raise [InvalidInventory] when the JSON is malformed
+      # @raise [InvalidMessage] when the inventory breaks the rules of its schema
+      #: (String json, origin: String) -> Array[Proto::V1::Node]
+      private def nodes_from_json(json, origin:)
+        Validation.validate!(ProtoJson.load(Proto::V1::InventoryFile, json), origin:)
+        document = JSON.parse(json) #: Hash[String, untyped]
+        nodes_from(document, origin:)
+      rescue Google::Protobuf::ParseError, JSON::ParserError => e
+        raise InvalidInventory, "#{origin}: #{e.message}"
+      end
 
       # Builds the nodes of an {Proto::V1::InventoryFile} document, filling
       # fields each node leaves unset from its defaults. The params and secrets

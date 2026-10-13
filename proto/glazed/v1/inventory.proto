@@ -80,7 +80,19 @@ message InventorySource {
     InventoryFile inline = 2;
     // Provider implemented outside glazed, selected by the settings message type.
     google.protobuf.Any plugin = 3;
+    // Command printing an InventoryFile.
+    CommandInventory command = 4;
   }
+}
+
+// Command printing ProtoJSON of InventoryFile on stdout, for inventory kept
+// in another system. It runs with /bin/sh -c and empty stdin, and a non-zero
+// exit fails the run.
+message CommandInventory {
+  // Command line, run by /bin/sh -c.
+  string run = 1 [(buf.validate.field).string.min_len = 1];
+  // Seconds before the command is killed. 300 is used when 0.
+  uint32 timeout_seconds = 2;
 }
 
 // ProtoJSON files of InventoryFile.

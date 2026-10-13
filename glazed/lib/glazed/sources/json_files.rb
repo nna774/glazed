@@ -3,14 +3,11 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
-require 'json'
 require 'glazed'
 require 'glazed/must'
 require 'glazed/proto'
-require 'glazed/proto_json'
 require 'glazed/sources'
 require 'glazed/sources/base'
-require 'glazed/validation'
 
 module Glazed
   module Sources
@@ -84,14 +81,7 @@ module Glazed
       # @raise [InvalidFile] when the file is malformed
       # @raise [InvalidMessage] when the file breaks the rules of its schema
       #: (String path) -> Array[Proto::V1::Node]
-      private def load_file(path)
-        json = File.read(path)
-        Validation.validate!(ProtoJson.load(Proto::V1::InventoryFile, json), origin: path)
-        document = JSON.parse(json) #: Hash[String, untyped]
-        nodes_from(document, origin: path)
-      rescue Google::Protobuf::ParseError, JSON::ParserError => e
-        raise InvalidFile, "#{path}: #{e.message}"
-      end
+      private def load_file(path) = nodes_from_json(File.read(path), origin: path)
     end
   end
 end
