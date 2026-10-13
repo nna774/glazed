@@ -54,6 +54,8 @@ message GitStorage {
   string author_name = 4;
   // Commit author email. "glazed@localhost" is used when empty.
   string author_email = 5;
+  // Directory within the repository holding the files, such as "network/glazed". The repository root is used when empty.
+  string subdirectory = 6;
 }
 
 // GitHub repository written through the Git Data API, one commit per write.
@@ -75,6 +77,8 @@ message GithubStorage {
   string author_name = 6;
   // Commit author email. The token owner is used when empty.
   string author_email = 7;
+  // Directory within the repository holding the files, such as "network/glazed". The repository root is used when empty.
+  string subdirectory = 8;
 }
 
 // Amazon S3 bucket. Enable bucket versioning to keep history.

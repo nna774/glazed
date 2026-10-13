@@ -14,10 +14,11 @@ class Glazed::Proto::V1::GithubStorage < Google::Protobuf::AbstractMessage
       base_branch: T.nilable(String),
       branch: T.nilable(String),
       repository: T.nilable(String),
+      subdirectory: T.nilable(String),
       token: T.nilable(Glazed::Proto::V1::SecretRef)
     ).void
   end
-  def initialize(api_url: nil, author_email: nil, author_name: nil, base_branch: nil, branch: nil, repository: nil, token: nil); end
+  def initialize(api_url: nil, author_email: nil, author_name: nil, base_branch: nil, branch: nil, repository: nil, subdirectory: nil, token: nil); end
 
   sig { returns(String) }
   def api_url; end
@@ -68,6 +69,9 @@ class Glazed::Proto::V1::GithubStorage < Google::Protobuf::AbstractMessage
   def clear_repository; end
 
   sig { void }
+  def clear_subdirectory; end
+
+  sig { void }
   def clear_token; end
 
   sig { returns(Object) }
@@ -78,6 +82,12 @@ class Glazed::Proto::V1::GithubStorage < Google::Protobuf::AbstractMessage
 
   sig { params(value: String).void }
   def repository=(value); end
+
+  sig { returns(String) }
+  def subdirectory; end
+
+  sig { params(value: String).void }
+  def subdirectory=(value); end
 
   sig { returns(T.nilable(Glazed::Proto::V1::SecretRef)) }
   def token; end

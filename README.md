@@ -166,7 +166,7 @@ In both, `defaults` fill the fields each node leaves unset, with `params` and `s
 {"memory": {}}
 ```
 
-For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed after each commit when set. For `github`, `api_url` points to GitHub Enterprise Server, and `author_name`/`author_email` override the token owner. For `s3`, the region defaults to the SDK's. `memory` content is gone when the process exits, so only steps of the same `glazed run` can read it; an orchestrator running steps as separate processes needs a persistent storage between them.
+For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed after each commit when set. For both `git` and `github`, `subdirectory` places files in a directory of the repository, such as `network/glazed`, instead of its root. For `github`, `api_url` points to GitHub Enterprise Server, and `author_name`/`author_email` override the token owner. For `s3`, the region defaults to the SDK's. `memory` content is gone when the process exits, so only steps of the same `glazed run` can read it; an orchestrator running steps as separate processes needs a persistent storage between them.
 
 ### Workflows
 

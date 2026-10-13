@@ -51,8 +51,10 @@ module Glazed
       # @param api_url [String] API endpoint
       # @param author_name [String, nil] commit author name; the token owner when nil
       # @param author_email [String, nil] commit author email; the token owner when nil
-      #: (repository: String, branch: String, token: Secret, ?base_branch: String?, ?api_url: String, ?author_name: String?, ?author_email: String?) -> void
-      def initialize(repository:, branch:, token:, base_branch: nil, api_url: DEFAULT_API_URL, author_name: nil, author_email: nil)
+      # @param subdirectory [String, nil] directory within the repository holding the files; the root when nil
+      # @raise [InvalidKey] for an unsafe subdirectory
+      #: (repository: String, branch: String, token: Secret, ?base_branch: String?, ?api_url: String, ?author_name: String?, ?author_email: String?, ?subdirectory: String?) -> void
+      def initialize(repository:, branch:, token:, base_branch: nil, api_url: DEFAULT_API_URL, author_name: nil, author_email: nil, subdirectory: nil)
         super()
         @repository = repository #: String
         @branch = branch #: String
@@ -60,6 +62,7 @@ module Glazed
         @base_branch = base_branch #: String?
         @api_url = api_url.chomp('/') #: String
         @author = (author_name && author_email ? {name: author_name, email: author_email} : nil) #: Hash[Symbol, String]?
+        @subdirectory = subdirectory&.then { validate_key(it.chomp('/')) } #: String?
         @http = nil #: HTTPX::Session?
       end
 
@@ -69,6 +72,7 @@ module Glazed
       # @return [Github] the storage
       # @raise [Must::Violation] when settings is another message
       # @raise [ArgumentError] when the token is missing
+      # @raise [InvalidKey] for an unsafe subdirectory
       #: (Google::Protobuf::MessageExts settings) -> Github
       def self.from_proto(settings)
         github = Must.be_a(settings, Proto::V1::GithubStorage)
@@ -80,6 +84,7 @@ module Glazed
           api_url: github.api_url.empty? ? DEFAULT_API_URL : github.api_url,
           author_name: github.author_name.empty? ? nil : github.author_name,
           author_email: github.author_email.empty? ? nil : github.author_email,
+          subdirectory: github.subdirectory.empty? ? nil : github.subdirectory,
         )
       end
 
@@ -89,6 +94,9 @@ module Glazed
       # @return [String] branch to commit to
       #: String
       attr_reader :branch
+      # @return [String, nil] directory within the repository holding the files
+      #: String?
+      attr_reader :subdirectory
 
       # Writes the changed files in one commit. Nothing is committed when no
       # content changed, and the pointers then name the existing head.
@@ -103,7 +111,7 @@ module Glazed
         keys = files.map { |key, _| validate_key(key) }
         commit, changed = with_retries { commit_files(files, message) }
         keys.map do |key|
-          pointer = pointer_to(Proto::V1::GithubLocation.new(repository:, path: key, commit:))
+          pointer = pointer_to(Proto::V1::GithubLocation.new(repository:, path: repository_path(key), commit:))
           WriteResult.new(pointer:, changed: changed.include?(key))
         end
       end
@@ -147,12 +155,12 @@ module Glazed
         parent = head || ref_sha(base_branch) || raise(ApiError.new(status: 404, message: "#{repository}: base branch #{base_branch} not found"))
         base_tree = json(get("/repos/#{repository}/git/commits/#{parent}")).dig('tree', 'sha')
         existing = blob_shas(base_tree)
-        candidates = existing ? files.reject { |key, content| existing[key] == blob_sha(content) } : files
+        candidates = existing ? files.reject { |key, content| existing[repository_path(key)] == blob_sha(content) } : files
 
         commit = parent
         changed = [] #: Array[String]
         unless candidates.empty?
-          entries = candidates.map { |key, content| {path: key, mode: '100644', type: 'blob', content:} }
+          entries = candidates.map { |key, content| {path: repository_path(key), mode: '100644', type: 'blob', content:} }
           tree = json(post("/repos/#{repository}/git/trees", {base_tree:, tree: entries})).fetch('sha')
           unless tree == base_tree
             changed = candidates.map(&:first)
@@ -180,6 +188,11 @@ module Glazed
         entries = listing.fetch('tree') #: Array[Hash[String, String]]
         entries.select { it['type'] == 'blob' }.to_h { [it.fetch('path'), it.fetch('sha')] }
       end
+
+      # @param key [String] validated file key
+      # @return [String] path of the file within the repository
+      #: (String key) -> String
+      private def repository_path(key) = subdirectory ? "#{subdirectory}/#{key}" : key
 
       # @param content [String] file content
       # @return [String] git blob SHA-1 of the content

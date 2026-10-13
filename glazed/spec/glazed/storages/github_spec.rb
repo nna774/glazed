@@ -106,6 +106,31 @@ RSpec.describe Glazed::Storages::Github do
     end
   end
 
+  context 'with a path prefix' do
+    let(:storage) { described_class.new(repository: 'org/netconf', branch: 'glazed/auto', token:, subdirectory: 'network/glazed') }
+
+    before do
+      stub_request(:get, "#{api}/git/ref/heads/glazed/auto").to_return(reply({object: {sha: 'head'}}))
+      stub_request(:get, "#{api}/git/commits/head").to_return(reply({tree: {sha: 'base-tree'}}))
+    end
+
+    it 'places files under the prefix and names keys without it in the message' do
+      stub_listing('base-tree', {'core/rt1' => blob("hostname rt1\n"), 'network/glazed/core/rt1' => blob("old\n")})
+      stub_tree(base_tree: 'base-tree', entries: [['network/glazed/core/rt1', "hostname rt1\n"]], result: 'new-tree')
+      stub_request(:post, "#{api}/git/commits").with(body: hash_including(message: 'update core/rt1')).to_return(reply({sha: 'new-commit'}))
+      stub_request(:patch, "#{api}/git/refs/heads/glazed/auto").to_return(reply({}))
+
+      result = storage.write_all(files, message:).first
+      expect(result).to be_changed
+      expect(location(result.pointer).path).to eq('network/glazed/core/rt1')
+    end
+
+    it 'compares content under the prefix' do
+      stub_listing('base-tree', {'core/rt1' => blob("old\n"), 'network/glazed/core/rt1' => blob("hostname rt1\n")})
+      expect(storage.write_all(files, message: ->(_) { raise 'unexpected' }).first).not_to be_changed
+    end
+  end
+
   context 'when the branch is missing' do
     before do
       stub_request(:get, "#{api}/git/ref/heads/glazed/auto").to_return(reply({message: 'Not Found'}, status: 404))
@@ -140,6 +165,11 @@ RSpec.describe Glazed::Storages::Github do
     it 'requires a token' do
       settings = Glazed::Proto::V1::GithubStorage.new(repository: 'org/netconf', branch: 'b')
       expect { described_class.from_proto(settings) }.to raise_error(ArgumentError, /token/)
+    end
+
+    it 'reads the path prefix' do
+      settings = Glazed::Proto::V1::GithubStorage.new(repository: 'org/netconf', branch: 'b', token: {value: 'tok'}, subdirectory: 'network/glazed')
+      expect(described_class.from_proto(settings).subdirectory).to eq('network/glazed')
     end
   end
 end

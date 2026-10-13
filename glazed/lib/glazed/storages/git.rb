@@ -34,14 +34,17 @@ module Glazed
       # @param remote [String, nil] remote name or URL to pull from and push to
       # @param author_name [String] commit author and committer name
       # @param author_email [String] commit author and committer email
-      #: (path: String, ?branch: String, ?remote: String?, ?author_name: String, ?author_email: String) -> void
-      def initialize(path:, branch: DEFAULT_BRANCH, remote: nil, author_name: DEFAULT_AUTHOR_NAME, author_email: DEFAULT_AUTHOR_EMAIL)
+      # @param subdirectory [String, nil] directory within the repository holding the files; the root when nil
+      # @raise [InvalidKey] for an unsafe subdirectory
+      #: (path: String, ?branch: String, ?remote: String?, ?author_name: String, ?author_email: String, ?subdirectory: String?) -> void
+      def initialize(path:, branch: DEFAULT_BRANCH, remote: nil, author_name: DEFAULT_AUTHOR_NAME, author_email: DEFAULT_AUTHOR_EMAIL, subdirectory: nil)
         super()
         @path = path #: String
         @branch = branch #: String
         @remote = remote #: String?
         @author_name = author_name #: String
         @author_email = author_email #: String
+        @subdirectory = subdirectory&.then { validate_key(it.chomp('/')) } #: String?
         @lock = Mutex.new #: Thread::Mutex
       end
 
@@ -50,6 +53,7 @@ module Glazed
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::GitStorage}
       # @return [Git] the storage
       # @raise [Must::Violation] when settings is another message
+      # @raise [InvalidKey] for an unsafe subdirectory
       #: (Google::Protobuf::MessageExts settings) -> Git
       def self.from_proto(settings)
         git = Must.be_a(settings, Proto::V1::GitStorage)
@@ -59,6 +63,7 @@ module Glazed
           remote: git.remote.empty? ? nil : git.remote,
           author_name: git.author_name.empty? ? DEFAULT_AUTHOR_NAME : git.author_name,
           author_email: git.author_email.empty? ? DEFAULT_AUTHOR_EMAIL : git.author_email,
+          subdirectory: git.subdirectory.empty? ? nil : git.subdirectory,
         )
       end
 
@@ -71,6 +76,9 @@ module Glazed
       # @return [String, nil] remote name or URL
       #: String?
       attr_reader :remote
+      # @return [String, nil] directory within the repository holding the files
+      #: String?
+      attr_reader :subdirectory
 
       # Writes files in one commit. Nothing is committed when no content
       # changed, and the pointers then name the existing HEAD.
@@ -83,22 +91,25 @@ module Glazed
       #: (Array[Base::file] files, message: Base::message_builder) -> Array[WriteResult]
       def write_all(files, message:)
         keys = files.map { |key, _| validate_key(key) }
+        paths = keys.map { repository_path(it) }
         @lock.synchronize do
           prepare
           files.each do |key, content|
-            file = File.join(path, key)
+            file = File.join(path, repository_path(key))
             FileUtils.mkdir_p(File.dirname(file))
             File.write(file, content)
           end
-          git(['add', '--', *keys])
-          changed = git(['diff', '--cached', '--name-only', '-z', '--', *keys]).split("\0")
+          git(['add', '--', *paths])
+          changed_paths = git(['diff', '--cached', '--name-only', '-z', '--', *paths]).split("\0")
+          changed = keys.select { changed_paths.include?(repository_path(it)) }
           unless changed.empty?
             git(['commit', '--quiet', '--no-verify', '-m', message.call(changed)])
             git(['push', '--quiet', Must.expect(remote), "HEAD:refs/heads/#{branch}"]) if remote
           end
           commit = git(%w[rev-parse HEAD]).strip
           keys.map do |key|
-            WriteResult.new(pointer: pointer_to(Proto::V1::GitLocation.new(path: key, commit:)), changed: changed.include?(key))
+            location = Proto::V1::GitLocation.new(path: repository_path(key), commit:)
+            WriteResult.new(pointer: pointer_to(location), changed: changed.include?(key))
           end
         end
       end
@@ -114,6 +125,11 @@ module Glazed
         location = location_of(pointer, Proto::V1::GitLocation)
         git(['show', "#{location.commit}:#{validate_key(location.path)}"])
       end
+
+      # @param key [String] validated file key
+      # @return [String] path of the file within the repository
+      #: (String key) -> String
+      private def repository_path(key) = subdirectory ? "#{subdirectory}/#{key}" : key
 
       # Initialises the repository when missing, switches to the branch and
       # pulls it from the remote when it exists there.
