@@ -33,14 +33,16 @@ module Glazed
     # @param interactions [Array<Dialect::Interaction>] responders to patterns in the buffer
     # @param exec [Boolean] run {#command} through {Transports::Base#exec} when supported
     # @param timeout [Numeric] default seconds to wait for expected output
-    #: (transport: Transports::Base, prompt: Regexp, ?data_filters: Array[Dialect::data_filter], ?interactions: Array[Dialect::Interaction], ?exec: bool, ?timeout: Numeric) -> void
-    def initialize(transport:, prompt:, data_filters: [], interactions: [], exec: false, timeout: DEFAULT_TIMEOUT)
+    # @param progress [Proc] receives a message whenever the session starts waiting for the device
+    #: (transport: Transports::Base, prompt: Regexp, ?data_filters: Array[Dialect::data_filter], ?interactions: Array[Dialect::Interaction], ?exec: bool, ?timeout: Numeric, ?progress: ^(String) -> void) -> void
+    def initialize(transport:, prompt:, data_filters: [], interactions: [], exec: false, timeout: DEFAULT_TIMEOUT, progress: ->(_message) {})
       @transport = transport #: Transports::Base
       @prompt = prompt #: Regexp
       @data_filters = data_filters #: Array[Dialect::data_filter]
       @interactions = interactions #: Array[Dialect::Interaction]
       @exec = exec #: bool
       @timeout = timeout #: Numeric
+      @progress = progress #: ^(String) -> void
       @buffer = String.new(encoding: Encoding::BINARY) #: String
     end
 
@@ -76,7 +78,7 @@ module Glazed
     # @raise [ConnectionClosed] when the device closes the connection first
     #: (*Regexp patterns, ?timeout: Numeric) -> MatchData
     def expect(*patterns, timeout: self.timeout)
-      description = patterns.map(&:inspect).join(' or ')
+      description = patterns.map { it == prompt ? 'prompt' : it.inspect }.join(' or ')
       match = wait_until(description, timeout:) { patterns.lazy.filter_map { it.match(buffer) }.first }
       consume(match)
       match
@@ -92,6 +94,7 @@ module Glazed
     #: (String line, ?timeout: Numeric) -> CommandResult
     def command(line, timeout: self.timeout)
       if @exec && transport.exec?
+        @progress.call("waiting for output of #{line.inspect}")
         return CommandResult.new(command: line, output: filter(transport.exec(line, timeout:).b))
       end
 
@@ -99,7 +102,7 @@ module Glazed
       write("#{line}\n")
       # The prompt is searched only after the echoed line, so a prompt left over
       # from before the command cannot end it early.
-      match = wait_until("#{prompt.inspect} after #{line.inspect}", timeout:) do
+      match = wait_until("prompt after #{line.inspect}", timeout:) do
         echo_end = buffer.index("\n")
         prompt.match(buffer, echo_end + 1) if echo_end
       end
@@ -127,6 +130,7 @@ module Glazed
     # @raise [ConnectionClosed] when the device closes the connection first
     #: (String description, timeout: Numeric) { () -> MatchData? } -> MatchData
     private def wait_until(description, timeout:, &matcher)
+      @progress.call("waiting for #{description}")
       deadline = now + timeout.to_f
       loop do
         match = matcher.call

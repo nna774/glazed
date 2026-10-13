@@ -24,14 +24,16 @@ module Glazed
     # @param node [Proto::V1::Node] node to collect from
     # @param transport [Transports::Base, nil] transport to use instead of building one from the node
     # @param timeout [Numeric] seconds to wait for each expected output
-    #: (node: Proto::V1::Node, ?transport: Transports::Base?, ?timeout: Numeric) -> void
-    def initialize(node:, transport: nil, timeout: CliSession::DEFAULT_TIMEOUT)
+    # @param progress [Proc] receives a message when connecting and whenever waiting for the device
+    #: (node: Proto::V1::Node, ?transport: Transports::Base?, ?timeout: Numeric, ?progress: ^(String) -> void) -> void
+    def initialize(node:, transport: nil, timeout: CliSession::DEFAULT_TIMEOUT, progress: ->(_message) {})
       @node = node #: Proto::V1::Node
       @dialect = Dialects.find(node.dialect) #: singleton(Dialects::Base)
       @kind = (node.transport.empty? ? DEFAULT_TRANSPORT : node.transport) #: String
       @transport = transport || build_transport #: Transports::Base
       @config = @dialect.communication_config(@kind.to_sym) #: Dialect::CommunicationConfig
       @timeout = timeout #: Numeric
+      @progress = progress #: ^(String) -> void
     end
 
     # @return [Proto::V1::Node] node to collect from
@@ -56,9 +58,11 @@ module Glazed
         interactions: dialect.interactions,
         exec: @config.exec,
         timeout: @timeout,
+        progress: @progress,
       )
       run = Dialect::Run.new(cli: session, node:, dialect:)
       @transport.pty_options = @config.pty_options
+      @progress.call("connecting to #{@transport.host} over #{@kind}")
       @transport.open
       begin
         login(session) unless exec_only?

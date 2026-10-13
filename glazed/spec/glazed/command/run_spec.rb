@@ -72,7 +72,8 @@ RSpec.describe 'glazed run' do
     simulation.secrets.each { expect(redacted).not_to include(it) }
     expect(Open3.capture2('git', '-C', path('team'), 'log', '--format=%s').first).to eq("publish: update sw1\n")
 
-    logs = err.string.lines.map { JSON.parse(it) }
+    logs, progress = err.string.lines.map { JSON.parse(it) }.partition { it['message'] == 'done' || it['level'] == 'error' }
+    expect(progress).to include({'level' => 'info', 'step' => 'fetch', 'node' => 'sw1', 'message' => 'connecting to 127.0.0.1 over telnet'})
     expect(logs).to contain_exactly(
       {'level' => 'info', 'step' => 'fetch', 'node' => 'sw1', 'changed' => true, 'message' => 'done'},
       {'level' => 'info', 'step' => 'redact', 'node' => 'sw1', 'changed' => true, 'message' => 'done'},
@@ -94,7 +95,7 @@ RSpec.describe 'glazed run' do
     expect(run_command).to eq(0)
     expect(out.string).to eq("completed 1 of 1 nodes, 0 changed, 0 failed\n")
     expect(%w[vault staging team].to_h { [it, git_show(it, 'HEAD')] }).to eq(commits)
-    expect(err.string.lines.map { JSON.parse(it) }.select { it['node'] }).to all(include('changed' => false))
+    expect(err.string.lines.map { JSON.parse(it) }.select { it['node'] && it['message'] == 'done' }).to all(include('changed' => false))
   end
 
   it 'publishes the redacted copy without persisting the raw one in memory storage' do

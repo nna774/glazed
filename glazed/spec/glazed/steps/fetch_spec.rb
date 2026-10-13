@@ -15,7 +15,8 @@ RSpec.describe Glazed::Steps::Fetch do
     end
   end
 
-  let(:context) { Glazed::StepContext.new(storages: {'vault' => Glazed::Storages::Git.new(path: @dir)}) }
+  let(:events) { [] }
+  let(:context) { Glazed::StepContext.new(storages: {'vault' => Glazed::Storages::Git.new(path: @dir)}, listener: ->(event) { events << event }) }
   let(:step) { described_class.from_proto('fetch', Glazed::Proto::V1::FetchStep.new(output: 'raw', storage: 'vault', timeout_seconds: 1), context:) }
   let(:dialect) do
     Class.new(Glazed::Dialects::Base) do
@@ -48,6 +49,12 @@ RSpec.describe Glazed::Steps::Fetch do
     state = step.call(input)
     expect(input.artifacts.to_h).to be_empty
     expect(Glazed::ProtoJson.load(Glazed::Proto::V1::NodeState, Glazed::ProtoJson.dump(state))).to eq(state)
+  end
+
+  it 'reports progress as events of the step and node' do
+    step.call(Glazed::Proto::V1::NodeState.new(node:))
+    expect(events.first).to match({level: 'info', step: 'fetch', node: 'rt1', message: /\Aconnecting to \S+ over fake\z/})
+    expect(events.last).to eq({level: 'info', step: 'fetch', node: 'rt1', message: 'waiting for prompt after "show running-config"'})
   end
 
   it 'declares its output' do

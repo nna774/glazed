@@ -50,6 +50,19 @@ RSpec.describe Glazed::Collector do
       expect(device.instances.first.written).to eq(["admin\n", "s3cret\n", "terminal length 0\n", "show running-config\n", "exit\n"])
       expect(device.instances.first).to be_closed
     end
+
+    it 'reports connecting and each wait for the device' do
+      messages = []
+      described_class.new(node:, timeout: 1, progress: ->(message) { messages << message }).call
+      expect(messages).to eq([
+        'connecting to fake over telnet',
+        'waiting for /^Username:\s/',
+        'waiting for /^Password:\s/',
+        'waiting for prompt',
+        'waiting for prompt after "terminal length 0"',
+        'waiting for prompt after "show running-config"',
+      ])
+    end
   end
 
   context 'over a transport that authenticates itself' do

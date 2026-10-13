@@ -20,7 +20,7 @@ module Glazed
       # @param name [String] step name
       # @param output [String] artifact to produce
       # @param storage_name [String] storage to write to, by name
-      # @param context [StepContext] named storages
+      # @param context [StepContext] named storages, and where progress is reported
       # @param timeout [Numeric] seconds to wait for each expected device output
       # @raise [StepContext::UnknownStorage] when the storage is not configured
       #: (name: String, output: String, storage_name: String, context: StepContext, ?timeout: Numeric) -> void
@@ -28,6 +28,7 @@ module Glazed
         super(name:)
         @output = output #: String
         @storage_name = storage_name #: String
+        @context = context #: StepContext
         @storage = context.storage(storage_name) #: Storages::Base
         @timeout = timeout #: Numeric
       end
@@ -56,7 +57,8 @@ module Glazed
       #: (Proto::V1::NodeState state) -> Proto::V1::NodeState
       def call(state)
         node = state.node or raise ArgumentError, "#{name}: state has no node"
-        config = Collector.new(node:, timeout: @timeout).call
+        progress = ->(message) { @context.notify(level: 'info', step: name, node: node.name, message:) } #: ^(String) -> void
+        config = Collector.new(node:, timeout: @timeout, progress:).call
         result = @storage.write(key: Storages.key_for(node), content: config, message: "#{node.name}: #{name}")
         with_artifacts(state, @output => stored(@storage_name, result))
       end

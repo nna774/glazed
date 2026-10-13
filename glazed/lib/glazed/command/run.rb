@@ -45,12 +45,14 @@ module Glazed
         end
 
         settings = load_config(config)
-        context = StepContext.from_proto(settings.storages)
+        lock = Mutex.new
+        listener = ->(event) { lock.synchronize { err.puts(JSON.generate(event)) } } #: Runner::listener
+        context = StepContext.from_proto(settings.storages, listener:)
         steps = Workflow.from_proto(select_workflow(settings, workflow), context:)
         nodes = select_nodes(Sources.nodes(settings.inventory.to_a), only || [])
 
         jobs ||= settings.jobs.zero? ? DEFAULT_JOBS : settings.jobs
-        result = Runner.new(workflow: steps, jobs:, listener: ->(event) { err.puts(JSON.generate(event)) }).call(nodes)
+        result = Runner.new(workflow: steps, jobs:, listener:).call(nodes)
         out.puts "completed #{result.states.size} of #{nodes.size} nodes, #{result.changed.size} changed, #{result.failures.size} failed"
         exit 1 unless result.failures.empty?
       end
