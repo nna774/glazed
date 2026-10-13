@@ -20,6 +20,7 @@ RSpec.describe Glazed::Collector do
         config.pre_logout { |run| run.cli.write("exit\n") }
       end
       communication(:exec_only) { it.exec = true }
+      communication(:wide) { it.pty_options[:chars_wide] = 200 }
     end
   end
   let(:responses) do
@@ -78,6 +79,18 @@ RSpec.describe Glazed::Collector do
     it 'never touches the shell' do
       expect(described_class.new(node:, timeout: 1).call).to eq("hostname rt1\n")
       expect(device.instances.first.written).to be_empty
+    end
+  end
+
+  context 'with PTY options' do
+    let(:transport) { 'wide' }
+    let(:device) { FakeTransport.device(greeting: 'rt1#', responses:) }
+
+    before { stub_const('Glazed::Transports::Wide', device) }
+
+    it 'hands them to the transport' do
+      described_class.new(node:, timeout: 1).call
+      expect(device.instances.last.pty_options).to eq(chars_wide: 200)
     end
   end
 

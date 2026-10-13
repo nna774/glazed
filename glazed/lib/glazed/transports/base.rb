@@ -25,6 +25,7 @@ module Glazed
         @username = username #: String
         @password = password #: Secret?
         @connect_timeout = connect_timeout #: Numeric
+        @pty_options = {} #: Hash[Symbol, untyped]
       end
 
       # @return [String] hostname or address
@@ -42,6 +43,9 @@ module Glazed
       # @return [Numeric] seconds to wait for a connection
       #: Numeric
       attr_reader :connect_timeout
+      # @return [Hash{Symbol => Object}] terminal settings overriding the transport's defaults; ignored by transports without a PTY
+      #: Hash[Symbol, untyped]
+      attr_accessor :pty_options
 
       # Connects to the device.
       #

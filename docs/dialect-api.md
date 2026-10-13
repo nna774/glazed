@@ -77,6 +77,7 @@ end
 ## Communication settings
 
 - `exec`: run each command on its own exec channel when the transport supports it (SSH), instead of the interactive shell.
+- `pty_options`: PTY settings for the interactive shell, merged over the transport's defaults (SSH: `term: 'vt100'`, `chars_wide: 512`). Keys follow net-ssh's `request_pty`, such as `:term`, `:chars_wide` and `:chars_high`. Set entries in place, for example `config.pty_options[:chars_wide] = 200`. Transports without a PTY ignore it.
 - `username_prompt`, `password_prompt`: when set, the session logs in by answering these prompts. This applies to SSH too, for devices that ask for credentials inside the session after SSH authentication.
 - `post_login`, `pre_logout`: hooks around the runbook. They receive the same `run` as runbook steps.
 

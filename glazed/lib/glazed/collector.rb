@@ -58,6 +58,7 @@ module Glazed
         timeout: @timeout,
       )
       run = Dialect::Run.new(cli: session, node:, dialect:)
+      @transport.pty_options = @config.pty_options
       @transport.open
       begin
         login(session) unless exec_only?

@@ -14,6 +14,7 @@ module Glazed
       #: () -> void
       def initialize
         @exec = false #: bool
+        @pty_options = {} #: Hash[Symbol, untyped]
         @username_prompt = nil #: Regexp?
         @password_prompt = nil #: Regexp?
         @post_login_hooks = [] #: Array[CommunicationConfig::hook]
@@ -23,6 +24,10 @@ module Glazed
       # @return [Boolean] run each command on its own exec channel when the transport supports it
       #: bool
       attr_accessor :exec
+      # @return [Hash{Symbol => Object}] PTY settings such as :term and :chars_wide, over the transport's defaults
+      #: Hash[Symbol, untyped]
+      attr_reader :pty_options
+
       # @return [Regexp, nil] prompt for the user name; when set, the session logs in by answering it
       #: Regexp?
       attr_accessor :username_prompt

@@ -14,8 +14,8 @@ module Glazed
     class Ssh < Base
       # Standard SSH port.
       DEFAULT_PORT = 22 #: Integer
-      # Terminal width requested for the shell, wide enough to avoid line wrapping.
-      TERMINAL_WIDTH = 512 #: Integer
+      # PTY requested for the shell, wide enough to avoid line wrapping.
+      DEFAULT_PTY_OPTIONS = {term: 'vt100', chars_wide: 512}.freeze #: Hash[Symbol, untyped]
 
       # @param host [String] hostname or address
       # @param port [Integer, nil] port, or nil for 22
@@ -143,7 +143,7 @@ module Glazed
       private def open_shell
         ready = false #: bool
         channel = session.open_channel do |ch|
-          ch.request_pty(term: 'vt100', chars_wide: TERMINAL_WIDTH) do |_, success|
+          ch.request_pty(DEFAULT_PTY_OPTIONS.merge(pty_options)) do |_, success|
             raise Glazed::Error, "#{host}: PTY request refused" unless success
           end
           ch.send_channel_request('shell') do |_, success|
