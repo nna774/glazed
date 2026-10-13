@@ -40,8 +40,7 @@ module Glazed
         listener = json_listener
         context = StepContext.from_proto(settings.storages, listener:)
         workflows = orchestration.workflows.keys.to_h { [it, Workflow.from_proto(select_workflow(settings, it), context:)] }
-        state = Must.because(orchestration.state) { 'validation requires orchestrator.state' }
-        backend = StateBackends.build(state, context:)
+        backend = state_backend(orchestration, context)
         orchestrator = Orchestrator.new(
           settings: orchestration, workflows:, backend:, inventory: -> { Sources.nodes(settings.inventory.to_a) },
           jobs: jobs || default_jobs(settings), listener:,

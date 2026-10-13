@@ -107,6 +107,7 @@ Each node and step logs one JSON line on stderr, and the run ends with a summary
 glazed run -c CONFIG [-w WORKFLOW] [--only NAME,...] [-j N]
 glazed orchestrate -c CONFIG [-j N]
 glazed signal -c CONFIG [-w WORKFLOW,...] [--source SOURCE] [--now] NAME...
+glazed status -c CONFIG [-w WORKFLOW,...] [--only NAME,...] [--failing] [--json]
 glazed version
 ```
 
@@ -115,7 +116,7 @@ glazed version
 - `--only NAME,...`: run only for these nodes, comma-separated
 - `-j, --jobs N`: nodes processed in parallel (default: `jobs` in the config, or 4)
 
-`glazed orchestrate` and `glazed signal` use the `orchestrator` settings of the config; see [docs/orchestrator.md](docs/orchestrator.md).
+`glazed orchestrate`, `glazed signal` and `glazed status` use the `orchestrator` settings of the config; see [docs/orchestrator.md](docs/orchestrator.md).
 
 The exit status of `glazed run` is 0 when every node completed, and 1 when a node failed a step (the other nodes still complete) or the arguments are invalid. Invalid configuration and failures of a batch step such as `publish` abort the run with an error. `glazed COMMAND --help` describes each command.
 

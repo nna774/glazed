@@ -74,6 +74,22 @@ Signals are debounced on the trailing edge: with each workflow's `debounce`, eac
 
 Other programs, such as a syslog or SNMP trap receiver, can send signals by running `glazed signal`, or from Ruby with `Glazed::Orchestrator.signal`, which takes `glazed.v1.Signal` messages.
 
+## Status
+
+```
+$ glazed status
+WORKFLOW  NODE    STATUS   DUE                     REASON    LAST RUN                    RESULT
+audit     sayaka  overdue  17:37:54Z (13m39s ago)  schedule  17:37:14Z (0.0s)            ok         signal pending since 17:42:02Z
+backup    fw1     waiting  17:51:02Z (in 8m52s)    retry     17:41:02Z (20.1s)           failed ×3  fetch: timed out waiting for prompt
+backup    sw1     running  17:41:50Z               syslog    17:41:51Z (running)         -          lease mafuyu:51753:a003… until 18:41:51Z
+```
+
+`glazed status` prints each workflow's records from the state. STATUS is `running` while an orchestrator holds the node's lease, `overdue` when it has been due for longer than `poll_seconds` (usually because no orchestrator is running), `due` when it is due within that, and `waiting` otherwise. Times are UTC, with the date only when it is not today.
+
+- `-w WORKFLOW,...` and `--only NAME,...` narrow the list, and `--failing` shows only nodes whose last run failed.
+- `--json` prints each record as a line of ProtoJSON of `glazed.v1.NodeSchedule` instead.
+- The exit status is 1 when a listed node is failing or overdue, so the command can serve as a monitoring check.
+
 ## State
 
 The state holds one `glazed.v1.NodeSchedule` per workflow and node: its due date and why, the last run's times and result, and which orchestrator is running it.

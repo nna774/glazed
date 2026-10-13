@@ -45,18 +45,15 @@ module Glazed
 
         settings = load_config(config)
         orchestration = orchestrator_settings(settings, config)
-        workflows = workflow || orchestration.workflows.keys.sort
-        unknown = workflows - orchestration.workflows.keys
-        raise Glazed::Error, "not orchestrated workflows: #{unknown.join(', ')}" unless unknown.empty?
-
+        workflows = select_orchestrated(orchestration, workflow)
         select_nodes(Sources.nodes(settings.inventory.to_a), nodes)
         context = StepContext.from_proto(settings.storages, listener: json_listener)
-        backend = StateBackends.build(Must.because(orchestration.state) { 'validation requires orchestrator.state' }, context:)
+        backend = state_backend(orchestration, context)
         at = Time.now
         signals = nodes.map do |node|
           Proto::V1::Signal.new(node:, source:, received_at: Google::Protobuf::Timestamp.from_time(at), immediate: now).tap { Validation.validate!(it) }
         end
-        workflows.uniq.each do |name|
+        workflows.each do |name|
           debounce = orchestration.workflows[name]&.debounce
           records = Orchestrator.signal(backend:, workflow: name, signals:, debounce:, now: at)
           nodes.uniq.each do |node|

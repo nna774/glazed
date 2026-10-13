@@ -14,4 +14,5 @@ Initial release.
 - `GLAZED_CONFIG_FILE` names the config file when `-c` is omitted
 - `glazed orchestrate` command, running workflows for each node on their own intervals and after signals with trailing debounce, with state in a pluggable state backend ([docs/orchestrator.md](../docs/orchestrator.md))
 - `glazed signal` command, making nodes due soon from scripts or notification receivers
+- `glazed status` command, showing when each node runs next and how its last run went, exiting 1 when one is failing or overdue
 - `sqlite` state backend, kept in a local file or in any storage supporting conditional writes (`filesystem`, `memory`, glazed-aws's `s3`)

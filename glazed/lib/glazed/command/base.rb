@@ -6,9 +6,12 @@
 require 'json'
 require 'dry/cli'
 require 'glazed'
+require 'glazed/must'
 require 'glazed/proto'
 require 'glazed/proto_json'
 require 'glazed/runner'
+require 'glazed/state_backends'
+require 'glazed/step_context'
 require 'glazed/validation'
 
 module Glazed
@@ -57,6 +60,30 @@ module Glazed
       #: (Proto::V1::Config config, String path) -> Proto::V1::Orchestrator
       private def orchestrator_settings(config, path)
         config.orchestrator or raise Glazed::Error, "#{path}: orchestrator is not configured"
+      end
+
+      # @param orchestration [Proto::V1::Orchestrator] the orchestrator settings
+      # @param names [Array<String>, nil] requested workflows; every orchestrated one when nil
+      # @return [Array<String>] the workflows, without duplicates
+      # @raise [Glazed::Error] when a requested workflow is not orchestrated
+      #: (Proto::V1::Orchestrator orchestration, Array[String]? names) -> Array[String]
+      private def select_orchestrated(orchestration, names)
+        orchestrated = orchestration.workflows.keys.sort
+        return orchestrated unless names
+
+        unknown = names - orchestrated
+        raise Glazed::Error, "not orchestrated workflows: #{unknown.join(', ')}" unless unknown.empty?
+
+        names.uniq
+      end
+
+      # @param orchestration [Proto::V1::Orchestrator] the orchestrator settings
+      # @param context [StepContext] configured storages
+      # @return [StateBackends::Base] the state backend
+      # @raise [Glazed::Error] when the backend cannot be built
+      #: (Proto::V1::Orchestrator orchestration, StepContext context) -> StateBackends::Base
+      private def state_backend(orchestration, context)
+        StateBackends.build(Must.because(orchestration.state) { 'validation requires orchestrator.state' }, context:)
       end
 
       # @param config [Proto::V1::Config] the config

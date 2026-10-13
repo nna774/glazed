@@ -8,6 +8,7 @@ require 'glazed'
 require 'glazed/command/orchestrate'
 require 'glazed/command/run'
 require 'glazed/command/send_signal'
+require 'glazed/command/status'
 require 'glazed/command/version'
 
 module Glazed
@@ -18,6 +19,7 @@ module Glazed
     register 'orchestrate', Orchestrate
     register 'run', Run
     register 'signal', SendSignal
+    register 'status', Status
     register 'version', Version, aliases: ['--version']
 
     # Runs a command line.
