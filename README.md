@@ -99,7 +99,7 @@ The comments are for this README only: ProtoJSON files must not contain them.
 BACKUP_PASSWORD=... ENABLE_SECRET=... GLAZED_HMAC_KEY=... bundle exec glazed run -c glazed.json
 ```
 
-Each node and step logs one JSON line on stderr, and the run ends with a summary such as `completed 2 of 2 nodes, 1 changed, 0 failed`. Run it from cron or a systemd timer to keep the copies current, or keep it running with `glazed orchestrate` ([docs/orchestrator.md](docs/orchestrator.md)), which runs workflows for each node on an interval and soon after a signal such as `glazed signal sw1`.
+Each node and step logs one JSON line on stderr, and the run ends with a summary such as `completed 2 of 2 nodes, 1 changed, 0 failed`. Run it from cron or a systemd timer to keep the copies current, or keep it running with `glazed orchestrate` ([docs/orchestrator.md](docs/orchestrator.md)), which runs workflows for each node on an interval and soon after a signal such as `glazed signal sw1`. The same workflows can run on AWS Step Functions with `glazed-aws` ([docs/aws-step-functions.md](docs/aws-step-functions.md)).
 
 ## Usage
 
@@ -254,7 +254,7 @@ Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.Batch
 - Not production-tested yet. The `ios` and `junos` dialects are tested against device captures from Oxidized's test suite; the `wlc`, `nec_ix` and `awplus` fixtures are written from command references and need checking against real devices.
 - SSH host keys are verified with net-ssh's defaults and `~/.ssh/known_hosts` unless the node sets `transport_options.ssh.verify_host_key` or the known_hosts files.
 - A node removed from the inventory leaves its file in the storages.
-- Not yet available: opening pull requests automatically, the AWS Lambda and Step Functions coordinator, and receivers turning syslog messages or SNMP traps into signals.
+- Not yet available: opening pull requests automatically, and receivers turning syslog messages or SNMP traps into signals.
 
 ## Development
 

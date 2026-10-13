@@ -3,6 +3,7 @@ PATH
   specs:
     glazed-aws (0.1.0)
       aws-sdk-s3
+      dry-cli
       glazed
 
 PATH
