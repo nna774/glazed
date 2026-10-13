@@ -1,0 +1,2 @@
+# buf generate
+glazed/lib/glazed/v1/*_pb.rb linguist-generated
