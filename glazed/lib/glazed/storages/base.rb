@@ -5,6 +5,7 @@
 
 require 'google/protobuf'
 require 'glazed'
+require 'glazed/must'
 require 'glazed/proto'
 
 module Glazed
@@ -73,6 +74,26 @@ module Glazed
       # @return [String] the content
       #: (Proto::V1::Pointer pointer) -> String
       def read(pointer) = raise NotImplementedError
+
+      # Wraps a location in a pointer.
+      #
+      # @param location [Google::Protobuf::MessageExts] storage-specific location
+      # @return [Proto::V1::Pointer] the pointer
+      #: (Google::Protobuf::MessageExts location) -> Proto::V1::Pointer
+      private def pointer_to(location) = Proto::V1::Pointer.new(location: Google::Protobuf::Any.pack(location))
+
+      # Unwraps the location of a pointer.
+      #
+      # @param pointer [Proto::V1::Pointer] the pointer
+      # @param location_class [Class] location message this storage writes
+      # @return [Google::Protobuf::MessageExts] the location
+      # @raise [ArgumentError] when the pointer holds another kind of location
+      #: [L] (Proto::V1::Pointer pointer, Class[L] location_class) -> L
+      private def location_of(pointer, location_class)
+        any = pointer.location or raise ArgumentError, 'pointer has no location'
+        location = any.unpack(location_class) or raise ArgumentError, "#{self.class.name} cannot read a pointer to #{any.type_name}"
+        Must.be_a(location, location_class)
+      end
 
       # @param key [String] key to check
       # @return [String] the key

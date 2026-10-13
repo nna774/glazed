@@ -103,7 +103,7 @@ module Glazed
         keys = files.map { |key, _| validate_key(key) }
         commit, changed = with_retries { commit_files(files, message) }
         keys.map do |key|
-          pointer = Proto::V1::Pointer.new(github: Proto::V1::GithubLocation.new(repository:, path: key, commit:))
+          pointer = pointer_to(Proto::V1::GithubLocation.new(repository:, path: key, commit:))
           WriteResult.new(pointer:, changed: changed.include?(key))
         end
       end
@@ -116,7 +116,7 @@ module Glazed
       # @raise [ApiError] when the file or commit does not exist
       #: (Proto::V1::Pointer pointer) -> String
       def read(pointer)
-        location = pointer.github or raise ArgumentError, "not a github pointer: #{pointer.location.inspect}"
+        location = location_of(pointer, Proto::V1::GithubLocation)
         path = "/repos/#{location.repository}/contents/#{escape(validate_key(location.path))}?ref=#{escape(location.commit)}"
         check(http.get(url(path), headers: {'accept' => 'application/vnd.github.raw+json'})).body.to_s
       end

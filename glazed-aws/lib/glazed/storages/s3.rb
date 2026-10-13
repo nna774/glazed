@@ -80,7 +80,7 @@ module Glazed
       # @raise [Aws::S3::Errors::ServiceError] when the object or version does not exist
       #: (Proto::V1::Pointer pointer) -> String
       def read(pointer)
-        location = pointer.s3 or raise ArgumentError, "not an s3 pointer: #{pointer.location.inspect}"
+        location = location_of(pointer, Proto::V1::S3Location)
         response = if location.version_id.empty?
           client.get_object(bucket: location.bucket, key: location.key)
         else
@@ -132,7 +132,7 @@ module Glazed
       # @return [Proto::V1::Pointer] pointer to the version
       #: (String key, String? version_id) -> Proto::V1::Pointer
       private def pointer(key, version_id)
-        Proto::V1::Pointer.new(s3: Proto::V1::S3Location.new(bucket:, key:, version_id: version_id.to_s))
+        pointer_to(Proto::V1::S3Location.new(bucket:, key:, version_id: version_id.to_s))
       end
 
       # @return [Aws::S3::Client] the injected client, or one built on first use

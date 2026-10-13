@@ -8,6 +8,8 @@ require 'glazed/steps/fetch'
 require 'glazed/storages/git'
 
 RSpec.describe Glazed::Steps::Fetch do
+  def location(pointer) = pointer.location.unpack(Glazed::Proto::V1::GitLocation)
+
   around do |example|
     Dir.mktmpdir do |dir|
       @dir = dir
@@ -35,7 +37,7 @@ RSpec.describe Glazed::Steps::Fetch do
     state = step.call(Glazed::Proto::V1::NodeState.new(node:))
     artifact = state.artifacts['raw']
     expect(artifact.storage).to eq('vault')
-    expect(artifact.pointer.git.path).to eq('core/rt1')
+    expect(location(artifact.pointer).path).to eq('core/rt1')
     expect(context.read(artifact)).to eq("hostname rt1\n")
   end
 

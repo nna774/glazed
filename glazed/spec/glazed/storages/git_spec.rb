@@ -7,6 +7,9 @@ require 'tmpdir'
 require 'glazed/storages/git'
 
 RSpec.describe Glazed::Storages::Git do
+  def location(pointer) = pointer.location.unpack(Glazed::Proto::V1::GitLocation)
+  def pointer_to(**location) = Glazed::Proto::V1::Pointer.new(location: Google::Protobuf::Any.pack(Glazed::Proto::V1::GitLocation.new(**location)))
+
   around do |example|
     Dir.mktmpdir do |dir|
       @dir = dir
@@ -22,8 +25,8 @@ RSpec.describe Glazed::Storages::Git do
   it 'initialises the repository and commits a file' do
     result = storage.write(key: 'core/rt1', content: "hostname rt1\n", message: 'rt1')
     expect(result).to be_changed
-    expect(result.pointer.git.path).to eq('core/rt1')
-    expect(result.pointer.git.commit).to eq(git('rev-parse', 'HEAD').strip)
+    expect(location(result.pointer).path).to eq('core/rt1')
+    expect(location(result.pointer).commit).to eq(git('rev-parse', 'HEAD').strip)
     expect(git('log', '--format=%s %an <%ae>')).to eq("rt1 glazed <glazed@localhost>\n")
     expect(git('branch', '--show-current')).to eq("main\n")
   end
@@ -36,7 +39,7 @@ RSpec.describe Glazed::Storages::Git do
 
   it 'writes several files in one commit' do
     results = storage.write_all([['a/rt1', "1\n"], ['b/rt2', "2\n"]], message: ->(_) { 'batch' })
-    expect(results.map { it.pointer.git.path }).to eq(%w[a/rt1 b/rt2])
+    expect(results.map { location(it.pointer).path }).to eq(%w[a/rt1 b/rt2])
     expect(git('rev-list', '--count', 'HEAD')).to eq("1\n")
   end
 
@@ -44,7 +47,7 @@ RSpec.describe Glazed::Storages::Git do
     first = storage.write(key: 'rt1', content: "same\n", message: 'one')
     second = storage.write(key: 'rt1', content: "same\n", message: 'two')
     expect(second).not_to be_changed
-    expect(second.pointer.git.commit).to eq(first.pointer.git.commit)
+    expect(location(second.pointer).commit).to eq(location(first.pointer).commit)
     expect(git('rev-list', '--count', 'HEAD')).to eq("1\n")
   end
 
@@ -75,7 +78,7 @@ RSpec.describe Glazed::Storages::Git do
 
   it 'raises CommandFailed with git output for a missing commit' do
     storage.write(key: 'rt1', content: "x\n", message: 'x')
-    pointer = Glazed::Proto::V1::Pointer.new(git: {path: 'rt1', commit: '0' * 40})
+    pointer = pointer_to(path: 'rt1', commit: '0' * 40)
     expect { storage.read(pointer) }.to raise_error(described_class::CommandFailed, /git show failed/)
   end
 

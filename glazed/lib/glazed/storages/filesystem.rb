@@ -59,7 +59,7 @@ module Glazed
           file = ::File.join(path, key)
           changed = !(::File.file?(file) && ::File.binread(file) == content.b)
           replace(file, content) if changed
-          pointer = Proto::V1::Pointer.new(filesystem: Proto::V1::FilesystemLocation.new(path: key, sha256: Digest::SHA256.hexdigest(content)))
+          pointer = pointer_to(Proto::V1::FilesystemLocation.new(path: key, sha256: Digest::SHA256.hexdigest(content)))
           WriteResult.new(pointer:, changed:)
         end
       end
@@ -73,7 +73,7 @@ module Glazed
       # @raise [Errno::ENOENT] when the file is gone
       #: (Proto::V1::Pointer pointer) -> String
       def read(pointer)
-        location = pointer.filesystem or raise ArgumentError, "not a filesystem pointer: #{pointer.location.inspect}"
+        location = location_of(pointer, Proto::V1::FilesystemLocation)
         content = ::File.read(::File.join(path, validate_key(location.path)))
         unless Digest::SHA256.hexdigest(content) == location.sha256
           raise StaleContent, "#{location.path} in #{path} no longer holds the content written"

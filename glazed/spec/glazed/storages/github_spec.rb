@@ -8,6 +8,9 @@ require 'httpx/adapters/webmock'
 require 'glazed/storages/github'
 
 RSpec.describe Glazed::Storages::Github do
+  def location(pointer) = pointer.location.unpack(Glazed::Proto::V1::GithubLocation)
+  def pointer_to(**location) = Glazed::Proto::V1::Pointer.new(location: Google::Protobuf::Any.pack(Glazed::Proto::V1::GithubLocation.new(**location)))
+
   let(:api) { 'https://api.github.com/repos/org/netconf' }
   let(:token) { Glazed::Secret.new(Glazed::Proto::V1::SecretRef.new(value: 'tok')) }
   let(:storage) { described_class.new(repository: 'org/netconf', branch: 'glazed/auto', token:) }
@@ -49,7 +52,7 @@ RSpec.describe Glazed::Storages::Github do
 
       result = storage.write_all(files, message:).first
       expect(result).to be_changed
-      expect(result.pointer.github.to_h).to eq(repository: 'org/netconf', path: 'core/rt1', commit: 'new-commit')
+      expect(location(result.pointer).to_h).to eq(repository: 'org/netconf', path: 'core/rt1', commit: 'new-commit')
       expect([commit, ref]).to all(have_been_requested)
     end
 
@@ -61,14 +64,14 @@ RSpec.describe Glazed::Storages::Github do
 
       results = storage.write_all([['core/rt1', "hostname rt1\n"], ['core/rt2', "hostname rt2\n"]], message:)
       expect(results.map(&:changed?)).to eq([false, true])
-      expect(results.map { it.pointer.github.commit }).to all(eq('new-commit'))
+      expect(results.map { location(it.pointer).commit }).to all(eq('new-commit'))
     end
 
     it 'makes no request beyond reading when every file is unchanged' do
       stub_listing('base-tree', {'core/rt1' => blob("hostname rt1\n")})
       result = storage.write_all(files, message: ->(_) { raise 'unexpected' }).first
       expect(result).not_to be_changed
-      expect(result.pointer.github.commit).to eq('head')
+      expect(location(result.pointer).commit).to eq('head')
       expect(a_request(:post, %r{/git/})).not_to have_been_made
       expect(a_request(:patch, %r{/git/refs/})).not_to have_been_made
     end
@@ -89,7 +92,7 @@ RSpec.describe Glazed::Storages::Github do
         .to_return(reply({message: 'Update is not a fast forward'}, status: 422)).then
         .to_return(reply({}))
 
-      expect(storage.write_all(files, message:).first.pointer.github.commit).to eq('new-commit')
+      expect(location(storage.write_all(files, message:).first.pointer).commit).to eq('new-commit')
       expect(a_request(:get, "#{api}/git/ref/heads/glazed/auto")).to have_been_made.twice
     end
 
@@ -120,7 +123,7 @@ RSpec.describe Glazed::Storages::Github do
       create = stub_request(:post, "#{api}/git/refs")
                .with(body: {ref: 'refs/heads/glazed/auto', sha: 'new-commit'})
                .to_return(reply({}, status: 201))
-      expect(storage.write_all(files, message:).first.pointer.github.commit).to eq('new-commit')
+      expect(location(storage.write_all(files, message:).first.pointer).commit).to eq('new-commit')
       expect(create).to have_been_requested
     end
   end
@@ -129,7 +132,7 @@ RSpec.describe Glazed::Storages::Github do
     stub_request(:get, "#{api}/contents/core/rt1?ref=abc")
       .with(headers: {'accept' => 'application/vnd.github.raw+json'})
       .to_return(status: 200, body: "hostname rt1\n")
-    pointer = Glazed::Proto::V1::Pointer.new(github: {repository: 'org/netconf', path: 'core/rt1', commit: 'abc'})
+    pointer = pointer_to(repository: 'org/netconf', path: 'core/rt1', commit: 'abc')
     expect(storage.read(pointer)).to eq("hostname rt1\n")
   end
 

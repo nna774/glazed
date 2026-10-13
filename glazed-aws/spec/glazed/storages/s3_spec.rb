@@ -8,6 +8,9 @@ require 'glazed/storages'
 require 'glazed/storages/s3'
 
 RSpec.describe Glazed::Storages::S3 do
+  def location(pointer) = pointer.location.unpack(Glazed::Proto::V1::S3Location)
+  def pointer_to(**location) = Glazed::Proto::V1::Pointer.new(location: Google::Protobuf::Any.pack(Glazed::Proto::V1::S3Location.new(**location)))
+
   let(:client) { Aws::S3::Client.new(stub_responses: true) }
   let(:storage) { described_class.new(bucket: 'netconf', prefix: 'raw/', client:) }
   let(:message) { ->(_) { 'unused' } }
@@ -21,7 +24,7 @@ RSpec.describe Glazed::Storages::S3 do
     client.stub_responses(:put_object, {version_id: 'v1'})
     result = storage.write(key: 'core/rt1', content: "a\n", message: 'x')
     expect(result).to be_changed
-    expect(result.pointer.s3.to_h).to eq(bucket: 'netconf', key: 'raw/core/rt1', version_id: 'v1')
+    expect(location(result.pointer).to_h).to eq(bucket: 'netconf', key: 'raw/core/rt1', version_id: 'v1')
     expect(requests(:put_object)).to contain_exactly(
       include(key: 'raw/core/rt1', body: "a\n", content_type: 'text/plain', checksum_sha256: checksum("a\n"), if_none_match: '*'),
     )
@@ -32,7 +35,7 @@ RSpec.describe Glazed::Storages::S3 do
     client.stub_responses(:head_object, {checksum_sha256: checksum("a\n"), version_id: 'v1', etag: '"e1"'})
     result = storage.write(key: 'rt1', content: "a\n", message: 'x')
     expect(result).not_to be_changed
-    expect(result.pointer.s3.version_id).to eq('v1')
+    expect(location(result.pointer).version_id).to eq('v1')
     expect(requests(:put_object)).to be_empty
   end
 
@@ -41,7 +44,7 @@ RSpec.describe Glazed::Storages::S3 do
     client.stub_responses(:put_object, {version_id: 'v2'})
     result = storage.write(key: 'rt1', content: "new\n", message: 'x')
     expect(result).to be_changed
-    expect(result.pointer.s3.version_id).to eq('v2')
+    expect(location(result.pointer).version_id).to eq('v2')
     expect(requests(:put_object)).to contain_exactly(include(if_match: '"e1"'))
   end
 
@@ -57,7 +60,7 @@ RSpec.describe Glazed::Storages::S3 do
       {checksum_sha256: checksum("other\n"), etag: '"e2"'},
     ])
     client.stub_responses(:put_object, ['PreconditionFailed', {version_id: 'v3'}])
-    expect(storage.write(key: 'rt1', content: "new\n", message: 'x').pointer.s3.version_id).to eq('v3')
+    expect(location(storage.write(key: 'rt1', content: "new\n", message: 'x').pointer).version_id).to eq('v3')
     expect(requests(:put_object).map { it[:if_match] }).to eq(['"e1"', '"e2"'])
   end
 
@@ -78,25 +81,25 @@ RSpec.describe Glazed::Storages::S3 do
     client.stub_responses(:head_object, [{checksum_sha256: checksum("a\n"), version_id: 'v1'}, 'NotFound'])
     client.stub_responses(:put_object, {version_id: 'v9'})
     results = storage.write_all([['rt1', "a\n"], ['rt2', "b\n"]], message:)
-    expect(results.map { [it.pointer.s3.key, it.changed?] }).to eq([['raw/rt1', false], ['raw/rt2', true]])
+    expect(results.map { [location(it.pointer).key, it.changed?] }).to eq([['raw/rt1', false], ['raw/rt2', true]])
   end
 
   it 'leaves the version empty for an unversioned bucket' do
     client.stub_responses(:head_object, 'NotFound')
     client.stub_responses(:put_object, {version_id: nil})
-    expect(storage.write(key: 'rt1', content: '', message: 'x').pointer.s3.version_id).to eq('')
+    expect(location(storage.write(key: 'rt1', content: '', message: 'x').pointer).version_id).to eq('')
   end
 
   it 'reads the pointed version' do
     client.stub_responses(:get_object, {body: "hostname rt1\n"})
-    pointer = Glazed::Proto::V1::Pointer.new(s3: {bucket: 'netconf', key: 'raw/rt1', version_id: 'v1'})
+    pointer = pointer_to(bucket: 'netconf', key: 'raw/rt1', version_id: 'v1')
     expect(storage.read(pointer)).to eq("hostname rt1\n")
     expect(requests(:get_object).last).to include(bucket: 'netconf', key: 'raw/rt1', version_id: 'v1')
   end
 
   it 'reads the latest content without a version' do
     client.stub_responses(:get_object, {body: 'x'})
-    storage.read(Glazed::Proto::V1::Pointer.new(s3: {bucket: 'netconf', key: 'raw/rt1'}))
+    storage.read(pointer_to(bucket: 'netconf', key: 'raw/rt1'))
     expect(requests(:get_object).last).not_to have_key(:version_id)
   end
 

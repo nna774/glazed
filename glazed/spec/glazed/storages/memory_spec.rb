@@ -6,12 +6,14 @@ require 'glazed/storages'
 require 'glazed/storages/memory'
 
 RSpec.describe Glazed::Storages::Memory do
+  def location(pointer) = pointer.location.unpack(Glazed::Proto::V1::MemoryLocation)
+
   let(:storage) { described_class.new }
 
   it 'returns content written earlier in the process' do
     result = storage.write(key: 'core/rt1', content: "hostname rt1\n", message: 'x')
     expect(result).to be_changed
-    expect(result.pointer.memory.to_h).to eq(key: 'core/rt1', sha256: Digest::SHA256.hexdigest("hostname rt1\n"))
+    expect(location(result.pointer).to_h).to eq(key: 'core/rt1', sha256: Digest::SHA256.hexdigest("hostname rt1\n"))
     expect(storage.read(result.pointer)).to eq("hostname rt1\n")
   end
 

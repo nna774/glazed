@@ -222,7 +222,7 @@ The config then requires the gem and names the settings type with `@type`:
 }
 ```
 
-Storages register with `Glazed::Storages.register` (a `Glazed::Storages::Base` whose pointers use the `plugin` case of `glazed.v1.Pointer`), steps with `Glazed::Steps.register` (a `Glazed::Steps::NodeStep` or `BatchStep`), and secret sources with `Glazed::Secrets.register` (a `Glazed::Secrets::Base` returning the value). For changes too small for a gem, the `shell` and `batch_shell` steps run scripts instead.
+Storages register with `Glazed::Storages.register` (a `Glazed::Storages::Base` wrapping its own location message in `glazed.v1.Pointer` with `pointer_to` and `location_of`), steps with `Glazed::Steps.register` (a `Glazed::Steps::NodeStep` or `BatchStep`), and secret sources with `Glazed::Secrets.register` (a `Glazed::Secrets::Base` returning the value). For changes too small for a gem, the `shell` and `batch_shell` steps run scripts instead.
 
 ## How it works
 

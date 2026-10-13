@@ -58,7 +58,7 @@ module Glazed
             @latest[key] = sha256
             previous != sha256
           end
-          WriteResult.new(pointer: Proto::V1::Pointer.new(memory: Proto::V1::MemoryLocation.new(key:, sha256:)), changed:)
+          WriteResult.new(pointer: pointer_to(Proto::V1::MemoryLocation.new(key:, sha256:)), changed:)
         end
       end
 
@@ -71,7 +71,7 @@ module Glazed
       #   example when the pointer comes from another process
       #: (Proto::V1::Pointer pointer) -> String
       def read(pointer)
-        location = pointer.memory or raise ArgumentError, "not a memory pointer: #{pointer.location.inspect}"
+        location = location_of(pointer, Proto::V1::MemoryLocation)
         content = @lock.synchronize { @contents[location.sha256] }
         content or raise MissingContent, "#{location.key} is not held in this process; memory storage only works within one glazed run"
       end

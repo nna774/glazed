@@ -98,7 +98,7 @@ module Glazed
           end
           commit = git(%w[rev-parse HEAD]).strip
           keys.map do |key|
-            WriteResult.new(pointer: Proto::V1::Pointer.new(git: Proto::V1::GitLocation.new(path: key, commit:)), changed: changed.include?(key))
+            WriteResult.new(pointer: pointer_to(Proto::V1::GitLocation.new(path: key, commit:)), changed: changed.include?(key))
           end
         end
       end
@@ -111,7 +111,7 @@ module Glazed
       # @raise [CommandFailed] when the commit or path does not exist
       #: (Proto::V1::Pointer pointer) -> String
       def read(pointer)
-        location = pointer.git or raise ArgumentError, "not a git pointer: #{pointer.location.inspect}"
+        location = location_of(pointer, Proto::V1::GitLocation)
         git(['show', "#{location.commit}:#{validate_key(location.path)}"])
       end
 

@@ -7,6 +7,8 @@ require 'glazed/storages'
 require 'glazed/storages/filesystem'
 
 RSpec.describe Glazed::Storages::Filesystem do
+  def location(pointer) = pointer.location.unpack(Glazed::Proto::V1::FilesystemLocation)
+
   around do |example|
     Dir.mktmpdir do |dir|
       @dir = dir
@@ -21,7 +23,7 @@ RSpec.describe Glazed::Storages::Filesystem do
     result = storage.write(key: 'core/rt1', content: "hostname rt1\n", message: 'x')
     expect(result).to be_changed
     expect(File.read(File.join(path, 'core/rt1'))).to eq("hostname rt1\n")
-    expect(result.pointer.filesystem.to_h).to eq(path: 'core/rt1', sha256: Digest::SHA256.hexdigest("hostname rt1\n"))
+    expect(location(result.pointer).to_h).to eq(path: 'core/rt1', sha256: Digest::SHA256.hexdigest("hostname rt1\n"))
     expect(Dir.children(File.join(path, 'core'))).to eq(['rt1'])
   end
 
@@ -41,6 +43,11 @@ RSpec.describe Glazed::Storages::Filesystem do
     pointer = storage.write(key: 'rt1', content: "v1\n", message: 'x').pointer
     storage.write(key: 'rt1', content: "v2\n", message: 'x')
     expect { storage.read(pointer) }.to raise_error(described_class::StaleContent, /rt1/)
+  end
+
+  it 'refuses a pointer written by another kind of storage' do
+    pointer = Glazed::Proto::V1::Pointer.new(location: Google::Protobuf::Any.pack(Glazed::Proto::V1::GitLocation.new(path: 'core/rt1')))
+    expect { storage.read(pointer) }.to raise_error(ArgumentError, /cannot read a pointer to glazed\.v1\.GitLocation/)
   end
 
   it 'reports per-file changes in a batch' do

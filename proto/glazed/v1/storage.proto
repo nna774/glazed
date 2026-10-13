@@ -92,22 +92,9 @@ message S3Storage {
 
 // Location of one stored file.
 message Pointer {
-  // Storage-specific location.
-  oneof location {
-    option (buf.validate.oneof).required = true;
-    // File in a git repository.
-    GitLocation git = 1;
-    // File in a GitHub repository.
-    GithubLocation github = 2;
-    // Object in an Amazon S3 bucket.
-    S3Location s3 = 3;
-    // File in a local directory.
-    FilesystemLocation filesystem = 4;
-    // Location in a storage implemented outside glazed.
-    google.protobuf.Any plugin = 5;
-    // Content held in the memory of the process that wrote it.
-    MemoryLocation memory = 6;
-  }
+  // Storage-specific location, such as a GitLocation. Only the kind of
+  // storage that wrote it can read it.
+  google.protobuf.Any location = 1 [(buf.validate.field).required = true];
 }
 
 // File at a commit of a git repository.

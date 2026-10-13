@@ -6,90 +6,18 @@
 
 
 class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
-  sig do
-    params(
-      filesystem: T.nilable(Glazed::Proto::V1::FilesystemLocation),
-      git: T.nilable(Glazed::Proto::V1::GitLocation),
-      github: T.nilable(Glazed::Proto::V1::GithubLocation),
-      memory: T.nilable(Glazed::Proto::V1::MemoryLocation),
-      plugin: T.nilable(Google::Protobuf::Any),
-      s3: T.nilable(Glazed::Proto::V1::S3Location)
-    ).void
-  end
-  def initialize(filesystem: nil, git: nil, github: nil, memory: nil, plugin: nil, s3: nil); end
+  sig { params(location: T.nilable(Google::Protobuf::Any)).void }
+  def initialize(location: nil); end
 
   sig { void }
-  def clear_filesystem; end
-
-  sig { void }
-  def clear_git; end
-
-  sig { void }
-  def clear_github; end
-
-  sig { void }
-  def clear_memory; end
-
-  sig { void }
-  def clear_plugin; end
-
-  sig { void }
-  def clear_s3; end
-
-  sig { returns(T.nilable(Glazed::Proto::V1::FilesystemLocation)) }
-  def filesystem; end
-
-  sig { params(value: T.nilable(Glazed::Proto::V1::FilesystemLocation)).void }
-  def filesystem=(value); end
-
-  sig { returns(T.nilable(Glazed::Proto::V1::GitLocation)) }
-  def git; end
-
-  sig { params(value: T.nilable(Glazed::Proto::V1::GitLocation)).void }
-  def git=(value); end
-
-  sig { returns(T.nilable(Glazed::Proto::V1::GithubLocation)) }
-  def github; end
-
-  sig { params(value: T.nilable(Glazed::Proto::V1::GithubLocation)).void }
-  def github=(value); end
+  def clear_location; end
 
   sig { returns(Object) }
-  def has_filesystem?; end
-
-  sig { returns(Object) }
-  def has_git?; end
-
-  sig { returns(Object) }
-  def has_github?; end
-
-  sig { returns(Object) }
-  def has_memory?; end
-
-  sig { returns(Object) }
-  def has_plugin?; end
-
-  sig { returns(Object) }
-  def has_s3?; end
-
-  sig { returns(T.nilable(Symbol)) }
-  def location; end
-
-  sig { returns(T.nilable(Glazed::Proto::V1::MemoryLocation)) }
-  def memory; end
-
-  sig { params(value: T.nilable(Glazed::Proto::V1::MemoryLocation)).void }
-  def memory=(value); end
+  def has_location?; end
 
   sig { returns(T.nilable(Google::Protobuf::Any)) }
-  def plugin; end
+  def location; end
 
   sig { params(value: T.nilable(Google::Protobuf::Any)).void }
-  def plugin=(value); end
-
-  sig { returns(T.nilable(Glazed::Proto::V1::S3Location)) }
-  def s3; end
-
-  sig { params(value: T.nilable(Glazed::Proto::V1::S3Location)).void }
-  def s3=(value); end
+  def location=(value); end
 end
