@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 require 'glazed/collector'
+require 'glazed/transports/telnet'
 
 RSpec.describe Glazed::Collector do
   let(:dialect) do
@@ -77,6 +78,31 @@ RSpec.describe Glazed::Collector do
     it 'never touches the shell' do
       expect(described_class.new(node:, timeout: 1).call).to eq("hostname rt1\n")
       expect(device.instances.first.written).to be_empty
+    end
+  end
+
+  context 'with a device not using UTF-8' do
+    let(:transport) { 'fake' }
+    let(:device) do
+      FakeTransport.device(greeting: 'rt1#', responses: {
+        'terminal length 0' => 'rt1#',
+        'show running-config' => "hostname ルータ1\r\nrt1#".encode('Shift_JIS').b,
+        'exit' => '',
+      })
+    end
+
+    before { stub_const('Glazed::Transports::Fake', device) }
+
+    it 'refuses output that is not UTF-8' do
+      expect { described_class.new(node:, timeout: 1).call }
+        .to raise_error(Glazed::InvalidEncoding, /"show running-config" is not valid UTF-8/)
+    end
+
+    it 'accepts output the dialect converts to UTF-8' do
+      dialect.filter_output { it.dup.force_encoding(Encoding::Shift_JIS).encode(Encoding::UTF_8) }
+      output = described_class.new(node:, timeout: 1).call
+      expect(output).to eq("hostname ルータ1\n")
+      expect(output.encoding).to eq(Encoding::UTF_8)
     end
   end
 

@@ -13,4 +13,6 @@ module Glazed
   class TimeoutError < Error; end
   # Raised when a device closes the connection unexpectedly.
   class ConnectionClosed < Error; end
+  # Raised when collected configuration is not valid UTF-8.
+  class InvalidEncoding < Error; end
 end

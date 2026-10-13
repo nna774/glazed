@@ -43,9 +43,10 @@ module Glazed
 
     # Collects the configuration. The connection is closed even on failure.
     #
-    # @return [String] the configuration
+    # @return [String] the configuration, in UTF-8
     # @raise [TimeoutError] when the device does not answer as the dialect expects
     # @raise [ConnectionClosed] when the device drops the connection
+    # @raise [InvalidEncoding] when the configuration is not valid UTF-8
     #: () -> String
     def call
       session = CliSession.new(
@@ -61,7 +62,9 @@ module Glazed
       begin
         login(session) unless exec_only?
         @config.post_login_hooks.each { it.call(run) }
-        output = dialect.runbook_for(:get).execute(run)
+        output = dialect.runbook_for(:get).execute(run).dup.force_encoding(Encoding::UTF_8)
+        raise InvalidEncoding, "#{node.name}: collected configuration is not valid UTF-8" unless output.valid_encoding?
+
         @config.pre_logout_hooks.each { it.call(run) }
         output
       ensure

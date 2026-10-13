@@ -73,6 +73,22 @@ RSpec.describe Glazed::CliSession do
     end
   end
 
+  context 'with UTF-8 output arriving a byte at a time' do
+    let(:transport) { FakeTransport.new(responses: {'show' => "ルータ1\r\nrt1#"}) }
+
+    before do
+      pending_bytes = String.new(encoding: Encoding::BINARY)
+      transport.define_singleton_method(:read) do |timeout:|
+        pending_bytes << super(timeout:).to_s.b
+        pending_bytes.slice!(0, 1)
+      end
+    end
+
+    it 'matches the prompt across split characters' do
+      expect(session.command('show').output.dup.force_encoding(Encoding::UTF_8)).to eq("ルータ1\r\n")
+    end
+  end
+
   context 'with exec' do
     let(:transport) { FakeTransport.new(exec_responses: {'show version' => "Model: mx960\r\n"}) }
     let(:session_options) { {exec: true, data_filters: [->(fragment) { fragment.delete("\r") }]} }

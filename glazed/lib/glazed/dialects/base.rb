@@ -120,9 +120,11 @@ module Glazed
         #: () -> Array[Dialect::data_filter]
         def data_filters = (@parent&.data_filters || []) + (@data_filters || [])
 
-        # Declares a filter for the whole output of each runbook command.
+        # Declares a filter for the whole output of each runbook command. The
+        # output arrives as bytes and must be valid UTF-8 once every filter ran,
+        # so a dialect for a device using another encoding converts it here.
         #
-        # @yieldparam output [String] command output
+        # @yieldparam output [String] command output, as bytes (ASCII-8BIT)
         # @yieldreturn [String] filtered output
         # @return [void]
         # @example

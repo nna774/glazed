@@ -80,6 +80,14 @@ end
 - `username_prompt`, `password_prompt`: when set, the session logs in by answering these prompts. This applies to SSH too, for devices that ask for credentials inside the session after SSH authentication.
 - `post_login`, `pre_logout`: hooks around the runbook. They receive the same `run` as runbook steps.
 
+## Encoding
+
+Collected configuration must be valid UTF-8: a command whose output is not fails the node with `Glazed::InvalidEncoding`. Output reaches `filter_output` as bytes, so a dialect for a device using another encoding converts it there:
+
+```ruby
+filter_output { |output| output.dup.force_encoding(Encoding::Shift_JIS).encode(Encoding::UTF_8) }
+```
+
 ## Runs
 
 Runbook steps and hooks receive a `Glazed::Dialect::Run`:

@@ -42,14 +42,22 @@ module Glazed
       #: String
       attr_reader :output
 
-      # Runs a command and passes its output through the dialect's output filters.
+      # Runs a command and passes its output, as bytes, through the dialect's
+      # output filters. Collected configuration must be UTF-8, so a dialect for
+      # a device using another encoding converts it in an output filter.
       #
       # @param line [String] command line
-      # @return [CommandResult] the filtered result
+      # @return [CommandResult] the filtered result, in UTF-8
+      # @raise [InvalidEncoding] when the filtered output is not valid UTF-8
       #: (String line) -> CommandResult
       def command(line)
         result = cli.command(line)
-        output = dialect.output_filters.inject(result.output) { |text, output_filter| output_filter.call(text) }
+        filtered = dialect.output_filters.inject(result.output) { |text, output_filter| output_filter.call(text) }
+        output = filtered.dup.force_encoding(Encoding::UTF_8)
+        unless output.valid_encoding?
+          raise InvalidEncoding, "output of #{line.inspect} is not valid UTF-8; convert it in the dialect's filter_output"
+        end
+
         CommandResult.new(command: result.command, output:)
       end
 

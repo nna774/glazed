@@ -13,7 +13,8 @@ module Glazed
   # Interactive command-line session over a transport, driven by a prompt
   # pattern, data filters and interactions.
   #
-  # Received data is filtered fragment by fragment, appended to {#buffer}, and
+  # Received data is kept as bytes (ASCII-8BIT), so a character split across
+  # reads cannot break matching. It is filtered fragment by fragment, appended to {#buffer}, and
   # then offered to each interaction. Text up to the end of a match is consumed
   # by {#expect} and {#command}.
   #
@@ -40,7 +41,7 @@ module Glazed
       @interactions = interactions #: Array[Dialect::Interaction]
       @exec = exec #: bool
       @timeout = timeout #: Numeric
-      @buffer = +'' #: String
+      @buffer = String.new(encoding: Encoding::BINARY) #: String
     end
 
     # @return [Transports::Base] underlying transport
@@ -91,7 +92,7 @@ module Glazed
     #: (String line, ?timeout: Numeric) -> CommandResult
     def command(line, timeout: self.timeout)
       if @exec && transport.exec?
-        return CommandResult.new(command: line, output: filter(transport.exec(line, timeout:)))
+        return CommandResult.new(command: line, output: filter(transport.exec(line, timeout:).b))
       end
 
       discard
@@ -103,7 +104,7 @@ module Glazed
         prompt.match(buffer, echo_end + 1) if echo_end
       end
       output_start = (buffer.index("\n") || -1) + 1
-      output = buffer[output_start...match.begin(0)] || +''
+      output = buffer[output_start...match.begin(0)] || String.new(encoding: Encoding::BINARY)
       consume(match)
       CommandResult.new(command: line, output:)
     end
@@ -114,7 +115,7 @@ module Glazed
     #: () -> String
     def discard
       discarded = @buffer
-      @buffer = +''
+      @buffer = String.new(encoding: Encoding::BINARY)
       discarded
     end
 
@@ -145,7 +146,7 @@ module Glazed
     # @return [void]
     #: (String data) -> void
     private def feed(data)
-      @buffer << filter(data)
+      @buffer << filter(data.b).b
       @interactions.each do |interaction|
         match = interaction.pattern.match(@buffer)
         @buffer = Dialect::Actions.apply(@buffer, interaction.responder.call(self, @buffer.dup, match)) if match
@@ -163,7 +164,7 @@ module Glazed
     # @return [void]
     #: (MatchData match) -> void
     private def consume(match)
-      @buffer = buffer[match.end(0)..] || +''
+      @buffer = buffer[match.end(0)..] || String.new(encoding: Encoding::BINARY)
     end
 
     # @return [Float] monotonic clock reading in seconds
