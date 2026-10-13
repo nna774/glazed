@@ -184,6 +184,12 @@ class Google::Protobuf::Any < ::Google::Protobuf::AbstractMessage
   end
 end
 
+# pkg:gem/google-protobuf#lib/google/protobuf/wrappers_pb.rb:21
+class Google::Protobuf::BoolValue < ::Google::Protobuf::AbstractMessage; end
+
+# pkg:gem/google-protobuf#lib/google/protobuf/wrappers_pb.rb:23
+class Google::Protobuf::BytesValue < ::Google::Protobuf::AbstractMessage; end
+
 # Message Descriptor - Descriptor for short.
 #
 # pkg:gem/google-protobuf#lib/google/protobuf_native.rb:13
@@ -243,6 +249,9 @@ class Google::Protobuf::DescriptorProto::ExtensionRange < ::Google::Protobuf::Ab
 
 # pkg:gem/google-protobuf#lib/google/protobuf/descriptor_pb.rb:19
 class Google::Protobuf::DescriptorProto::ReservedRange < ::Google::Protobuf::AbstractMessage; end
+
+# pkg:gem/google-protobuf#lib/google/protobuf/wrappers_pb.rb:15
+class Google::Protobuf::DoubleValue < ::Google::Protobuf::AbstractMessage; end
 
 # pkg:gem/google-protobuf#lib/google/protobuf/duration_pb.rb:15
 class Google::Protobuf::Duration < ::Google::Protobuf::AbstractMessage
@@ -980,6 +989,9 @@ Google::Protobuf::FileOptions::OptimizeMode::LITE_RUNTIME = T.let(T.unsafe(nil),
 # pkg:gem/google-protobuf#lib/google/protobuf/descriptor_pb.rb:33
 Google::Protobuf::FileOptions::OptimizeMode::SPEED = T.let(T.unsafe(nil), Integer)
 
+# pkg:gem/google-protobuf#lib/google/protobuf/wrappers_pb.rb:16
+class Google::Protobuf::FloatValue < ::Google::Protobuf::AbstractMessage; end
+
 # pkg:gem/google-protobuf#lib/google/protobuf/descriptor_pb.rb:66
 class Google::Protobuf::GeneratedCodeInfo < ::Google::Protobuf::AbstractMessage; end
 
@@ -1011,6 +1023,12 @@ Google::Protobuf::GeneratedCodeInfo::Annotation::Semantic::SET = T.let(T.unsafe(
 
 # pkg:gem/google-protobuf#lib/google/protobuf.rb:46
 Google::Protobuf::IMPLEMENTATION = T.let(T.unsafe(nil), Symbol)
+
+# pkg:gem/google-protobuf#lib/google/protobuf/wrappers_pb.rb:19
+class Google::Protobuf::Int32Value < ::Google::Protobuf::AbstractMessage; end
+
+# pkg:gem/google-protobuf#lib/google/protobuf/wrappers_pb.rb:17
+class Google::Protobuf::Int64Value < ::Google::Protobuf::AbstractMessage; end
 
 # pkg:gem/google-protobuf#lib/google/protobuf/internal/object_cache.rb:10
 module Google::Protobuf::Internal; end
@@ -1733,6 +1751,9 @@ class Google::Protobuf::SourceCodeInfo < ::Google::Protobuf::AbstractMessage; en
 # pkg:gem/google-protobuf#lib/google/protobuf/descriptor_pb.rb:65
 class Google::Protobuf::SourceCodeInfo::Location < ::Google::Protobuf::AbstractMessage; end
 
+# pkg:gem/google-protobuf#lib/google/protobuf/wrappers_pb.rb:22
+class Google::Protobuf::StringValue < ::Google::Protobuf::AbstractMessage; end
+
 # pkg:gem/google-protobuf#lib/google/protobuf/struct_pb.rb:15
 class Google::Protobuf::Struct < ::Google::Protobuf::AbstractMessage
   # pkg:gem/google-protobuf#lib/google/protobuf/well_known_types.rb:144
@@ -1798,6 +1819,12 @@ end
 
 # pkg:gem/google-protobuf#lib/google/protobuf.rb:18
 class Google::Protobuf::TypeError < ::TypeError; end
+
+# pkg:gem/google-protobuf#lib/google/protobuf/wrappers_pb.rb:20
+class Google::Protobuf::UInt32Value < ::Google::Protobuf::AbstractMessage; end
+
+# pkg:gem/google-protobuf#lib/google/protobuf/wrappers_pb.rb:18
+class Google::Protobuf::UInt64Value < ::Google::Protobuf::AbstractMessage; end
 
 # pkg:gem/google-protobuf#lib/google/protobuf/well_known_types.rb:81
 class Google::Protobuf::UnexpectedStructType < ::Google::Protobuf::Error; end

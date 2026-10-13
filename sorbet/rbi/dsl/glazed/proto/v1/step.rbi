@@ -11,12 +11,13 @@ class Glazed::Proto::V1::Step < Google::Protobuf::AbstractMessage
       batch_shell: T.nilable(Glazed::Proto::V1::BatchShellStep),
       fetch: T.nilable(Glazed::Proto::V1::FetchStep),
       name: T.nilable(String),
+      plugin: T.nilable(Google::Protobuf::Any),
       publish: T.nilable(Glazed::Proto::V1::PublishStep),
       redact: T.nilable(Glazed::Proto::V1::RedactStep),
       shell: T.nilable(Glazed::Proto::V1::ShellStep)
     ).void
   end
-  def initialize(batch_shell: nil, fetch: nil, name: nil, publish: nil, redact: nil, shell: nil); end
+  def initialize(batch_shell: nil, fetch: nil, name: nil, plugin: nil, publish: nil, redact: nil, shell: nil); end
 
   sig { returns(T.nilable(Symbol)) }
   def action; end
@@ -35,6 +36,9 @@ class Glazed::Proto::V1::Step < Google::Protobuf::AbstractMessage
 
   sig { void }
   def clear_name; end
+
+  sig { void }
+  def clear_plugin; end
 
   sig { void }
   def clear_publish; end
@@ -58,6 +62,9 @@ class Glazed::Proto::V1::Step < Google::Protobuf::AbstractMessage
   def has_fetch?; end
 
   sig { returns(Object) }
+  def has_plugin?; end
+
+  sig { returns(Object) }
   def has_publish?; end
 
   sig { returns(Object) }
@@ -71,6 +78,12 @@ class Glazed::Proto::V1::Step < Google::Protobuf::AbstractMessage
 
   sig { params(value: String).void }
   def name=(value); end
+
+  sig { returns(T.nilable(Google::Protobuf::Any)) }
+  def plugin; end
+
+  sig { params(value: T.nilable(Google::Protobuf::Any)).void }
+  def plugin=(value); end
 
   sig { returns(T.nilable(Glazed::Proto::V1::PublishStep)) }
   def publish; end

@@ -5,6 +5,7 @@ syntax = "proto3";
 package glazed.v1;
 
 import "glazed/v1/secret.proto";
+import "google/protobuf/any.proto";
 
 option ruby_package = "Glazed::Proto::V1";
 
@@ -49,6 +50,8 @@ message InventorySource {
     JsonFilesInventory json_files = 1;
     // Nodes written in the config itself.
     InventoryFile embedded = 2;
+    // Provider implemented outside glazed, selected by the settings message type.
+    google.protobuf.Any plugin = 3;
   }
 }
 

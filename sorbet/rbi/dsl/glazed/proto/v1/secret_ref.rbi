@@ -6,14 +6,24 @@
 
 
 class Glazed::Proto::V1::SecretRef < Google::Protobuf::AbstractMessage
-  sig { params(env: T.nilable(String), file: T.nilable(String), value: T.nilable(String)).void }
-  def initialize(env: nil, file: nil, value: nil); end
+  sig do
+    params(
+      env: T.nilable(String),
+      file: T.nilable(String),
+      plugin: T.nilable(Google::Protobuf::Any),
+      value: T.nilable(String)
+    ).void
+  end
+  def initialize(env: nil, file: nil, plugin: nil, value: nil); end
 
   sig { void }
   def clear_env; end
 
   sig { void }
   def clear_file; end
+
+  sig { void }
+  def clear_plugin; end
 
   sig { void }
   def clear_value; end
@@ -37,7 +47,16 @@ class Glazed::Proto::V1::SecretRef < Google::Protobuf::AbstractMessage
   def has_file?; end
 
   sig { returns(Object) }
+  def has_plugin?; end
+
+  sig { returns(Object) }
   def has_value?; end
+
+  sig { returns(T.nilable(Google::Protobuf::Any)) }
+  def plugin; end
+
+  sig { params(value: T.nilable(Google::Protobuf::Any)).void }
+  def plugin=(value); end
 
   sig { returns(T.nilable(Symbol)) }
   def source; end

@@ -161,3 +161,38 @@ RSpec.describe Glazed::Command do
     expect(err.string).to include('Usage: glazed')
   end
 end
+
+RSpec.describe 'glazed run with plugins' do
+  around do |example|
+    Dir.mktmpdir do |dir|
+      @dir = dir
+      example.run
+    end
+  end
+
+  let(:plugin_file) { File.expand_path('../../fixtures/plugins/marker_step.rb', __dir__) }
+
+  def start(requires:, type:)
+    config = File.join(@dir, 'glazed.json')
+    File.write(config, JSON.generate(
+      requires:,
+      inventory: [{embedded: {nodes: []}}],
+      workflows: {hooks: {steps: [{name: 'mark', plugin: {'@type' => "type.googleapis.com/#{type}", 'text' => 'hello'}}]}},
+    ))
+    Glazed::Command.start(['run', '-c', config], out: StringIO.new, err: StringIO.new)
+  end
+
+  it 'requires plugins before decoding a config that uses them, all in one file' do
+    expect(start(requires: [plugin_file], type: 'glazed_test.v1.Marker')).to eq(0)
+    expect(GlazedTestPlugin.calls).to include(['hello', 0])
+  end
+
+  it 'hints at requires when a plugin type is unknown' do
+    expect { start(requires: [], type: 'glazed_test.v1.Missing') }
+      .to raise_error(Glazed::Error, /Type was not found; list the gem providing that plugin type in requires/)
+  end
+
+  it 'rejects requires that is not a list of strings' do
+    expect { start(requires: 'x', type: 'glazed_test.v1.Missing') }.to raise_error(Glazed::Error, /requires must be a list of strings/)
+  end
+end

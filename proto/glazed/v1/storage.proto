@@ -5,6 +5,7 @@ syntax = "proto3";
 package glazed.v1;
 
 import "glazed/v1/secret.proto";
+import "google/protobuf/any.proto";
 
 option ruby_package = "Glazed::Proto::V1";
 
@@ -20,6 +21,8 @@ message StorageConfig {
     S3Storage s3 = 3;
     // Local directory holding the latest content only.
     FilesystemStorage filesystem = 4;
+    // Storage implemented outside glazed, selected by the settings message type.
+    google.protobuf.Any plugin = 5;
   }
 }
 
@@ -84,6 +87,8 @@ message Pointer {
     S3Location s3 = 3;
     // File in a local directory.
     FilesystemLocation filesystem = 4;
+    // Location in a storage implemented outside glazed.
+    google.protobuf.Any plugin = 5;
   }
 }
 

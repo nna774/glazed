@@ -113,7 +113,7 @@ The exit status is 0 when every node completed, 1 when a node failed a step (the
 
 ## Configuration
 
-Configuration and inventory files are ProtoJSON of the messages in [`proto/glazed/v1`](proto/glazed/v1), with proto (snake_case) field names. Unknown fields are rejected, and relative paths resolve from the current directory. Secrets (`glazed.v1.SecretRef`) are written as `{"value": "..."}`, `{"env": "NAME"}` or `{"file": "/path"}`, and are resolved only when used.
+Configuration and inventory files are ProtoJSON of the messages in [`proto/glazed/v1`](proto/glazed/v1), with proto (snake_case) field names. Unknown fields are rejected, and relative paths resolve from the current directory. Secrets (`glazed.v1.SecretRef`) are written as `{"value": "..."}`, `{"env": "NAME"}`, `{"file": "/path"}` or `{"plugin": {...}}` (see [Extending](#extending)), and are resolved only when used.
 
 ### Inventory
 
@@ -121,6 +121,7 @@ Configuration and inventory files are ProtoJSON of the messages in [`proto/glaze
 
 - `json_files`: `{"paths": ["inventory/*.json"]}` reads files of `glazed.v1.InventoryFile`, globs allowed
 - `embedded`: `{"defaults": {...}, "nodes": [...]}` is a `glazed.v1.InventoryFile` written in the config itself, to keep everything in one file
+- `plugin`: a provider from a plugin gem, see [Extending](#extending)
 
 In both, `defaults` fill the fields each node leaves unset, with `params` and `secrets` merged key by key. Each node (`glazed.v1.Node`) has:
 
@@ -163,7 +164,57 @@ For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed
 - `shell` (per node): `{"run": "sed -e '/^ntp clock-period/d'", "input": "raw", "output": "normalized", "storage": "...", "timeout_seconds": 300}` runs a command with `/bin/sh -c`. The input artifact's content is on stdin and stdout becomes the output artifact, both optional. `GLAZED_STEP`, `GLAZED_NODE_NAME`, `GLAZED_NODE_GROUP`, `GLAZED_NODE_DIALECT`, `GLAZED_NODE_HOST` and `GLAZED_NODE` (the node as ProtoJSON, secrets unresolved) are set, and a non-zero exit fails the node
 - `batch_shell` (batch): `{"run": "bin/notify-changes"}` runs a command once, with the `glazed.v1.BatchState` of every node that got this far (artifacts and their `changed` flags) as ProtoJSON on stdin. A non-zero exit fails the run
 
-`jobs` (default: 4) sets how many nodes are processed in parallel.
+`jobs` (default: 4) sets how many nodes are processed in parallel. `requires` lists Ruby features to require before the rest of the config is decoded, which is how plugin gems are loaded.
+
+## Extending
+
+Inventory providers, storages, steps and secret sources each accept a `plugin` case: a `google.protobuf.Any` whose message type selects an implementation registered by another gem. The plugin gem ships its settings as a `.proto`, so they are typed and validated like glazed's own.
+
+```protobuf
+// proto/glazed_netbox/v1/netbox.proto in a plugin gem
+syntax = "proto3";
+package glazed_netbox.v1;
+import "glazed/v1/secret.proto";
+
+message NetboxInventory {
+  string url = 1;
+  glazed.v1.SecretRef token = 2;
+}
+```
+
+```ruby
+# lib/glazed_netbox.rb
+require 'glazed/sources'
+require 'glazed_netbox/v1/netbox_pb'
+
+module GlazedNetbox
+  class Source < Glazed::Sources::Base
+    def self.from_proto(settings) = new(settings)
+
+    def initialize(settings)
+      super()
+      @settings = settings
+    end
+
+    def nodes = [] # build Glazed::Proto::V1::Node messages from NetBox
+  end
+
+  Glazed::Sources.register(V1::NetboxInventory, Source)
+end
+```
+
+The config then requires the gem and names the settings type with `@type`:
+
+```jsonc
+// glazed.json
+{
+  "requires": ["glazed_netbox"],
+  "inventory": [{"plugin": {"@type": "type.googleapis.com/glazed_netbox.v1.NetboxInventory",
+                            "url": "https://netbox.example.com", "token": {"env": "NETBOX_TOKEN"}}}]
+}
+```
+
+Storages register with `Glazed::Storages.register` (a `Glazed::Storages::Base` whose pointers use the `plugin` case of `glazed.v1.Pointer`), steps with `Glazed::Steps.register` (a `Glazed::Steps::NodeStep` or `BatchStep`), and secret sources with `Glazed::Secrets.register` (a `Glazed::Secrets::Base` returning the value). For changes too small for a gem, the `shell` and `batch_shell` steps run scripts instead.
 
 ## How it works
 

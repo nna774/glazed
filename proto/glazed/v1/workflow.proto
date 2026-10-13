@@ -5,6 +5,7 @@ syntax = "proto3";
 package glazed.v1;
 
 import "glazed/v1/redaction.proto";
+import "google/protobuf/any.proto";
 
 option ruby_package = "Glazed::Proto::V1";
 
@@ -34,6 +35,8 @@ message Step {
     ShellStep shell = 5;
     // Batch: run a shell command once with every node's state.
     BatchShellStep batch_shell = 6;
+    // Step implemented outside glazed, selected by the settings message type.
+    google.protobuf.Any plugin = 7;
   }
 }
 

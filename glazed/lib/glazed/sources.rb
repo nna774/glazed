@@ -6,6 +6,7 @@
 require 'glazed'
 require 'glazed/finder'
 require 'glazed/must'
+require 'glazed/plugin_registry'
 require 'glazed/proto'
 require 'glazed/sources/base'
 
@@ -31,17 +32,48 @@ module Glazed
       raise Must::Violation, "#{found} is not an inventory provider"
     end
 
+    # Inventory providers implemented by plugins, by settings message type.
+    PLUGINS = PluginRegistry.new('inventory provider') #: PluginRegistry
+
+    # Registers a plugin provider, selected by `plugin` sources whose settings are of the given type.
+    #
+    # @param settings_class [Class] generated message class of the provider settings
+    # @param implementation [Class<Base>] provider built with {Base.from_proto}
+    # @return [void]
+    # @example
+    #   Glazed::Sources.register(GlazedNetbox::V1::NetboxInventory, GlazedNetbox::Source)
+    #: (singleton(Google::Protobuf::AbstractMessage) settings_class, singleton(Base) implementation) -> void
+    def self.register(settings_class, implementation)
+      PLUGINS.register(settings_class, implementation)
+    end
+
     # Builds the provider a source selects.
     #
     # @param source [Proto::V1::InventorySource] provider settings
     # @return [Base] the provider
     # @raise [MissingProvider] when no provider is set
     # @raise [Finder::NotFound] when the provider is not available
+    # @raise [PluginRegistry::UnknownPlugin] when no plugin is registered for the settings type
     #: (Proto::V1::InventorySource source) -> Base
     def self.build(source)
       provider = source.provider or raise MissingProvider, 'inventory source sets no provider'
+      if (packed = source.plugin)
+        implementation, settings = PLUGINS.resolve(packed)
+        return provider_class(implementation).from_proto(settings)
+      end
+
       settings = Must.be_a(source[provider.to_s], Google::Protobuf::MessageExts)
       find(provider).from_proto(settings)
+    end
+
+    # @param implementation [Module] registered implementation
+    # @return [Class<Base>] the implementation as a provider class
+    # @raise [Must::Violation] when it is not a provider
+    #: (Module[untyped] implementation) -> singleton(Base)
+    private_class_method def self.provider_class(implementation)
+      return implementation if implementation.is_a?(Class) && implementation < Base
+
+      raise Must::Violation, "#{implementation} is not an inventory provider"
     end
 
     # Reads the nodes of every source.

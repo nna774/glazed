@@ -5,6 +5,7 @@
 
 require 'glazed'
 require 'glazed/proto'
+require 'glazed/secrets'
 
 module Glazed
   # Secret resolved from a {Proto::V1::SecretRef} on each access. Its value
@@ -42,6 +43,7 @@ module Glazed
       when :value then ref.value
       when :env then ENV.fetch(ref.env) { raise Unavailable, "environment variable #{ref.env} is not set" }
       when :file then read_file(ref.file)
+      when :plugin then Secrets.build(ref.plugin || raise(Unavailable, 'secret plugin has no settings')).value
       else raise Unavailable, 'secret has no source'
       end
     end
@@ -52,6 +54,7 @@ module Glazed
       case ref.source
       when :env then "#<#{self.class} env:#{ref.env}>"
       when :file then "#<#{self.class} file:#{ref.file}>"
+      when :plugin then "#<#{self.class} plugin:#{ref.plugin&.type_name}>"
       else "#<#{self.class} value>"
       end
     end

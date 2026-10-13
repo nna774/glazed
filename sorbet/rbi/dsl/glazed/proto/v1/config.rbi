@@ -10,17 +10,21 @@ class Glazed::Proto::V1::Config < Google::Protobuf::AbstractMessage
     params(
       inventory: T.nilable(T::Array[Glazed::Proto::V1::InventorySource]),
       jobs: T.nilable(Integer),
+      requires: T.nilable(T::Array[String]),
       storages: T.nilable(T.any(Google::Protobuf::Map[String, Glazed::Proto::V1::StorageConfig], T::Hash[String, Glazed::Proto::V1::StorageConfig])),
       workflows: T.nilable(T.any(Google::Protobuf::Map[String, Glazed::Proto::V1::Workflow], T::Hash[String, Glazed::Proto::V1::Workflow]))
     ).void
   end
-  def initialize(inventory: T.unsafe(nil), jobs: nil, storages: T.unsafe(nil), workflows: T.unsafe(nil)); end
+  def initialize(inventory: T.unsafe(nil), jobs: nil, requires: T.unsafe(nil), storages: T.unsafe(nil), workflows: T.unsafe(nil)); end
 
   sig { void }
   def clear_inventory; end
 
   sig { void }
   def clear_jobs; end
+
+  sig { void }
+  def clear_requires; end
 
   sig { void }
   def clear_storages; end
@@ -39,6 +43,12 @@ class Glazed::Proto::V1::Config < Google::Protobuf::AbstractMessage
 
   sig { params(value: Integer).void }
   def jobs=(value); end
+
+  sig { returns(Google::Protobuf::RepeatedField[String]) }
+  def requires; end
+
+  sig { params(value: Google::Protobuf::RepeatedField[String]).void }
+  def requires=(value); end
 
   sig { returns(Google::Protobuf::Map[String, Glazed::Proto::V1::StorageConfig]) }
   def storages; end

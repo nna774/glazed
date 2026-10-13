@@ -4,8 +4,10 @@
 
 require 'google/protobuf'
 
+require 'google/protobuf/any_pb'
 
-descriptor_data = "\n\x16glazed/v1/secret.proto\x12\tglazed.v1\"W\n\tSecretRef\x12\x16\n\x05value\x18\x01 \x01(\tH\x00R\x05value\x12\x12\n\x03\x65nv\x18\x02 \x01(\tH\x00R\x03\x65nv\x12\x14\n\x04\x66ile\x18\x03 \x01(\tH\x00R\x04\x66ileB\x08\n\x06sourceB\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
+
+descriptor_data = "\n\x16glazed/v1/secret.proto\x12\tglazed.v1\x1a\x19google/protobuf/any.proto\"\x87\x01\n\tSecretRef\x12\x16\n\x05value\x18\x01 \x01(\tH\x00R\x05value\x12\x12\n\x03\x65nv\x18\x02 \x01(\tH\x00R\x03\x65nv\x12\x14\n\x04\x66ile\x18\x03 \x01(\tH\x00R\x04\x66ile\x12.\n\x06plugin\x18\x04 \x01(\x0b\x32\x14.google.protobuf.AnyH\x00R\x06pluginB\x08\n\x06sourceB\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
 
 pool = ::Google::Protobuf::DescriptorPool.generated_pool
 pool.add_serialized_file(descriptor_data)

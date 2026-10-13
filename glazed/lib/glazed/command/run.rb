@@ -66,7 +66,7 @@ module Glazed
       # @raise [Glazed::Error, Google::Protobuf::ParseError] when the config, inventory or a batch step fails
       #: (out: IO, err: IO) -> Integer
       def call(out:, err:)
-        config = ProtoJson.load(Proto::V1::Config, File.read(@config_path))
+        config = load_config
         context = Steps::Context.from_proto(config.storages)
         workflow = Workflow.from_proto(select_workflow(config), context:)
         nodes = select_nodes(Sources.nodes(config.inventory.to_a))
@@ -75,6 +75,28 @@ module Glazed
         result = Runner.new(workflow:, jobs:, listener: ->(event) { err.puts(JSON.generate(event)) }).call(nodes)
         out.puts "completed #{result.states.size} of #{nodes.size} nodes, #{result.changed.size} changed, #{result.failures.size} failed"
         result.failures.empty? ? 0 : 1
+      end
+
+      # Reads the config, first requiring the features its `requires` lists so
+      # plugin settings types are known when it is decoded.
+      #
+      # @return [Proto::V1::Config] the config
+      # @raise [Glazed::Error] when `requires` is malformed, or the config does not decode
+      # @raise [LoadError] when a required feature is missing
+      #: () -> Proto::V1::Config
+      private def load_config
+        json = ::File.read(@config_path)
+        document = JSON.parse(json) #: untyped
+        requires = document.is_a?(Hash) ? document.fetch('requires', []) : []
+        unless requires.is_a?(Array) && requires.all?(String)
+          raise Glazed::Error, "#{@config_path}: requires must be a list of strings"
+        end
+
+        requires.each { require it }
+        ProtoJson.load(Proto::V1::Config, json)
+      rescue Google::Protobuf::ParseError, JSON::ParserError => e
+        hint = e.message.include?('Type was not found') ? '; list the gem providing that plugin type in requires' : ''
+        raise Glazed::Error, "#{@config_path}: #{e.message}#{hint}"
       end
 
       # @param config [Proto::V1::Config] the config

@@ -6,6 +6,7 @@
 require 'glazed'
 require 'glazed/finder'
 require 'glazed/must'
+require 'glazed/plugin_registry'
 require 'glazed/proto'
 require 'glazed/storages/base'
 
@@ -29,17 +30,48 @@ module Glazed
       raise Must::Violation, "#{found} is not a storage"
     end
 
+    # Storages implemented by plugins, by settings message type.
+    PLUGINS = PluginRegistry.new('storage') #: PluginRegistry
+
+    # Registers a plugin storage, selected by `plugin` configs whose settings
+    # are of the given type. Its pointers carry their own location message in
+    # the `plugin` case of {Proto::V1::Pointer}.
+    #
+    # @param settings_class [Class] generated message class of the storage settings
+    # @param implementation [Class<Base>] storage built with {Base.from_proto}
+    # @return [void]
+    #: (singleton(Google::Protobuf::AbstractMessage) settings_class, singleton(Base) implementation) -> void
+    def self.register(settings_class, implementation)
+      PLUGINS.register(settings_class, implementation)
+    end
+
     # Builds the storage a config selects.
     #
     # @param config [Proto::V1::StorageConfig] storage settings
     # @return [Base] the storage
     # @raise [MissingBackend] when no backend is set
     # @raise [Finder::NotFound] when the backend is not available
+    # @raise [PluginRegistry::UnknownPlugin] when no plugin is registered for the settings type
     #: (Proto::V1::StorageConfig config) -> Base
     def self.build(config)
       backend = config.backend or raise MissingBackend, 'storage config sets no backend'
+      if (packed = config.plugin)
+        implementation, settings = PLUGINS.resolve(packed)
+        return storage_class(implementation).from_proto(settings)
+      end
+
       settings = Must.be_a(config[backend.to_s], Google::Protobuf::MessageExts)
       find(backend).from_proto(settings)
+    end
+
+    # @param implementation [Module] registered implementation
+    # @return [Class<Base>] the implementation as a storage class
+    # @raise [Must::Violation] when it is not a storage
+    #: (Module[untyped] implementation) -> singleton(Base)
+    private_class_method def self.storage_class(implementation)
+      return implementation if implementation.is_a?(Class) && implementation < Base
+
+      raise Must::Violation, "#{implementation} is not a storage"
     end
 
     # Storage key of a node, "group/name" or just "name" without a group.

@@ -20,4 +20,7 @@ message Config {
   map<string, Workflow> workflows = 3;
   // Nodes processed in parallel by the glazed command. 4 is used when 0.
   uint32 jobs = 4;
+  // Ruby features required before the rest of the config is decoded, so that
+  // plugin gems register the message types their plugin settings use.
+  repeated string requires = 5;
 }
