@@ -17,10 +17,11 @@ class Glazed::Proto::V1::Node < Google::Protobuf::AbstractMessage
       port: T.nilable(Integer),
       secrets: T.nilable(T.any(Google::Protobuf::Map[String, Glazed::Proto::V1::SecretRef], T::Hash[String, Glazed::Proto::V1::SecretRef])),
       transport: T.nilable(String),
+      transport_options: T.nilable(Glazed::Proto::V1::TransportOptions),
       username: T.nilable(String)
     ).void
   end
-  def initialize(dialect: nil, group: nil, host: nil, name: nil, params: T.unsafe(nil), password: nil, port: nil, secrets: T.unsafe(nil), transport: nil, username: nil); end
+  def initialize(dialect: nil, group: nil, host: nil, name: nil, params: T.unsafe(nil), password: nil, port: nil, secrets: T.unsafe(nil), transport: nil, transport_options: nil, username: nil); end
 
   sig { void }
   def clear_dialect; end
@@ -50,6 +51,9 @@ class Glazed::Proto::V1::Node < Google::Protobuf::AbstractMessage
   def clear_transport; end
 
   sig { void }
+  def clear_transport_options; end
+
+  sig { void }
   def clear_username; end
 
   sig { returns(String) }
@@ -66,6 +70,9 @@ class Glazed::Proto::V1::Node < Google::Protobuf::AbstractMessage
 
   sig { returns(Object) }
   def has_password?; end
+
+  sig { returns(Object) }
+  def has_transport_options?; end
 
   sig { returns(String) }
   def host; end
@@ -108,6 +115,12 @@ class Glazed::Proto::V1::Node < Google::Protobuf::AbstractMessage
 
   sig { params(value: String).void }
   def transport=(value); end
+
+  sig { returns(T.nilable(Glazed::Proto::V1::TransportOptions)) }
+  def transport_options; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::TransportOptions)).void }
+  def transport_options=(value); end
 
   sig { returns(String) }
   def username; end

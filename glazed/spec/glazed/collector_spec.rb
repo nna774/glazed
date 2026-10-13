@@ -135,6 +135,13 @@ RSpec.describe Glazed::Collector do
   it 'connects to the node name when no host is set' do
     allow(Glazed::Transports::Telnet).to receive(:new).and_call_original
     described_class.new(node:)
-    expect(Glazed::Transports::Telnet).to have_received(:new).with(host: 'rt1', port: nil, username: 'admin', password: be_a(Glazed::Secret))
+    expect(Glazed::Transports::Telnet).to have_received(:new).with(host: 'rt1', port: nil, username: 'admin', password: be_a(Glazed::Secret), transport_options: nil)
+  end
+
+  it 'hands the transport options of the node to the transport' do
+    node.transport_options = Glazed::Proto::V1::TransportOptions.new(ssh: {compression: true})
+    allow(Glazed::Transports::Telnet).to receive(:new).and_call_original
+    described_class.new(node:)
+    expect(Glazed::Transports::Telnet).to have_received(:new).with(hash_including(transport_options: node.transport_options))
   end
 end

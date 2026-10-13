@@ -27,10 +27,25 @@ RSpec.describe Glazed::Sources::Inline do
     expect(node.params.to_h).to eq('a' => '1', 'b' => '3')
   end
 
-  it 'rejects a node without a dialect' do
-    expect { nodes(nodes: [{name: 'rt1'}]) }
-      .to raise_error(Glazed::InvalidMessage, /inline: every node needs a dialect/)
+  it 'replaces transport_options of defaults as a whole' do
+    document = {
+      defaults: {dialect: 'ios', transportOptions: {ssh: {compression: true, keys: [{path: '/a'}]}}},
+      nodes: [{name: 'rt1'}, {name: 'sw1', transportOptions: {ssh: {forwardAgent: true}}}],
+    }
+    rt1, sw1 = nodes(document)
+    expect(rt1.transport_options.ssh.keys.map(&:path)).to eq(['/a'])
+    expect([sw1.transport_options.ssh.compression, sw1.transport_options.ssh.forward_agent, sw1.transport_options.ssh.keys.size]).to eq([false, true, 0])
   end
+
+  it 'rejects an ssh key without a source' do
+    expect { nodes(nodes: [{name: 'rt1', dialect: 'ios', transportOptions: {ssh: {keys: [{}]}}}]) }
+      .to raise_error(Glazed::InvalidMessage)
+  end
+
+  it 'rejects a node without a dialect' do
+      expect { nodes(nodes: [{name: 'rt1'}]) }
+        .to raise_error(Glazed::InvalidMessage, /inline: every node needs a dialect/)
+    end
 
   it 'combines with other sources under the uniqueness check' do
     expect { Glazed::Sources.nodes([source(nodes: [{name: 'rt1', dialect: 'ios'}])] * 2) }
