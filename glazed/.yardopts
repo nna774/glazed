@@ -2,8 +2,6 @@
 --private
 --protected
 --exclude lib/glazed/v1/
---exclude lib/glazed/dialects/
---exclude lib/glazed/dialect_runbook.rb
 --exclude lib/glazed/pointer.rb
 --exclude lib/glazed/storages/base.rb
 lib/**/*.rb
