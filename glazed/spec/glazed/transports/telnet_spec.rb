@@ -27,7 +27,7 @@ RSpec.describe Glazed::Transports::Telnet do
     thread = Thread.new do
       client = server.accept
       client.write("\xFF\xFB\x01login: ".b) # IAC WILL ECHO
-      received << client.readpartial(1024)
+      received << client.read(3)
       received << client.gets("\r\n")
       client.close
     end

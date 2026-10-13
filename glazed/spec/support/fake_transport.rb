@@ -4,13 +4,13 @@
 
 require 'glazed/transports/base'
 
-# Scripted device. Each line written is echoed and answered from responses,
+# Scripted device. Each line written is echoed (unless echo: false) and answered from responses,
 # keyed by the exact line or a Regexp. A response may be paged with a pager
 # prompt that waits for a space.
 class FakeTransport < Glazed::Transports::Base
   class UnexpectedInput < StandardError; end
 
-  def initialize(responses: {}, greeting: '', pager: nil, more: '--More--', exec_responses: nil, authenticates: true)
+  def initialize(responses: {}, greeting: '', pager: nil, more: '--More--', exec_responses: nil, authenticates: true, echo: true)
     super(host: 'fake', port: nil, username: 'user', password: nil)
     @responses = responses
     @greeting = greeting
@@ -18,6 +18,7 @@ class FakeTransport < Glazed::Transports::Base
     @more = more
     @exec_responses = exec_responses
     @authenticates = authenticates
+    @echo = echo
     @outbox = []
     @pending_pages = []
     @line = +''
@@ -39,6 +40,9 @@ class FakeTransport < Glazed::Transports::Base
       elsif char == "\n" || char == "\r"
         respond(@line)
         @line = +''
+      elsif char.ord < 0x20
+        # Control keys such as Ctrl-Z act at once; they are answered only when scripted.
+        respond(char) if @responses.key?(char)
       else
         @line << char
       end
@@ -70,7 +74,7 @@ class FakeTransport < Glazed::Transports::Base
     raise UnexpectedInput, "unexpected input #{line.inspect}" unless response
 
     response = response.call(line) if response.respond_to?(:call)
-    @outbox << "#{line}\r\n"
+    @outbox << "#{line}\r\n" if @echo
     return @outbox << response unless @pager
 
     @pending_pages = response.lines.each_slice(@pager).map(&:join)

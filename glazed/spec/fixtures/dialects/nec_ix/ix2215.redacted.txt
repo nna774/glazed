@@ -1,0 +1,17 @@
+! NEC Portable Internetwork Core Operating System Software
+! IX Series IX2215 (magellan-sec) Software, Version 10.2.42, RELEASE SOFTWARE
+! Compiled Jun 15-Fri-2022 14:22:41 JST #2
+!
+hostname rt1
+timezone +09 00
+!
+username admin password hash <secret removed> administrator
+!
+snmp-agent ip enable
+snmp-agent ip community <secret removed>
+!
+interface GigaEthernet0.0
+  ip address 192.0.2.2/24
+  ip ospf authentication-key <secret removed>
+  no shutdown
+!

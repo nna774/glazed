@@ -1,0 +1,37 @@
+# Hand-written from the UNIVERGE IX command reference; not a device capture.
+init_prompt: |-
+  \r\nNEC Portable Internetwork Core Operating System Software\r\nrt1#\x20
+commands:
+  configure: |-
+    configure
+    Enter configuration commands, one per line.  End with CNTL/Z.
+    rt1(config)#\x20
+  terminal length 0: |-
+    terminal length 0
+    rt1(config)#\x20
+  show running-config: |-
+    show running-config
+    ! NEC Portable Internetwork Core Operating System Software
+    ! IX Series IX2215 (magellan-sec) Software, Version 10.2.42, RELEASE SOFTWARE
+    ! Compiled Jun 15-Fri-2022 14:22:41 JST #2
+    ! Current time Mar 14-Fri-2025 10:00:00 JST
+    !
+    hostname rt1
+    timezone +09 00
+    !
+    username admin password hash 1A2B3C4D5E administrator
+    !
+    snmp-agent ip enable
+    snmp-agent ip community secretcomm
+    !
+    interface GigaEthernet0.0
+      ip address 192.0.2.2/24
+      ip ospf authentication-key ospfkey
+      no shutdown
+    !
+    rt1(config)#\x20
+  exit: ''
+secrets:
+  - 1A2B3C4D5E
+  - secretcomm
+  - ospfkey

@@ -1,0 +1,27 @@
+! -- show system ------------------------------------------------------------------
+! Board       ID  Bay   Board Name                         Rev   Serial number
+! --------------------------------------------------------------------------------
+! Base       420        x230-10GP                          B-0   A123456789012
+! --------------------------------------------------------------------------------
+! --------------------------------------------------------------------------------
+! Environment Status : Normal
+! Bootloader version : 6.2.20
+! System Name
+!  awplus
+! --------------------------------------------------------------------------------
+!
+service password-encryption
+!
+hostname awplus
+!
+username manager privilege 15 password 8 <secret removed>
+!
+snmp-server community <secret removed> ro
+!
+radius-server key <secret removed>
+!
+interface port1.0.1-1.0.10
+ switchport
+ switchport mode access
+!
+end

@@ -19,10 +19,10 @@ module Glazed
 
       filter_data { |fragment| fragment.gsub("\e[7m\e[m", '').delete("\r") }
 
-      sensitive_pattern(/^snmp-server community\s+(.+)$/) { it[1] }
+      sensitive_pattern(/^snmp-server community\s+(\S+)/) { it[1] }
       sensitive_pattern(/^snmp-server user .+auth \S+ (\S+)$/) { it[1] }
       sensitive_pattern(/^snmp-server user .+priv \S+ (\S+)$/) { it[1] }
-      sensitive_pattern(/^username .+? privilege \d+\s+(\S+).*/) { it[1] }
+      sensitive_pattern(/^username \S+ privilege \d+ (?:password|secret) (?:\d+ )?(\S+)/) { it[1] }
       sensitive_pattern(/^username .+? password \d+\s+(\S+).*/) { it[1] }
       sensitive_pattern(/^username .+? secret \d+\s+(\S+).*/) { it[1] }
       sensitive_pattern(/^enable (?:password|secret) (?:\d )?\s*(\S+)/) { it[1] }

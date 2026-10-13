@@ -1,0 +1,53 @@
+# Hand-written from the AlliedWare Plus command reference; not a device capture.
+init_prompt: |-
+  \r\nAlliedWare Plus (TM) 5.5.2 03/01/24 12:00:00\r\n\r\nawplus>\x20
+commands:
+  enable: |-
+    enable
+    awplus#\x20
+  show system: |-
+    show system
+    Switch System Status                                    Fri Mar 14 10:00:00 2025
+
+    Board       ID  Bay   Board Name                         Rev   Serial number
+    --------------------------------------------------------------------------------
+    Base       420        x230-10GP                          B-0   A123456789012
+    --------------------------------------------------------------------------------
+    RAM:  Total: 512036 kB Free: 380000 kB
+    Flash: 63.0MB Used: 40.0MB Available: 23.0MB
+    --------------------------------------------------------------------------------
+    Environment Status : Normal
+    Uptime             : 10 days 01:23:45
+    Bootloader version : 6.2.20
+
+    Current software   : x230-5.5.2-0.1.rel
+    Software version   : 5.5.2-0.1
+    Build date         : Fri Mar 1 12:00:00 NZDT 2024
+
+    System Name
+     awplus
+    awplus#\x20
+  show running-config: |-
+    show running-config
+    !
+    service password-encryption
+    !
+    hostname awplus
+    !
+    username manager privilege 15 password 8 $1$bJoVec4D$JwOJGPr7YqoExA0GVasdE0
+    !
+    snmp-server community public ro
+    !
+    radius-server key radiuskey
+    !
+    interface port1.0.1-1.0.10
+     switchport
+     switchport mode access
+    !
+    end
+    awplus#\x20
+  exit: ''
+secrets:
+  - $1$bJoVec4D$JwOJGPr7YqoExA0GVasdE0
+  - public
+  - radiuskey
