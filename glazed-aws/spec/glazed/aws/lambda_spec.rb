@@ -2,6 +2,7 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
+require 'digest'
 require 'json'
 require 'tmpdir'
 require 'glazed/aws/lambda'
@@ -64,6 +65,45 @@ RSpec.describe Glazed::Aws::Lambda do
   end
 
   it 'requires the config file to be named' do
-    expect { described_class.handle({'task' => {'prepare' => {}}}, environment: {}) }.to raise_error(Glazed::Error, /GLAZED_CONFIG_FILE/)
+    expect { described_class.handle({'task' => {'prepare' => {}}}, environment: {}) }.to raise_error(Glazed::Error, /GLAZED_CONFIG_S3_BUCKET or GLAZED_CONFIG_FILE is required/)
+  end
+
+  describe 'config in S3' do
+    let(:s3) { Aws::S3::Client.new(stub_responses: true) }
+    let(:json) { File.read(config) }
+    let(:digest) { [Digest::SHA256.digest(json)].pack('m0') }
+    let(:environment) do
+      {'GLAZED_CONFIG_S3_BUCKET' => 'conf', 'GLAZED_CONFIG_S3_KEY' => 'glazed.json', 'GLAZED_CONFIG_S3_DIGEST' => digest, 'GLAZED_CONFIG_FILE' => '/nonexistent'}
+    end
+
+    before { s3.stub_responses(:get_object, ->(_) { {body: json} }) }
+
+    def invoke_s3(env = environment) = described_class.handle({'task' => {'prepare' => {}}}, environment: env, listener: ->(event) { events << event }, s3:)
+    def gets = s3.api_requests.count { it[:operation_name] == :get_object }
+
+    it 'reads the object once while its digest stays the same' do
+      expect(invoke_s3.dig('batches', 'backup', 'workflow')).to eq('backup')
+      invoke_s3
+      expect(gets).to eq(1)
+      expect(s3.api_requests.first[:params]).to include(bucket: 'conf', key: 'glazed.json')
+    end
+
+    it 'reads it again under another digest' do
+      invoke_s3
+      json << "\n"
+      updated = [Digest::SHA256.digest(json)].pack('m0')
+      invoke_s3(environment.merge('GLAZED_CONFIG_S3_DIGEST' => updated))
+      expect(gets).to eq(2)
+    end
+
+    it 'refuses an object of another digest' do
+      expected = digest
+      json << "\n"
+      expect { invoke_s3 }.to raise_error(Glazed::Error, %r{s3://conf/glazed.json has SHA-256 .*, not #{Regexp.escape(expected)}})
+    end
+
+    it 'requires the key and digest with the bucket' do
+      expect { invoke_s3(environment.except('GLAZED_CONFIG_S3_DIGEST')) }.to raise_error(Glazed::Error, /GLAZED_CONFIG_S3_DIGEST is required/)
+    end
   end
 end

@@ -63,17 +63,10 @@ Until the next execution starts, nothing wakes for due nodes. Any signal starts 
 
 ### Lambda function
 
-The prebuilt container image `ghcr.io/sorah/glazed-lambda` holds glazed, glazed-aws and glazed-oxidized with Oxidized's models; see [glazed-aws/lambda](../glazed-aws/lambda/README.md). Build an image from it that adds the config at `/var/task/glazed.json`:
-
-```dockerfile
-FROM ghcr.io/sorah/glazed-lambda:2026.10.14.01
-COPY glazed.json /var/task/glazed.json
-```
-
-Lambda runs images from Amazon ECR only, so push this image to an ECR repository. Alternatively, the function can run on the Ruby 4.0 runtime from a zip with vendored gems:
+The prebuilt container image `ghcr.io/sorah/glazed-lambda` holds glazed, glazed-aws and glazed-oxidized with Oxidized's models; see [glazed-aws/lambda](../glazed-aws/lambda/README.md). Lambda runs images from Amazon ECR only, so push it, or an image built from it, to an ECR repository. Alternatively, the function can run on the Ruby 4.0 runtime from a zip with vendored gems.
 
 - **Handler:** `glazed/aws/lambda.Glazed::Aws::Lambda.handler`, or `glazed_lambda_entrypoint.Glazed::Aws::Lambda.handler` in the image
-- **`GLAZED_CONFIG_FILE`:** the config file, bundled with the function. The image sets it to `/var/task/glazed.json`.
+- **Config:** an S3 object, or a file in the function; see [Config](#config).
 - **Secrets:** keep them in Parameter Store as SecureString parameters and refer to them as `{"ssm": {"name": "/glazed/backup/password"}}`, rather than in the function's environment variables, which anyone allowed `lambda:GetFunctionConfiguration` can read. A warm function reuses a fetched value for `cache_seconds` (default 300), so a rotated value is picked up within that time and without a deploy.
 - **Timeout:** enough for the slowest node of the slowest step. Each invocation runs one step for one node, or one batch step.
 - **Network:** reach the devices, for example by placing the function in a VPC.
@@ -87,9 +80,33 @@ Storages must outlive one invocation, because each step may run in another Lambd
 
 Keep the state in S3: `{"sqlite": {"storage": "state", "key": "glazed/state.sqlite3"}}`.
 
+### Config
+
+Keep the config in S3 to change it without building an image, with these environment variables of the function:
+
+| Variable | Meaning |
+|---|---|
+| `GLAZED_CONFIG_S3_BUCKET` | Bucket of the config object |
+| `GLAZED_CONFIG_S3_KEY` | Key of the config object |
+| `GLAZED_CONFIG_S3_DIGEST` | SHA-256 of the object in base64 |
+| `GLAZED_CONFIG_S3_REGION` | Region of the bucket; the function's region when unset |
+
+The function reads the object once per execution environment and refuses it unless its SHA-256 matches `GLAZED_CONFIG_S3_DIGEST`. To change the config, upload the object and then update the digest. Updating an environment variable replaces every execution environment, so every task afterwards runs with the new config, and an object uploaded without updating the digest is never used. With Terraform, the digest of a local file is `filebase64sha256("glazed.json")`, and `openssl dgst -sha256 -binary glazed.json | base64` prints it.
+
+Paths in the config, such as `json_files` inventory, are still read from the function's file system. Keep the inventory in the config with `inline`, or load it with a `command` source.
+
+Otherwise, the config is the file `GLAZED_CONFIG_FILE` names, which the image sets to `/var/task/glazed.json`. Build an image that adds it:
+
+```dockerfile
+FROM ghcr.io/sorah/glazed-lambda:2026.10.14.01
+COPY glazed.json /var/task/glazed.json
+```
+
+Changing workflows or their steps also needs the state machine definition generated again (see [State machine](#state-machine)). Other settings, such as the inventory, schedules and storages, take effect with the config alone.
+
 IAM permissions:
 
-- **The function:** S3 read and write for the state and the storages, `ssm:GetParameter` on the secret parameters, and `kms:Decrypt` on the key encrypting them when it is not the AWS managed key.
+- **The function:** S3 read and write for the state and the storages, `s3:GetObject` on the config object, `ssm:GetParameter` on the secret parameters, and `kms:Decrypt` on the key encrypting them when it is not the AWS managed key.
 - **The state machine role:** `lambda:InvokeFunction` on the function.
 - **The roles of EventBridge rules, Pipes and Scheduler schedules:** `states:StartExecution` on the state machine.
 

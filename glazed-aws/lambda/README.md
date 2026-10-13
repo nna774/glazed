@@ -12,13 +12,13 @@ A container image of the AWS Lambda function that runs glazed's orchestrated wor
 Image releases are independent of the gem releases, so a change to any of the gems can ship in an image.
 
 - **Handler:** `glazed_lambda_entrypoint.Glazed::Aws::Lambda.handler`, the image's default command
-- **Config:** `GLAZED_CONFIG_FILE` defaults to `/var/task/glazed.json`
+- **Config:** the S3 object named by `GLAZED_CONFIG_S3_BUCKET`, `GLAZED_CONFIG_S3_KEY` and `GLAZED_CONFIG_S3_DIGEST` (see [docs/aws-step-functions.md](../../docs/aws-step-functions.md#config)), or else `GLAZED_CONFIG_FILE`, which defaults to `/var/task/glazed.json`
 - **Oxidized models:** `oxidized_*` dialects work (`RUBY_BOX=1` is set) once the config requires `glazed/oxidized`. Models come from Oxidized 0.32.2 in `/var/task/oxidized/model` (`OXIDIZED_HOME`), where a model of the same name replaces one
 - **`HOME`:** `/tmp`, the only writable directory on Lambda, for `~/.ssh/known_hosts`
 
 ## Usage
 
-Build an image adding the config, and any plugin gems or models:
+Run the image as it is with the config in S3, or build an image adding the config, and any plugin gems or models:
 
 ```dockerfile
 FROM ghcr.io/sorah/glazed-lambda:2026.10.14.01
