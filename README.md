@@ -1,84 +1,183 @@
-# glazed: Modern oxidized
+# glazed: Modern network device configuration backup
 
-This is a successor of oxidized, a network device configuration scraper. Offers these advantages:
+glazed collects configuration from network devices over SSH or Telnet, keeps the raw copy where only operators can read it, and publishes a redacted copy to git for the wider team. It is a successor of [Oxidized](https://github.com/ytti/oxidized), built as small building blocks that run from a command, and are designed to run as separate steps under an orchestrator such as AWS Step Functions.
 
-- __Cloud native.__ Glazed offers storing into cloud storage, and run in cloud environment such as AWS Lambda.
-- __Secret aware.__ Glazed allows saving raw configuration, and commiting reducted configuration to git for wider visibility. Reducted configuration can be configured by: remove entirely, or HMAC sum.
-- __Git flow.__ Glazed allows commiting raw configuration to a dedicated repo for complete history, and commiting reducted configuration to a team-central repo on a topic branch, and developers can open a pull request once they completes a change, to clearly explain what has changed, and why.
-- __Building blocks.__ Glazed offers well organized components so everyone can pick some of them as a building block. For instance, retrieving configuration, persisting configuration.
-- __Device manifest (dialect api).__ Glazed provides oxidized like DSL but much better in term of inheritance, reusability, and internal structure. We'd like to avoid evaluating logics within Dialect itself.
-  - __Oxidized compatible layer.__ Read device manifests from oxidized gem in Ruby::Box to dynamically translate to Glazed native manifests. (Low priority)
+If you need a web UI, a REST API, or one of the 100+ device models Oxidized supports today, Oxidized is the better choice for now. See [Difference with Oxidized](#difference-with-oxidized).
 
-Priority: Oxidized compatible layer is ignorable for now. Initial device targets: Cisco IOS, Cisco WLC, Juniper, NEC IX
+## Features
 
-## Status
+- **Secret aware.** Raw configuration and redacted configuration go to separate storages. Secrets located by each dialect are removed, or replaced with a keyed HMAC so a rotated secret still shows up in diffs without being revealed.
+- **Git flow.** Redacted configuration is committed continuously to a topic branch of a team repository, so engineers can open a pull request once a change is complete and explain what changed and why. See [docs/workflow-with-pull-request.md](docs/workflow-with-pull-request.md).
+- **Cloud storage.** Raw configuration can be kept in a versioned S3 bucket (`glazed-aws`), and redacted configuration pushed to GitHub through its API without a local clone.
+- **No empty updates.** Storages write only content that differs from what they hold: no empty commits, no new S3 object versions for unchanged devices.
+- **Building blocks.** Collecting, redacting and storing are separate components with protobuf inputs and outputs, usable on their own or as steps of a workflow.
+- **Dialect API.** Devices are described by a class-based DSL with inheritance, in the spirit of Oxidized models, where per-run state lives outside the dialect. See [docs/dialect-api.md](docs/dialect-api.md).
 
-Working today: collecting from Cisco IOS/IOS XE, Cisco WLC (AireOS), Juniper Junos, NEC UNIVERGE IX and Allied Telesis AlliedWare Plus over SSH or Telnet; storing raw configuration in a local git repository or S3 (`glazed-aws`); publishing redacted configuration (secrets removed or replaced with an HMAC) to a local git repository or a GitHub repository branch.
+## Supported devices
 
-Not yet: opening pull requests from the topic branch, daemon and AWS-native (Lambda + Step Functions) coordinators, schedule and notification (syslog, SNMP trap) triggers, the oxidized compatibility layer.
+| Dialect | Devices | Transports |
+|---|---|---|
+| `ios` | Cisco IOS, IOS XE | SSH, Telnet |
+| `wlc` | Cisco Wireless LAN Controller (AireOS) | SSH, Telnet |
+| `junos` | Juniper Junos OS | SSH (exec channel), Telnet |
+| `nec_ix` | NEC UNIVERGE IX | SSH, Telnet |
+| `awplus` | Allied Telesis AlliedWare Plus | SSH, Telnet |
 
-## Usage
+All five are ported from Oxidized models. Other gems can add dialects as `Glazed::Dialects::<Name>` in `glazed/dialects/<name>.rb`.
 
-```
-gem install glazed            # plus glazed-aws for S3
-glazed run -c glazed.json [-w WORKFLOW] [--only NAME]... [--jobs N]
-```
+## Requirements
 
-`glazed run` runs one workflow of the config against the inventory in this process. A node that fails a step is logged as a JSON line on stderr and left out of the remaining steps; the exit status is then 1.
+- Ruby 3.4 or later
+- `git`, for the `git` storage
+- The `glazed-aws` gem, for the `s3` storage
 
-Configuration and inventory files are ProtoJSON of the messages in [`proto/glazed/v1`](proto/glazed/v1), with proto (snake_case) field names. Unknown fields are rejected. Relative paths resolve from the current directory.
+## Installation
 
-`glazed.json` (`glazed.v1.Config`) names storages and workflows. This example keeps unredacted configuration in S3 hourly, and publishes a redacted copy to a GitHub branch daily:
+glazed is not released on RubyGems yet. Install it from this repository with Bundler:
 
-```json
-{
-  "inventory": [{"json_files": {"paths": ["inventory/*.json"]}}],
-  "storages": {
-    "vault": {"s3": {"bucket": "netconf-raw", "prefix": "raw/"}},
-    "staging": {"s3": {"bucket": "netconf-raw", "prefix": "redacted/"}},
-    "team": {"github": {"repository": "example/netconf", "branch": "glazed/auto", "token": {"env": "GITHUB_TOKEN"}}}
-  },
-  "workflows": {
-    "hourly": {"steps": [
-      {"name": "fetch", "fetch": {"output": "raw", "storage": "vault"}}
-    ]},
-    "daily": {"steps": [
-      {"name": "fetch", "fetch": {"output": "raw", "storage": "vault"}},
-      {"name": "redact", "redact": {"input": "raw", "output": "redacted", "storage": "staging",
-                                    "redaction": {"mode": "MODE_HMAC", "hmac_key": {"env": "GLAZED_HMAC_KEY"}}}},
-      {"name": "publish", "publish": {"input": "redacted", "storage": "team"}}
-    ]}
-  },
-  "jobs": 8
-}
+```ruby
+# Gemfile
+source 'https://rubygems.org'
+
+gem 'glazed', git: 'https://github.com/sorah/glazed', glob: 'glazed/*.gemspec'
+gem 'glazed-aws', git: 'https://github.com/sorah/glazed', glob: 'glazed-aws/*.gemspec' # for S3
 ```
 
-A workflow (`glazed.v1.Workflow`) is an ordered list of steps passing named artifacts, each a `Pointer` into a named storage:
+```
+bundle install
+bundle exec glazed run --help
+```
 
-- `fetch` (per node) collects the configuration into an artifact.
-- `redact` (per node) hides secrets in an artifact with the dialect's sensitive patterns, into another artifact.
-- `publish` (batch) writes an artifact of every node into a storage as one change, such as one commit.
+## Quick start
 
-Per-node steps take and return a `glazed.v1.NodeState` (a node and its artifacts); batch steps a `glazed.v1.BatchState`. Steps are looked up by their oneof case as `Glazed::Steps::<Name>`, like inventory providers and storages, and each is meant to become one state when a workflow is rendered for an orchestrator such as Step Functions: per-node steps inside a Map state, batch steps after it. Wiring is checked before anything runs: every input must be produced by an earlier step, and storages must exist.
+### 1. Describe devices
 
-Storages write only content that differs from what they hold: git and GitHub make no commit, S3 makes no new version (it compares SHA-256 checksums and writes conditionally). Each artifact records whether its write `changed` stored content, which shows in the JSON logs and the run summary. Steps that move data still run on unchanged input, so a change that failed to publish once is published by the next run.
+Inventory files are ProtoJSON of `glazed.v1.InventoryFile`. `defaults` fill fields each node leaves unset.
 
-Inventory comes from a list of `glazed.v1.InventorySource`, a oneof of providers. A provider is looked up by its case name as `Glazed::Sources::<Name>` (requiring `glazed/sources/<name>`), so another gem can implement one added to the schema; node names must be unique across all sources. The `json_files` provider reads files such as `inventory/core.json` (`glazed.v1.InventoryFile`), where `defaults` fill fields each node leaves unset:
-
-```json
+```jsonc
+// inventory/core.json
 {
   "defaults": {"group": "core", "dialect": "ios", "username": "backup", "password": {"env": "BACKUP_PASSWORD"}},
   "nodes": [
-    {"name": "rt1", "host": "192.0.2.1", "secrets": {"enable": {"file": "/run/secrets/enable"}}},
-    {"name": "sw1", "dialect": "junos"},
-    {"name": "wlc1", "dialect": "wlc", "transport": "telnet"}
+    {"name": "rt1", "host": "192.0.2.1", "secrets": {"enable": {"env": "ENABLE_SECRET"}}},
+    {"name": "sw1", "host": "192.0.2.2", "dialect": "junos"}
   ]
 }
 ```
 
-Secrets (`glazed.v1.SecretRef`) are `{"value": ...}`, `{"env": ...}` or `{"file": ...}` and are resolved only when used.
+### 2. Write a workflow
 
-Dialects are described in [docs/dialect-api.md](docs/dialect-api.md). The building blocks (`Glazed::Collector`, `Glazed::Redactor`, `Glazed::Storages`, `Glazed::Steps`, `Glazed::Runner`) are usable on their own.
+This config keeps raw configuration in a local git repository, and publishes a redacted copy to another one that is pushed to a remote:
+
+```jsonc
+// glazed.json
+{
+  "inventory": [{"json_files": {"paths": ["inventory/*.json"]}}],
+  "storages": {
+    "raw": {"git": {"path": "/var/lib/glazed/raw"}},
+    "redacted": {"git": {"path": "/var/lib/glazed/redacted", "remote": "git@example.com:netops/configs.git"}}
+  },
+  "workflows": {
+    "backup": {"steps": [
+      {"name": "fetch", "fetch": {"output": "raw", "storage": "raw"}},
+      {"name": "redact", "redact": {"input": "raw", "output": "redacted", "storage": "redacted",
+                                    "redaction": {"mode": "MODE_HMAC", "hmac_key": {"env": "GLAZED_HMAC_KEY"}}}}
+    ]}
+  }
+}
+```
+
+The comments are for this README only: ProtoJSON files must not contain them.
+
+### 3. Run it
+
+```
+BACKUP_PASSWORD=... ENABLE_SECRET=... GLAZED_HMAC_KEY=... bundle exec glazed run -c glazed.json
+```
+
+Each node and step logs one JSON line on stderr, and the run ends with a summary such as `completed 2 of 2 nodes, 1 changed, 0 failed`. Run it from cron or a systemd timer to keep the copies current.
+
+## Usage
+
+```
+glazed run -c CONFIG [-w WORKFLOW] [--only NAME]... [--jobs N]
+glazed version
+```
+
+- `-c, --config PATH`: config file, ProtoJSON of `glazed.v1.Config`
+- `-w, --workflow NAME`: workflow to run; optional when the config defines only one
+- `--only NAME`: run only for this node; repeatable
+- `-j, --jobs N`: nodes processed in parallel (default: `jobs` in the config, or 4)
+
+The exit status is 0 when every node completed, 1 when a node failed a step (the other nodes still complete), and 2 for invalid arguments. A failure of a batch step such as `publish` aborts the run.
+
+## Configuration
+
+Configuration and inventory files are ProtoJSON of the messages in [`proto/glazed/v1`](proto/glazed/v1), with proto (snake_case) field names. Unknown fields are rejected, and relative paths resolve from the current directory. Secrets (`glazed.v1.SecretRef`) are written as `{"value": "..."}`, `{"env": "NAME"}` or `{"file": "/path"}`, and are resolved only when used.
+
+### Inventory
+
+`inventory` lists sources of nodes; `json_files` (`{"paths": [...]}`, globs allowed) is the provider available today. Node names must be unique across all sources. Each node (`glazed.v1.Node`) has:
+
+- `name` (required): unique name, also the storage key within its group
+- `group`: storage key prefix, so files land at `<group>/<name>`
+- `host` (default: `name`), `port` (default: the transport's standard port)
+- `dialect` (required): see [Supported devices](#supported-devices)
+- `transport` (default: `ssh`): `ssh` or `telnet`
+- `username`, `password`
+- `params`: dialect options, such as `"ios_rbac": "true"` to collect `show running-config view full`
+- `secrets`: dialect secrets, such as `enable` for `ios` and `awplus`
+
+### Storages
+
+`storages` maps names to one backend each:
+
+```jsonc
+// git: a local working tree, initialised when missing; one commit per write
+{"git": {"path": "/var/lib/glazed/raw", "branch": "main", "remote": "origin", "author_name": "glazed", "author_email": "glazed@localhost"}}
+
+// github: commits through the Git Data API; the branch is created from base_branch (default: the repository default branch)
+{"github": {"repository": "example/netconf", "branch": "glazed/auto", "base_branch": "main", "token": {"env": "GITHUB_TOKEN"}}}
+
+// s3 (glazed-aws): one object per node; enable bucket versioning to keep history
+{"s3": {"bucket": "example-netconf", "prefix": "raw/", "region": "us-west-2"}}
+```
+
+For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed after each commit when set. For `github`, `api_url` points to GitHub Enterprise Server, and `author_name`/`author_email` override the token owner. For `s3`, the region defaults to the SDK's.
+
+### Workflows
+
+`workflows` maps names to ordered steps (`glazed.v1.Workflow`). Steps pass named artifacts, each a pointer into a named storage:
+
+- `fetch` (per node): `{"output": "raw", "storage": "raw", "timeout_seconds": 60}` collects the configuration
+- `redact` (per node): `{"input": "raw", "output": "redacted", "storage": "...", "redaction": {...}}` hides secrets. `redaction.mode` is `MODE_REMOVE` (default) or `MODE_HMAC`, which needs `hmac_key`
+- `publish` (batch): `{"input": "redacted", "storage": "team"}` writes the artifact of every node as one change, such as one commit naming the changed nodes
+
+`jobs` (default: 4) sets how many nodes are processed in parallel.
+
+## How it works
+
+1. Consecutive per-node steps run for each node on a thread pool. A node that fails a step is reported and left out of the rest of the workflow.
+2. A batch step runs once, with every node that completed the steps before it.
+3. Every write compares content with what the storage already holds. Unchanged content is not written again, and the artifact records whether it changed.
+4. Steps do not skip work because their input is unchanged, so a change that failed to publish once is published by the next run.
+
+Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.BatchState`), and content never travels inline, only pointers. This is what lets each step run as its own state of an orchestrator, with per-node steps in a Map state and batch steps after it. glazed checks that a workflow is wired correctly before running it: every input produced by an earlier step, and every storage configured.
+
+## Difference with Oxidized
+
+- Oxidized keeps one copy of each configuration, optionally with secrets removed. glazed keeps the raw copy and a redacted copy in different storages with different audiences.
+- Oxidized commits whatever it collects. glazed's GitHub storage commits to a topic branch meant for pull requests, so the history on the default branch can explain why each change was made.
+- Oxidized is a daemon with a REST API and web UI (oxidized-web). glazed is a command and a set of building blocks, with steps defined as protobuf messages for external schedulers and orchestrators.
+- Oxidized models mix collection with per-run state. glazed dialects are declarations with inheritance, and per-run state lives in the run.
+- Oxidized supports far more devices, and has years of production use behind it.
+
+## Caveats
+
+- Not production-tested yet. The `ios` and `junos` dialects are tested against device captures from Oxidized's test suite; the `wlc`, `nec_ix` and `awplus` fixtures are written from command references and need checking against real devices.
+- SSH host keys are verified with net-ssh's defaults and `~/.ssh/known_hosts`; there is no setting for them yet.
+- A node removed from the inventory leaves its file in the storages.
+- Not yet available: opening pull requests automatically, the AWS Lambda and Step Functions coordinator, schedule and notification (syslog, SNMP trap) triggers, and the Oxidized model compatibility layer (`glazed-oxidized`).
 
 ## Development
 
@@ -92,12 +191,18 @@ hk check --all              # what CI lints: RuboCop, SPDX headers, Sorbet, YARD
 hk fix --all                # autocorrect what can be; `hk install` runs it as a pre-commit hook
 ```
 
-After editing `proto/`, run `buf lint && buf generate && bin/tapioca dsl`. Dialect specs replay device sessions in oxidized's simulation format under `glazed/spec/fixtures/dialects`; `GLAZED_UPDATE_GOLDEN=1 bundle exec rspec spec/glazed/dialects` rewrites the expected outputs for review.
+After editing `proto/`, run `buf lint && buf generate && bin/tapioca dsl`. Dialect specs replay device sessions in Oxidized's simulation format under `glazed/spec/fixtures/dialects`; `GLAZED_UPDATE_GOLDEN=1 bundle exec rspec spec/glazed/dialects` rewrites the expected outputs for review.
+
+## Contributing
+
+Bug reports and pull requests are welcome on GitHub at https://github.com/sorah/glazed.
 
 ## Acknowledgements
 
-glazed builds on [Oxidized](https://github.com/ytti/oxidized). Its dialects for Cisco IOS, Cisco WLC (AireOS), Juniper Junos, NEC IX and AlliedWare Plus are ported from Oxidized's models, and its dialect tests replay device captures from Oxidized's test suite. Thanks to Saku Ytti, Samer Abdel-Hafez and all Oxidized contributors. See [NOTICE](NOTICE) for details.
+glazed builds on [Oxidized](https://github.com/ytti/oxidized). Its dialects are ported from Oxidized's models, and its dialect tests replay device captures from Oxidized's test suite. Thanks to Saku Ytti, Samer Abdel-Hafez and all Oxidized contributors. See [NOTICE](NOTICE) for details.
 
 ## License
 
-Apache License, Version 2.0. See [LICENSE.txt](LICENSE.txt) and [NOTICE](NOTICE).
+This project is licensed under the Apache-2.0 License. See [LICENSE.txt](LICENSE.txt) and [NOTICE](NOTICE).
+
+Copyright 2025-2026 Sorah Fukumori
