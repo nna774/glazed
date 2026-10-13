@@ -47,12 +47,12 @@ module Glazed
       end
 
       # @param name [String] model name, such as "ios"
-      # @return [String, nil] path of the first model file by that name in {model_paths}
+      # @return [String, nil] absolute path of the first model file by that name in {model_paths}
       #: (String name) -> String?
       def model_path(name)
         return nil unless name.match?(/\A[a-z0-9_]+\z/)
 
-        model_paths.map { File.join(it, "#{name}.rb") }.find { File.file?(it) }
+        model_paths.map { File.join(File.expand_path(it), "#{name}.rb") }.find { File.file?(it) }
       end
 
       # Builds the dialect running a model and registers it under

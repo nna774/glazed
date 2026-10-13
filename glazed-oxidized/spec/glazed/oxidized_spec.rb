@@ -5,6 +5,7 @@
 # Under Ruby::Box on Ruby 4.0.7, rspec fails to shellsplit .rspec lines, so there is no .rspec.
 require 'spec_helper'
 require 'glazed/collector'
+require 'open3'
 
 RSpec.describe Glazed::Oxidized do
   it 'has a version number' do
@@ -17,6 +18,17 @@ RSpec.describe Glazed::Oxidized do
       expect(dialect).to be < Glazed::Oxidized::ModelDialect
       expect(dialect.name).to eq('Glazed::Dialects::OxidizedAireos')
       expect(dialect.model_box.path).to eq(File.join(FIXTURE_MODELS, 'aireos.rb'))
+    end
+
+    it 'loads models from threads other than the main thread' do
+      # A separate process, as rspec runs in the root box and the failure needs the main box.
+      script = <<~RUBY
+        require 'glazed/oxidized'
+        Glazed::Oxidized.model_paths = [#{FIXTURE_MODELS.dump}]
+        print Thread.new { Glazed::Dialects.find('oxidized_rootware') }.value.name
+      RUBY
+      output, status = Open3.capture2e(RbConfig.ruby, '-I', File.expand_path('../../lib', __dir__), '-e', script)
+      expect([output.lines.last, status.success?]).to eq(['Glazed::Dialects::OxidizedRootware', true])
     end
 
     it 'loads each model once' do

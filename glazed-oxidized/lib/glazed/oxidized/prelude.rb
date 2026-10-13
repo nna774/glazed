@@ -72,10 +72,11 @@ module Refinements
   end
 end
 
-using Refinements
-
 # Oxidized's namespace as model files see it.
 module Oxidized
+  # Not at the top level: a box requiring this from a non-main thread runs it with a self lacking main's #using.
+  using Refinements
+
   # Base class of errors models raise.
   class OxidizedError < StandardError; end
   # Raised when the device prompt cannot be detected.
