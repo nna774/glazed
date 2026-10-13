@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package glazed.v1;
+
+import "glazed/v1/secret.proto";
+
+option ruby_package = "Glazed::Proto::V1";
+
+// How secrets are hidden in redacted configuration.
+message Redaction {
+  // Replacement applied to each secret.
+  enum Mode {
+    // Treated as MODE_REMOVE.
+    MODE_UNSPECIFIED = 0;
+    // Replace each secret with a fixed marker.
+    MODE_REMOVE = 1;
+    // Replace each secret with a truncated HMAC-SHA256 digest, so changes stay visible in diffs.
+    MODE_HMAC = 2;
+  }
+
+  // Replacement applied to each secret.
+  Mode mode = 1;
+  // HMAC key, required for MODE_HMAC.
+  SecretRef hmac_key = 2;
+}
