@@ -30,14 +30,18 @@ module Glazed
     # @param prefix [String] require path prefix for the namespace
     # @param name [String, Symbol] snake_case implementation name
     # @return [Module, nil] the implementation
+    # @raise [LoadError] when the implementation exists but fails to load its dependencies
     #: (Module[untyped] namespace, String prefix, String | Symbol name) -> Module[untyped]?
     def self.maybe_find(namespace, prefix, name)
       constant_name = name.to_s.split('_').map(&:capitalize).join
       return lookup(namespace, constant_name) if namespace.const_defined?(constant_name, false)
 
+      path = "#{prefix}/#{name}"
       begin
-        require "#{prefix}/#{name}"
-      rescue LoadError
+        require path
+      rescue LoadError => e
+        raise unless e.path == path
+
         return nil
       end
       lookup(namespace, constant_name) if namespace.const_defined?(constant_name, false)
