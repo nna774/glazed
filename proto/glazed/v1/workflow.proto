@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package glazed.v1;
+
+import "glazed/v1/redaction.proto";
+
+option ruby_package = "Glazed::Proto::V1";
+
+// Ordered steps run against the selected nodes. Consecutive per-node steps run
+// for each node independently; a batch step runs once with every node that
+// completed the steps before it.
+message Workflow {
+  // Steps in order.
+  repeated Step steps = 1;
+}
+
+// One unit of a workflow, rendered as one state by an orchestrator. Steps are
+// looked up by the oneof case name, so another gem can implement one added here
+// as glazed/steps/<name>.
+message Step {
+  // Name unique within the workflow.
+  string name = 1;
+  // What the step does.
+  oneof action {
+    // Per node: collect the configuration.
+    FetchStep fetch = 2;
+    // Per node: hide secrets in an artifact.
+    RedactStep redact = 3;
+    // Batch: write an artifact of every node in one change.
+    PublishStep publish = 4;
+  }
+}
+
+// Per node: collects the node's configuration and stores it as an artifact.
+message FetchStep {
+  // Name of the artifact to produce.
+  string output = 1;
+  // Storage to write the artifact to, by name in Config.storages.
+  string storage = 2;
+  // Seconds to wait for each expected device output. 60 is used when 0.
+  uint32 timeout_seconds = 3;
+}
+
+// Per node: hides secrets in an artifact using the node dialect's sensitive patterns.
+message RedactStep {
+  // Name of the artifact to read.
+  string input = 1;
+  // Name of the artifact to produce.
+  string output = 2;
+  // Storage to write the artifact to, by name in Config.storages.
+  string storage = 3;
+  // How secrets are hidden.
+  Redaction redaction = 4;
+}
+
+// Batch: writes an artifact of every node into a storage as one change, such as one commit.
+message PublishStep {
+  // Name of the artifact to read.
+  string input = 1;
+  // Storage to write to, by name in Config.storages.
+  string storage = 2;
+  // Name of the artifact recording the written locations. Nothing is recorded when empty.
+  string output = 3;
+}

@@ -9,28 +9,24 @@ import "glazed/v1/storage.proto";
 
 option ruby_package = "Glazed::Proto::V1";
 
-// Input of the fetch step: collect one node's configuration and store it raw.
-message FetchRequest {
-  // Node to collect from.
+// Stored content produced by a step.
+message Artifact {
+  // Storage holding the content, by name in Config.storages.
+  string storage = 1;
+  // Location within that storage.
+  Pointer pointer = 2;
+}
+
+// A node and the artifacts produced for it so far. Input and output of per-node steps.
+message NodeState {
+  // The node.
   Node node = 1;
+  // Artifacts by name.
+  map<string, Artifact> artifacts = 2;
 }
 
-// Output of the fetch step.
-message FetchResult {
-  // Node the configuration was collected from.
-  Node node = 1;
-  // Location of the raw configuration.
-  Pointer raw = 2;
-}
-
-// Input of the publish step: redact raw configurations and store them together.
-message PublishRequest {
-  // Fetch results to publish.
-  repeated FetchResult entries = 1;
-}
-
-// Output of the publish step.
-message PublishResult {
-  // Locations of the redacted configurations, in the order of the request entries.
-  repeated Pointer redacted = 1;
+// Every node that reached a batch step. Input and output of batch steps.
+message BatchState {
+  // Node states in inventory order.
+  repeated NodeState nodes = 1;
 }

@@ -15,41 +15,40 @@ RSpec.describe Glazed::Steps::Publish do
     end
   end
 
-  let(:raw_storage) { Glazed::Storages::Git.new(path: File.join(@dir, 'raw')) }
-  let(:redacted_storage) { Glazed::Storages::Git.new(path: File.join(@dir, 'redacted')) }
-  let(:redaction) { Glazed::Proto::V1::Redaction.new(mode: :MODE_REMOVE) }
-  let(:publish) { described_class.new(raw_storage:, redacted_storage:, redaction:) }
-  let(:dialect) do
-    Class.new(Glazed::Dialects::Base) do
-      sensitive_pattern(/^password (\S+)/) { it[1] }
-    end
+  let(:staging) { Glazed::Storages::Git.new(path: File.join(@dir, 'staging')) }
+  let(:team) { Glazed::Storages::Git.new(path: File.join(@dir, 'team')) }
+  let(:context) { Glazed::Steps::Context.new(storages: {'staging' => staging, 'team' => team}) }
+  let(:settings) { Glazed::Proto::V1::PublishStep.new(input: 'redacted', storage: 'team') }
+  let(:step) { described_class.from_proto('publish', settings, context:) }
+
+  def state(name)
+    pointer = staging.write(key: "core/#{name}", content: "hostname #{name}\n", message: name)
+    Glazed::Proto::V1::NodeState.new(node: {name:, group: 'core'}, artifacts: {'redacted' => {storage: 'staging', pointer:}})
   end
 
-  before { stub_const('Glazed::Dialects::TestOs', dialect) }
+  def log = Open3.capture2('git', '-C', team.path, 'log', '--format=%s').first
 
-  def entry(name)
-    node = Glazed::Proto::V1::Node.new(name:, group: 'core', dialect: 'test_os')
-    raw = raw_storage.write(key: "core/#{name}", content: "hostname #{name}\npassword hunter2\n", message: name)
-    Glazed::Proto::V1::FetchResult.new(node:, raw:)
-  end
-
-  it 'redacts every entry into one commit' do
-    result = publish.call(Glazed::Proto::V1::PublishRequest.new(entries: [entry('rt1'), entry('rt2')]))
-    expect(result.redacted.map { it.git.path }).to eq(%w[core/rt1 core/rt2])
-    expect(redacted_storage.read(result.redacted.first)).to eq("hostname rt1\npassword <secret removed>\n")
-    log = Open3.capture2('git', '-C', redacted_storage.path, 'log', '--format=%s').first
-    expect(log).to eq("update rt1, rt2\n")
+  it 'writes every node in one commit' do
+    step.call(Glazed::Proto::V1::BatchState.new(nodes: [state('rt1'), state('rt2')]))
+    expect(log).to eq("publish: update rt1, rt2\n")
+    expect(Open3.capture2('git', '-C', team.path, 'show', 'HEAD:core/rt2').first).to eq("hostname rt2\n")
   end
 
   it 'shortens the message for many nodes' do
-    names = %w[a b c d e f g]
-    publish.call(Glazed::Proto::V1::PublishRequest.new(entries: names.map { entry(it) }))
-    log = Open3.capture2('git', '-C', redacted_storage.path, 'log', '--format=%s').first
-    expect(log).to eq("update a, b, c, d, e and 2 more\n")
+    step.call(Glazed::Proto::V1::BatchState.new(nodes: %w[a b c d e f g].map { state(it) }))
+    expect(log).to eq("publish: update a, b, c, d, e and 2 more\n")
   end
 
-  it 'publishes nothing for no entries' do
-    expect(publish.call(Glazed::Proto::V1::PublishRequest.new).redacted).to be_empty
-    expect(File.exist?(redacted_storage.path)).to be(false)
+  it 'records the written locations when an output is set' do
+    settings.output = 'published'
+    batch = step.call(Glazed::Proto::V1::BatchState.new(nodes: [state('rt1')]))
+    artifact = batch.nodes.first.artifacts['published']
+    expect(artifact.storage).to eq('team')
+    expect(context.read(artifact)).to eq("hostname rt1\n")
+  end
+
+  it 'writes nothing for no nodes' do
+    expect(step.call(Glazed::Proto::V1::BatchState.new).nodes).to be_empty
+    expect(File.exist?(team.path)).to be(false)
   end
 end

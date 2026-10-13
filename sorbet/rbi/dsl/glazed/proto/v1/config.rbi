@@ -10,13 +10,11 @@ class Glazed::Proto::V1::Config < Google::Protobuf::AbstractMessage
     params(
       inventory: T.nilable(T::Array[Glazed::Proto::V1::InventorySource]),
       jobs: T.nilable(Integer),
-      raw: T.nilable(Glazed::Proto::V1::StorageConfig),
-      redacted: T.nilable(Glazed::Proto::V1::StorageConfig),
-      redaction: T.nilable(Glazed::Proto::V1::Redaction),
-      timeout_seconds: T.nilable(Integer)
+      storages: T.nilable(T.any(Google::Protobuf::Map[String, Glazed::Proto::V1::StorageConfig], T::Hash[String, Glazed::Proto::V1::StorageConfig])),
+      workflows: T.nilable(T.any(Google::Protobuf::Map[String, Glazed::Proto::V1::Workflow], T::Hash[String, Glazed::Proto::V1::Workflow]))
     ).void
   end
-  def initialize(inventory: T.unsafe(nil), jobs: nil, raw: nil, redacted: nil, redaction: nil, timeout_seconds: nil); end
+  def initialize(inventory: T.unsafe(nil), jobs: nil, storages: T.unsafe(nil), workflows: T.unsafe(nil)); end
 
   sig { void }
   def clear_inventory; end
@@ -25,25 +23,10 @@ class Glazed::Proto::V1::Config < Google::Protobuf::AbstractMessage
   def clear_jobs; end
 
   sig { void }
-  def clear_raw; end
+  def clear_storages; end
 
   sig { void }
-  def clear_redacted; end
-
-  sig { void }
-  def clear_redaction; end
-
-  sig { void }
-  def clear_timeout_seconds; end
-
-  sig { returns(Object) }
-  def has_raw?; end
-
-  sig { returns(Object) }
-  def has_redacted?; end
-
-  sig { returns(Object) }
-  def has_redaction?; end
+  def clear_workflows; end
 
   sig { returns(Google::Protobuf::RepeatedField[Glazed::Proto::V1::InventorySource]) }
   def inventory; end
@@ -57,27 +40,15 @@ class Glazed::Proto::V1::Config < Google::Protobuf::AbstractMessage
   sig { params(value: Integer).void }
   def jobs=(value); end
 
-  sig { returns(T.nilable(Glazed::Proto::V1::StorageConfig)) }
-  def raw; end
+  sig { returns(Google::Protobuf::Map[String, Glazed::Proto::V1::StorageConfig]) }
+  def storages; end
 
-  sig { params(value: T.nilable(Glazed::Proto::V1::StorageConfig)).void }
-  def raw=(value); end
+  sig { params(value: Google::Protobuf::Map[String, Glazed::Proto::V1::StorageConfig]).void }
+  def storages=(value); end
 
-  sig { returns(T.nilable(Glazed::Proto::V1::StorageConfig)) }
-  def redacted; end
+  sig { returns(Google::Protobuf::Map[String, Glazed::Proto::V1::Workflow]) }
+  def workflows; end
 
-  sig { params(value: T.nilable(Glazed::Proto::V1::StorageConfig)).void }
-  def redacted=(value); end
-
-  sig { returns(T.nilable(Glazed::Proto::V1::Redaction)) }
-  def redaction; end
-
-  sig { params(value: T.nilable(Glazed::Proto::V1::Redaction)).void }
-  def redaction=(value); end
-
-  sig { returns(Integer) }
-  def timeout_seconds; end
-
-  sig { params(value: Integer).void }
-  def timeout_seconds=(value); end
+  sig { params(value: Google::Protobuf::Map[String, Glazed::Proto::V1::Workflow]).void }
+  def workflows=(value); end
 end

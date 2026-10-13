@@ -8,7 +8,7 @@ require 'glazed/v1/inventory_pb'
 require 'glazed/v1/storage_pb'
 
 
-descriptor_data = "\n\x15glazed/v1/steps.proto\x12\tglazed.v1\x1a\x19glazed/v1/inventory.proto\x1a\x17glazed/v1/storage.proto\"3\n\x0c\x46\x65tchRequest\x12#\n\x04node\x18\x01 \x01(\x0b\x32\x0f.glazed.v1.NodeR\x04node\"X\n\x0b\x46\x65tchResult\x12#\n\x04node\x18\x01 \x01(\x0b\x32\x0f.glazed.v1.NodeR\x04node\x12$\n\x03raw\x18\x02 \x01(\x0b\x32\x12.glazed.v1.PointerR\x03raw\"B\n\x0ePublishRequest\x12\x30\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x16.glazed.v1.FetchResultR\x07\x65ntries\"?\n\rPublishResult\x12.\n\x08redacted\x18\x01 \x03(\x0b\x32\x12.glazed.v1.PointerR\x08redactedB\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
+descriptor_data = "\n\x15glazed/v1/steps.proto\x12\tglazed.v1\x1a\x19glazed/v1/inventory.proto\x1a\x17glazed/v1/storage.proto\"R\n\x08\x41rtifact\x12\x18\n\x07storage\x18\x01 \x01(\tR\x07storage\x12,\n\x07pointer\x18\x02 \x01(\x0b\x32\x12.glazed.v1.PointerR\x07pointer\"\xc6\x01\n\tNodeState\x12#\n\x04node\x18\x01 \x01(\x0b\x32\x0f.glazed.v1.NodeR\x04node\x12\x41\n\tartifacts\x18\x02 \x03(\x0b\x32#.glazed.v1.NodeState.ArtifactsEntryR\tartifacts\x1aQ\n\x0e\x41rtifactsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12)\n\x05value\x18\x02 \x01(\x0b\x32\x13.glazed.v1.ArtifactR\x05value:\x02\x38\x01\"8\n\nBatchState\x12*\n\x05nodes\x18\x01 \x03(\x0b\x32\x14.glazed.v1.NodeStateR\x05nodesB\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
 
 pool = ::Google::Protobuf::DescriptorPool.generated_pool
 pool.add_serialized_file(descriptor_data)
@@ -16,10 +16,9 @@ pool.add_serialized_file(descriptor_data)
 module Glazed
   module Proto
     module V1
-      FetchRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.FetchRequest").msgclass
-      FetchResult = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.FetchResult").msgclass
-      PublishRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.PublishRequest").msgclass
-      PublishResult = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.PublishResult").msgclass
+      Artifact = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.Artifact").msgclass
+      NodeState = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.NodeState").msgclass
+      BatchState = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.BatchState").msgclass
     end
   end
 end

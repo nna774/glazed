@@ -5,8 +5,8 @@ syntax = "proto3";
 package glazed.v1;
 
 import "glazed/v1/inventory.proto";
-import "glazed/v1/redaction.proto";
 import "glazed/v1/storage.proto";
+import "glazed/v1/workflow.proto";
 
 option ruby_package = "Glazed::Proto::V1";
 
@@ -14,14 +14,10 @@ option ruby_package = "Glazed::Proto::V1";
 message Config {
   // Sources of nodes. Node names must be unique across all of them.
   repeated InventorySource inventory = 1;
-  // Storage for unredacted configuration.
-  StorageConfig raw = 2;
-  // Storage for redacted configuration.
-  StorageConfig redacted = 3;
-  // How secrets are hidden in redacted configuration.
-  Redaction redaction = 4;
-  // Nodes collected in parallel. 4 is used when 0.
-  uint32 jobs = 5;
-  // Seconds to wait for each expected device output. 60 is used when 0.
-  uint32 timeout_seconds = 6;
+  // Storages by name, referred to by workflow steps.
+  map<string, StorageConfig> storages = 2;
+  // Workflows by name.
+  map<string, Workflow> workflows = 3;
+  // Nodes processed in parallel by the glazed command. 4 is used when 0.
+  uint32 jobs = 4;
 }

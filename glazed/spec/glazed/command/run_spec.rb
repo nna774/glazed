@@ -25,6 +25,18 @@ RSpec.describe 'glazed run' do
       {name: 'sw2', host: '127.0.0.1', port: closed_port},
     ]
   end
+  let(:workflows) do
+    {
+      backup: {
+        steps: [
+          {name: 'fetch', fetch: {output: 'raw', storage: 'vault', timeout_seconds: 2}},
+          {name: 'redact', redact: {input: 'raw', output: 'redacted', storage: 'staging',
+                                      redaction: {mode: 'MODE_HMAC', hmac_key: {value: 'k'}}}},
+          {name: 'publish', publish: {input: 'redacted', storage: 'team'}},
+        ],
+      },
+    }
+  end
   let(:out) { StringIO.new }
   let(:err) { StringIO.new }
 
@@ -40,29 +52,33 @@ RSpec.describe 'glazed run' do
     write_json('inventory.json', defaults: {group: 'core', dialect: 'ios', transport: 'telnet', username: 'admin', password: {env: 'GLAZED_TEST_PASSWORD'}}, nodes:)
     config = write_json('glazed.json',
       inventory: [{json_files: {paths: [path('inventory.json')]}}],
-      raw: {git: {path: path('raw')}},
-      redacted: {git: {path: path('redacted')}},
-      redaction: {mode: 'MODE_HMAC', hmac_key: {value: 'k'}},
-      timeout_seconds: 2)
+      storages: {
+        vault: {git: {path: path('vault')}},
+        staging: {git: {path: path('staging')}},
+        team: {git: {path: path('team')}},
+      },
+      workflows:)
     stub_const('ENV', ENV.to_h.merge('GLAZED_TEST_PASSWORD' => 'pw'))
     Glazed::Command.start(['run', '-c', config, *options], out:, err:)
   end
 
-  it 'stores raw and redacted configuration and reports the failed node' do
+  it 'runs every step and reports the failed node' do
     expect(run_command).to eq(1)
-    expect(git_show('raw', 'HEAD:core/sw1')).to eq(simulation.expected('collected'))
+    expect(git_show('vault', 'HEAD:core/sw1')).to eq(simulation.expected('collected'))
 
-    redacted = git_show('redacted', 'HEAD:core/sw1')
+    redacted = git_show('team', 'HEAD:core/sw1')
     expect(redacted).to include('enable secret 9 <secret hmac:')
     simulation.secrets.each { expect(redacted).not_to include(it) }
-    expect(Open3.capture2('git', '-C', path('redacted'), 'log', '--format=%s').first).to eq("update sw1\n")
+    expect(Open3.capture2('git', '-C', path('team'), 'log', '--format=%s').first).to eq("publish: update sw1\n")
 
     logs = err.string.lines.map { JSON.parse(it) }
     expect(logs).to contain_exactly(
-      {'level' => 'info', 'node' => 'sw1', 'message' => 'fetched'},
-      include('level' => 'error', 'node' => 'sw2'),
+      {'level' => 'info', 'step' => 'fetch', 'node' => 'sw1', 'message' => 'done'},
+      {'level' => 'info', 'step' => 'redact', 'node' => 'sw1', 'message' => 'done'},
+      include('level' => 'error', 'step' => 'fetch', 'node' => 'sw2'),
+      {'level' => 'info', 'step' => 'publish', 'message' => 'done for 1 nodes'},
     )
-    expect(out.string).to eq("fetched 1 of 2 nodes, 1 failed\n")
+    expect(out.string).to eq("completed 1 of 2 nodes, 1 failed\n")
   end
 
   it 'exits 0 when every node succeeds' do
@@ -70,14 +86,50 @@ RSpec.describe 'glazed run' do
     expect(run_command).to eq(0)
   end
 
-  it 'fetches only the named nodes' do
+  it 'runs only for the named nodes' do
     expect(run_command('--only', 'sw1')).to eq(0)
-    expect(out.string).to eq("fetched 1 of 1 nodes, 0 failed\n")
+    expect(out.string).to eq("completed 1 of 1 nodes, 0 failed\n")
+  end
+
+  it 'runs a raw-only workflow' do
+    workflows[:backup][:steps].pop(2)
+    nodes.pop
+    expect(run_command).to eq(0)
+    expect(File.exist?(path('team'))).to be(false)
   end
 
   it 'exits 2 without a config' do
     expect(Glazed::Command.start(%w[run], out:, err:)).to eq(2)
     expect(err.string).to include('--config')
+  end
+end
+
+RSpec.describe 'glazed run with several workflows' do
+  around do |example|
+    Dir.mktmpdir do |dir|
+      @dir = dir
+      example.run
+    end
+  end
+
+  def start(*args)
+    File.write(File.join(@dir, 'inventory.json'), JSON.generate(nodes: []))
+    config = File.join(@dir, 'glazed.json')
+    step = {name: 'fetch', fetch: {output: 'raw', storage: 'vault'}}
+    File.write(config, JSON.generate(
+      inventory: [{json_files: {paths: [File.join(@dir, 'inventory.json')]}}],
+      storages: {vault: {git: {path: File.join(@dir, 'vault')}}},
+      workflows: {hourly: {steps: [step]}, daily: {steps: [step]}},
+    ))
+    Glazed::Command.start(['run', '-c', config, *args], out: StringIO.new, err: StringIO.new)
+  end
+
+  it 'runs the named workflow' do
+    expect(start('-w', 'daily')).to eq(0)
+  end
+
+  it 'requires choosing one' do
+    expect { start }.to raise_error(Glazed::Error, /--workflow: daily, hourly/)
   end
 end
 

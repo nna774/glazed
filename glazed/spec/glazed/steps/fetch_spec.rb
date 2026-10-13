@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 require 'tmpdir'
+require 'glazed/proto_json'
 require 'glazed/steps/fetch'
 require 'glazed/storages/git'
 
@@ -14,7 +15,8 @@ RSpec.describe Glazed::Steps::Fetch do
     end
   end
 
-  let(:storage) { Glazed::Storages::Git.new(path: @dir) }
+  let(:context) { Glazed::Steps::Context.new(storages: {'vault' => Glazed::Storages::Git.new(path: @dir)}) }
+  let(:step) { described_class.from_proto('fetch', Glazed::Proto::V1::FetchStep.new(output: 'raw', storage: 'vault', timeout_seconds: 1), context:) }
   let(:dialect) do
     Class.new(Glazed::Dialects::Base) do
       prompt(/^rt1#\s?$/)
@@ -28,19 +30,32 @@ RSpec.describe Glazed::Steps::Fetch do
     stub_const('Glazed::Transports::Fake', FakeTransport.device(greeting: 'rt1#', responses: {'show running-config' => "hostname rt1\nrt1#"}))
   end
 
-  it 'stores the raw configuration under the node key' do
-    result = described_class.new(storage:, timeout: 1).call(Glazed::Proto::V1::FetchRequest.new(node:))
-    expect(result.node).to eq(node)
-    expect(result.raw.git.path).to eq('core/rt1')
-    expect(storage.read(result.raw)).to eq("hostname rt1\n")
+  it 'adds the stored configuration as an artifact' do
+    state = step.call(Glazed::Proto::V1::NodeState.new(node:))
+    artifact = state.artifacts['raw']
+    expect(artifact.storage).to eq('vault')
+    expect(artifact.pointer.git.path).to eq('core/rt1')
+    expect(context.read(artifact)).to eq("hostname rt1\n")
   end
 
-  it 'round-trips through ProtoJSON' do
-    result = described_class.new(storage:, timeout: 1).call(Glazed::Proto::V1::FetchRequest.new(node:))
-    expect(Glazed::ProtoJson.load(Glazed::Proto::V1::FetchResult, Glazed::ProtoJson.dump(result))).to eq(result)
+  it 'leaves the given state untouched and round-trips through ProtoJSON' do
+    input = Glazed::Proto::V1::NodeState.new(node:)
+    state = step.call(input)
+    expect(input.artifacts.to_h).to be_empty
+    expect(Glazed::ProtoJson.load(Glazed::Proto::V1::NodeState, Glazed::ProtoJson.dump(state))).to eq(state)
   end
 
-  it 'rejects a request without a node' do
-    expect { described_class.new(storage:).call(Glazed::Proto::V1::FetchRequest.new) }.to raise_error(ArgumentError)
+  it 'declares its output' do
+    expect([step.inputs, step.outputs]).to eq([[], ['raw']])
+  end
+
+  it 'rejects a definition without a storage' do
+    expect { described_class.from_proto('fetch', Glazed::Proto::V1::FetchStep.new(output: 'raw'), context:) }
+      .to raise_error(Glazed::Steps::InvalidStep)
+  end
+
+  it 'rejects an unknown storage' do
+    expect { described_class.from_proto('fetch', Glazed::Proto::V1::FetchStep.new(output: 'raw', storage: 'nope'), context:) }
+      .to raise_error(Glazed::Steps::Context::UnknownStorage, /nope/)
   end
 end

@@ -5,11 +5,11 @@
 require 'google/protobuf'
 
 require 'glazed/v1/inventory_pb'
-require 'glazed/v1/redaction_pb'
 require 'glazed/v1/storage_pb'
+require 'glazed/v1/workflow_pb'
 
 
-descriptor_data = "\n\x16glazed/v1/config.proto\x12\tglazed.v1\x1a\x19glazed/v1/inventory.proto\x1a\x19glazed/v1/redaction.proto\x1a\x17glazed/v1/storage.proto\"\x95\x02\n\x06\x43onfig\x12\x38\n\tinventory\x18\x01 \x03(\x0b\x32\x1a.glazed.v1.InventorySourceR\tinventory\x12*\n\x03raw\x18\x02 \x01(\x0b\x32\x18.glazed.v1.StorageConfigR\x03raw\x12\x34\n\x08redacted\x18\x03 \x01(\x0b\x32\x18.glazed.v1.StorageConfigR\x08redacted\x12\x32\n\tredaction\x18\x04 \x01(\x0b\x32\x14.glazed.v1.RedactionR\tredaction\x12\x12\n\x04jobs\x18\x05 \x01(\rR\x04jobs\x12\'\n\x0ftimeout_seconds\x18\x06 \x01(\rR\x0etimeoutSecondsB\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
+descriptor_data = "\n\x16glazed/v1/config.proto\x12\tglazed.v1\x1a\x19glazed/v1/inventory.proto\x1a\x17glazed/v1/storage.proto\x1a\x18glazed/v1/workflow.proto\"\xfd\x02\n\x06\x43onfig\x12\x38\n\tinventory\x18\x01 \x03(\x0b\x32\x1a.glazed.v1.InventorySourceR\tinventory\x12;\n\x08storages\x18\x02 \x03(\x0b\x32\x1f.glazed.v1.Config.StoragesEntryR\x08storages\x12>\n\tworkflows\x18\x03 \x03(\x0b\x32 .glazed.v1.Config.WorkflowsEntryR\tworkflows\x12\x12\n\x04jobs\x18\x04 \x01(\rR\x04jobs\x1aU\n\rStoragesEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12.\n\x05value\x18\x02 \x01(\x0b\x32\x18.glazed.v1.StorageConfigR\x05value:\x02\x38\x01\x1aQ\n\x0eWorkflowsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12)\n\x05value\x18\x02 \x01(\x0b\x32\x13.glazed.v1.WorkflowR\x05value:\x02\x38\x01\x42\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
 
 pool = ::Google::Protobuf::DescriptorPool.generated_pool
 pool.add_serialized_file(descriptor_data)

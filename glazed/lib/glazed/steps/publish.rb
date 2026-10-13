@@ -3,53 +3,82 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
-require 'glazed/dialects'
+require 'glazed/must'
 require 'glazed/proto'
-require 'glazed/redactor'
 require 'glazed/steps'
 require 'glazed/storages'
 
 module Glazed
   module Steps
-    # Redacts raw configurations and stores them together, as one commit where
-    # the storage supports it.
+    # Batch: writes an artifact of every node into a storage as one change,
+    # such as one commit naming the nodes.
     #
-    # @example
-    #   publish = Glazed::Steps::Publish.new(raw_storage:, redacted_storage:, redaction:)
-    #   publish.call(Glazed::Proto::V1::PublishRequest.new(entries: fetch_results))
-    class Publish
+    # @example Step definition
+    #   {"name": "publish", "publish": {"input": "redacted", "storage": "team"}}
+    class Publish < BatchStep
       # Node names listed in a commit message before it is shortened.
       MESSAGE_NAMES = 5 #: Integer
 
-      # @param raw_storage [Storages::Base] storage the fetch step wrote to
-      # @param redacted_storage [Storages::Base] storage for redacted configuration
-      # @param redaction [Proto::V1::Redaction] how secrets are hidden
-      #: (raw_storage: Storages::Base, redacted_storage: Storages::Base, redaction: Proto::V1::Redaction) -> void
-      def initialize(raw_storage:, redacted_storage:, redaction:)
-        @raw_storage = raw_storage #: Storages::Base
-        @redacted_storage = redacted_storage #: Storages::Base
-        @redaction = redaction #: Proto::V1::Redaction
+      # @param name [String] step name
+      # @param input [String] artifact to read from each node
+      # @param storage_name [String] storage to write to, by name
+      # @param output [String, nil] artifact recording the written locations
+      # @param context [Context] named storages
+      # @raise [Context::UnknownStorage] when the storage is not configured
+      #: (name: String, input: String, storage_name: String, output: String?, context: Context) -> void
+      def initialize(name:, input:, storage_name:, output:, context:)
+        super(name:)
+        @input = input #: String
+        @storage_name = storage_name #: String
+        @storage = context.storage(storage_name) #: Storages::Base
+        @output = output #: String?
+        @context = context #: Context
       end
 
-      # @param request [Proto::V1::PublishRequest] fetch results to publish
-      # @return [Proto::V1::PublishResult] locations of the redacted configurations
-      # @raise [ArgumentError] when an entry lacks its node or raw pointer
-      # @raise [Glazed::Error] when reading, redacting or storing fails
-      #: (Proto::V1::PublishRequest request) -> Proto::V1::PublishResult
-      def call(request)
-        redactors = {} #: Hash[singleton(Dialects::Base), Redactor]
-        names = [] #: Array[String]
-        files = request.entries.map do |entry|
-          node = entry.node or raise ArgumentError, 'publish entry has no node'
-          raw = entry.raw or raise ArgumentError, "publish entry for #{node.name} has no raw pointer"
-          dialect = Dialects.find(node.dialect)
-          redactor = redactors[dialect] ||= Redactor.from_proto(@redaction, patterns: dialect.sensitive_patterns)
-          names << node.name
-          [Storages.key_for(node), redactor.call(@raw_storage.read(raw))] #: Storages::Base::file
-        end
-        return Proto::V1::PublishResult.new if files.empty?
+      # Builds the step from {Proto::V1::PublishStep}.
+      #
+      # @param name [String] step name
+      # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::PublishStep}
+      # @param context [Context] named storages
+      # @return [Publish] the step
+      # @raise [InvalidStep] when input or storage is missing
+      #: (String name, Google::Protobuf::MessageExts settings, context: Context) -> Publish
+      def self.from_proto(name, settings, context:)
+        publish = Must.be_a(settings, Proto::V1::PublishStep)
+        raise InvalidStep, "#{name}: publish needs input and storage" if publish.input.empty? || publish.storage.empty?
 
-        Proto::V1::PublishResult.new(redacted: @redacted_storage.write_all(files, message: message(names)))
+        new(name:, input: publish.input, storage_name: publish.storage, output: publish.output.empty? ? nil : publish.output, context:)
+      end
+
+      # @return [Array<String>] the read artifact
+      #: () -> Array[String]
+      def inputs = [@input]
+
+      # @return [Array<String>] the recorded artifact, if any
+      #: () -> Array[String]
+      def outputs = [@output].compact
+
+      # @param batch [Proto::V1::BatchState] node states holding the input artifact
+      # @return [Proto::V1::BatchState] the states, with the output artifact when configured
+      # @raise [MissingArtifact] when a node lacks the input artifact
+      # @raise [Glazed::Error] when reading or storing fails
+      #: (Proto::V1::BatchState batch) -> Proto::V1::BatchState
+      def call(batch)
+        states = batch.nodes.to_a
+        return batch if states.empty?
+
+        files = states.map do |state|
+          node = state.node or raise ArgumentError, "#{name}: state has no node"
+          [Storages.key_for(node), @context.read(artifact(state, @input))] #: Storages::Base::file
+        end
+        pointers = @storage.write_all(files, message: message(states.map { it.node&.name.to_s }))
+        output = @output
+        return batch unless output
+
+        nodes = states.zip(pointers).map do |state, pointer|
+          with_artifacts(state, output => Proto::V1::Artifact.new(storage: @storage_name, pointer:))
+        end
+        Proto::V1::BatchState.new(nodes:)
       end
 
       # @param names [Array<String>] published node names
@@ -58,7 +87,7 @@ module Glazed
       private def message(names)
         listed = names.first(MESSAGE_NAMES).join(', ')
         rest = names.size - MESSAGE_NAMES
-        rest.positive? ? "update #{listed} and #{rest} more" : "update #{listed}"
+        rest.positive? ? "#{name}: update #{listed} and #{rest} more" : "#{name}: update #{listed}"
       end
     end
   end
