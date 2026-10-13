@@ -23,6 +23,8 @@ message StorageConfig {
     FilesystemStorage filesystem = 4;
     // Storage implemented outside glazed, selected by the settings message type.
     google.protobuf.Any plugin = 5;
+    // Memory of the running process; nothing is persisted.
+    MemoryStorage memory = 6;
   }
 }
 
@@ -32,6 +34,11 @@ message FilesystemStorage {
   // Directory holding the files. It is created when missing.
   string path = 1;
 }
+
+// Memory of the running process, for content that must not be persisted, such
+// as raw configuration when only the redacted copy is kept. Content is gone when
+// the process exits, so it can only be read by steps of the same glazed run.
+message MemoryStorage {}
 
 // Local git repository, committed to on each write.
 message GitStorage {
@@ -89,6 +96,8 @@ message Pointer {
     FilesystemLocation filesystem = 4;
     // Location in a storage implemented outside glazed.
     google.protobuf.Any plugin = 5;
+    // Content held in the memory of the process that wrote it.
+    MemoryLocation memory = 6;
   }
 }
 
@@ -125,5 +134,13 @@ message FilesystemLocation {
   // Path of the file within the directory.
   string path = 1;
   // Hex SHA-256 of the content written. Reading fails once the file holds other content.
+  string sha256 = 2;
+}
+
+// Content held in the memory of the process that wrote it.
+message MemoryLocation {
+  // Key the content was written under.
+  string key = 1;
+  // Hex SHA-256 of the content.
   string sha256 = 2;
 }

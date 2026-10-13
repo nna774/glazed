@@ -37,6 +37,7 @@ RSpec.describe 'glazed run' do
       },
     }
   end
+  let(:vault) { {git: {path: path('vault')}} }
   let(:out) { StringIO.new }
   let(:err) { StringIO.new }
 
@@ -53,7 +54,7 @@ RSpec.describe 'glazed run' do
     config = write_json('glazed.json',
       inventory: [{json_files: {paths: [path('inventory.json')]}}],
       storages: {
-        vault: {git: {path: path('vault')}},
+        vault:,
         staging: {git: {path: path('staging')}},
         team: {git: {path: path('team')}},
       },
@@ -94,6 +95,15 @@ RSpec.describe 'glazed run' do
     expect(out.string).to eq("completed 1 of 1 nodes, 0 changed, 0 failed\n")
     expect(%w[vault staging team].to_h { [it, git_show(it, 'HEAD')] }).to eq(commits)
     expect(err.string.lines.map { JSON.parse(it) }.select { it['node'] }).to all(include('changed' => false))
+  end
+
+  it 'publishes the redacted copy without persisting the raw one in memory storage' do
+    nodes.pop
+    vault.replace(memory: {})
+    expect(run_command).to eq(0)
+    expect(git_show('team', 'HEAD:core/sw1')).to include('enable secret 9 <secret hmac:')
+    expect(File.exist?(path('vault'))).to be(false)
+    expect(Dir.children(@dir)).to contain_exactly('inventory.json', 'glazed.json', 'staging', 'team')
   end
 
   it 'exits 0 when every node succeeds' do

@@ -150,9 +150,12 @@ In both, `defaults` fill the fields each node leaves unset, with `params` and `s
 
 // filesystem: plain files under a directory, latest content only, for scripts and other tools
 {"filesystem": {"path": "/var/lib/glazed/latest"}}
+
+// memory: held by the glazed run process only, for raw configuration you do not want persisted at all
+{"memory": {}}
 ```
 
-For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed after each commit when set. For `github`, `api_url` points to GitHub Enterprise Server, and `author_name`/`author_email` override the token owner. For `s3`, the region defaults to the SDK's.
+For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed after each commit when set. For `github`, `api_url` points to GitHub Enterprise Server, and `author_name`/`author_email` override the token owner. For `s3`, the region defaults to the SDK's. `memory` content is gone when the process exits, so only steps of the same `glazed run` can read it; an orchestrator running steps as separate processes needs a persistent storage between them.
 
 ### Workflows
 

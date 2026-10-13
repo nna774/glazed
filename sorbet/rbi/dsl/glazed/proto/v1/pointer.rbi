@@ -11,11 +11,12 @@ class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
       filesystem: T.nilable(Glazed::Proto::V1::FilesystemLocation),
       git: T.nilable(Glazed::Proto::V1::GitLocation),
       github: T.nilable(Glazed::Proto::V1::GithubLocation),
+      memory: T.nilable(Glazed::Proto::V1::MemoryLocation),
       plugin: T.nilable(Google::Protobuf::Any),
       s3: T.nilable(Glazed::Proto::V1::S3Location)
     ).void
   end
-  def initialize(filesystem: nil, git: nil, github: nil, plugin: nil, s3: nil); end
+  def initialize(filesystem: nil, git: nil, github: nil, memory: nil, plugin: nil, s3: nil); end
 
   sig { void }
   def clear_filesystem; end
@@ -25,6 +26,9 @@ class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
 
   sig { void }
   def clear_github; end
+
+  sig { void }
+  def clear_memory; end
 
   sig { void }
   def clear_plugin; end
@@ -60,6 +64,9 @@ class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
   def has_github?; end
 
   sig { returns(Object) }
+  def has_memory?; end
+
+  sig { returns(Object) }
   def has_plugin?; end
 
   sig { returns(Object) }
@@ -67,6 +74,12 @@ class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
 
   sig { returns(T.nilable(Symbol)) }
   def location; end
+
+  sig { returns(T.nilable(Glazed::Proto::V1::MemoryLocation)) }
+  def memory; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::MemoryLocation)).void }
+  def memory=(value); end
 
   sig { returns(T.nilable(Google::Protobuf::Any)) }
   def plugin; end
