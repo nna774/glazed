@@ -12,6 +12,9 @@ require 'glazed/dialects/base'
 module Glazed
   module Dialects
     # Juniper Junos OS.
+    #
+    # Node params: "junos_license_usage" set to "false" omits the license usage
+    # table, whose counts change without configuration changes.
     class Junos < Base
       prompt(/^(\r?[\w.@:\/-]+[#>]\s?)$/)
       comment_prefix '# '
@@ -34,11 +37,15 @@ module Glazed
           run.emit(comment(output))
         end
         book.command('show chassis hardware') { comment(it.output) }
-        book.command('show system license') do |result|
-          comment(
-            result.output
-              .gsub(/  fib-scale\s+(\d+)/, '  fib-scale                       <count>')
-              .gsub(/  rib-scale\s+(\d+)/, '  rib-scale                       <count>'),
+        book.raw('show system license') do |run|
+          output = run.command('show system license').output
+          output = output.sub(/^License usage:.*?\n[ \t]*\n/m, '') if run.param('junos_license_usage') == 'false'
+          run.emit(
+            comment(
+              output
+                .gsub(/  fib-scale\s+(\d+)/, '  fib-scale                       <count>')
+                .gsub(/  rib-scale\s+(\d+)/, '  rib-scale                       <count>'),
+            ),
           )
         end
         book.command('show system license keys') { comment(it.output) }

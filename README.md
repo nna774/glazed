@@ -131,7 +131,7 @@ In both, `defaults` fill the fields each node leaves unset, with `params` and `s
 - `dialect` (required): see [Supported devices](#supported-devices)
 - `transport` (default: `ssh`): `ssh` or `telnet`
 - `username`, `password`
-- `params`: dialect options, such as `"ios_rbac": "true"` to collect `show running-config view full`
+- `params`: dialect options, such as `"ios_rbac": "true"` to collect `show running-config view full`, or `"junos_license_usage": "false"` to omit the license usage table
 - `secrets`: dialect secrets, such as `enable` for `ios` and `awplus`
 
 ### Storages
