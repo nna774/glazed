@@ -1,0 +1,8 @@
+--dir=glazed/lib
+--dir=glazed/spec
+--dir=glazed-aws/lib
+--dir=glazed-aws/spec
+--dir=sorbet/rbi
+--ignore=/glazed/lib/glazed/v1/
+--parser=prism
+--enable-experimental-rbs-comments

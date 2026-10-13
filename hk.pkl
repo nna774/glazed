@@ -1,0 +1,68 @@
+amends "package://github.com/jdx/hk/releases/download/v1.53.0/hk@1.53.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.53.0/hk@1.53.0#/Builtins.pkl"
+
+// Generated code is checked as generated; only hand-written files get linted.
+// vendor/bundle is where setup-ruby installs gems in CI.
+exclude = List(
+  "glazed/lib/glazed/v1/**",
+  "glazed/spec/fixtures/**",
+  "sorbet/rbi/annotations/**",
+  "sorbet/rbi/dsl/**",
+  "sorbet/rbi/gems/**",
+  "bin/tapioca",
+  "vendor/**",
+)
+
+local ruby_files = List("**/*.rb", "**/*.rbi", "**/*.gemspec", "Gemfile", "Rakefile", "**/Rakefile", "bin/*", "glazed/exe/*")
+
+local linters = new Mapping<String, Step> {
+  ["rubocop"] {
+    glob = List("**/*.rb", "**/*.gemspec", "Gemfile", "**/Rakefile", "bin/*", "glazed/exe/*")
+    check = "bundle exec rubocop --force-exclusion {{files}}"
+    fix = "bundle exec rubocop --force-exclusion --autocorrect {{files}}"
+    batch = true
+  }
+  ["spdx"] {
+    glob = ruby_files + List("proto/**/*.proto")
+    check = "bin/spdx-header {{files}}"
+    fix = "bin/spdx-header --fix {{files}}"
+    batch = true
+  }
+  ["sorbet"] {
+    glob = List("**/*.rb", "**/*.rbi", "sorbet/config")
+    check = "bundle exec srb tc"
+  }
+  ["yard"] {
+    glob = List("glazed/lib/**/*.rb", "glazed-aws/lib/**/*.rb", "**/.yardopts")
+    check = "bin/check-docs"
+  }
+  ["buf-lint"] = Builtins.buf_lint
+  ["buf-format"] = Builtins.buf_format
+  ["actionlint"] = Builtins.actionlint
+  ["check-added-large-files"] = Builtins.check_added_large_files
+  ["byte-order-marker"] = Builtins.byte_order_marker
+  ["check-merge-conflict"] = Builtins.check_merge_conflict
+  ["check-symlinks"] = Builtins.check_symlinks
+  ["detect-private-key"] = Builtins.detect_private_key
+  ["mixed-line-ending"] = Builtins.mixed_line_ending
+  ["newlines"] = Builtins.newlines
+  ["trailing-whitespace"] = Builtins.trailing_whitespace
+  ["zizmor"] = Builtins.zizmor
+}
+
+hooks {
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps {
+      ...linters
+    }
+  }
+  ["fix"] {
+    fix = true
+    steps = linters
+  }
+  ["check"] {
+    steps = linters
+  }
+}

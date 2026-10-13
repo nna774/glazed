@@ -1,0 +1,14 @@
+[tools]
+"aqua:jdx/hk" = "1.53.0"
+"aqua:apple/pkl" = "0.31.1"
+"aqua:rhysd/actionlint" = "1.7.12"
+"aqua:zizmorcore/zizmor" = "1.30.1"
+"aqua:bufbuild/buf" = "1.73.0"
+"aqua:protocolbuffers/protobuf/protoc" = "36.1"
+
+[env]
+# sorbet-static is published only as prebuilt platform gems.
+BUNDLE_FORCE_RUBY_PLATFORM = "false"
+
+[tasks.pre-commit]
+run = "hk run pre-commit"

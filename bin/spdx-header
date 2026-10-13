@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# SPDX-License-Identifier: Apache-2.0
+
+# Checks, or with --fix adds, the SPDX license identifier of each given file.
+# Ruby files carry it after their magic comments; .proto files at the top.
+
+LICENSE = 'Apache-2.0'
+MAGIC = /\A(?:#!|# (?:typed|frozen_string_literal|encoding|warn_indent|shareable_constant_value):)/
+
+def comment_prefix(path)
+  File.extname(path) == '.proto' ? '//' : '#'
+end
+
+def header(path) = "#{comment_prefix(path)} SPDX-License-Identifier: #{LICENSE}\n"
+
+def with_header(path, content)
+  lines = content.lines
+  magic = lines.take_while { MAGIC.match?(it) }.size
+  rest = lines.drop(magic).drop_while { it.strip.empty? }
+  separator = magic.zero? ? [] : ["\n"]
+  [*lines.first(magic), *separator, header(path), *(rest.empty? ? [] : ["\n"]), *rest].join
+end
+
+fix = ARGV.delete('--fix')
+missing = ARGV.reject { |path| File.read(path).lines.include?(header(path)) }
+missing.each { File.write(it, with_header(it, File.read(it))) } if fix
+unless fix || missing.empty?
+  warn missing.map { "#{it}: missing SPDX-License-Identifier header" }
+  exit 1
+end

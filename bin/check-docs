@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# SPDX-License-Identifier: Apache-2.0
+
+# Fails unless every listed gem is 100% documented by YARD.
+require 'open3'
+
+gems = ARGV.empty? ? %w[glazed glazed-aws] : ARGV
+failed = gems.reject do |gem_dir|
+  out, status = Open3.capture2e('bundle', 'exec', 'yard', 'stats', '--list-undoc', '--no-save', chdir: File.join(__dir__, '..', gem_dir))
+  puts "== #{gem_dir}", out
+  status.success? && out.include?('100.00% documented')
+end
+abort "Undocumented objects in: #{failed.join(', ')}" unless failed.empty?
