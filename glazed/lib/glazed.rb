@@ -9,4 +9,8 @@ require_relative 'glazed/version'
 module Glazed
   # Base class for errors raised by glazed.
   class Error < StandardError; end
+  # Raised when a device does not produce expected output in time.
+  class TimeoutError < Error; end
+  # Raised when a device closes the connection unexpectedly.
+  class ConnectionClosed < Error; end
 end

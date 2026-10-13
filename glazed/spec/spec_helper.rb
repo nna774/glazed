@@ -2,11 +2,13 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
-require "glazed"
+require 'glazed'
+
+Dir[File.join(__dir__, 'support', '**', '*.rb')].each { require it }
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
-  config.example_status_persistence_file_path = ".rspec_status"
+  config.example_status_persistence_file_path = '.rspec_status'
 
   # Disable RSpec exposing methods globally on `Module` and `main`
   config.disable_monkey_patching!
