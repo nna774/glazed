@@ -114,6 +114,55 @@ module Oxidized
     end
   end
 
+  # Stands in for command output to record the substitutions of a model's
+  # `cmd :secret` blocks, so glazed can turn them into sensitive patterns.
+  class SecretRecorder < BasicObject
+    # Raised when a block does anything but substitute a string for a pattern.
+    class Unrecordable < ::StandardError; end
+
+    # @param model_class [Class] model whose blocks to record
+    # @return [Array<Array(Regexp, String)>] patterns and replacements, in order
+    # @raise [Unrecordable] when a block does anything else
+    #: (untyped model_class) -> Array[[Regexp, String]]
+    def self.record(model_class)
+      recorder = new
+      model = model_class.new
+      model_class.cmds[:secret].each { model.instance_exec(recorder, '', &it) }
+      recorder.__substitutions
+    end
+
+    #: () -> void
+    def initialize
+      @substitutions = []
+    end
+
+    # @return [Array<Array(Regexp, String)>] recorded patterns and replacements
+    #: () -> Array[[Regexp, String]]
+    def __substitutions = @substitutions
+
+    %i[sub sub! gsub gsub!].each do |name|
+      define_method(name) do |pattern, replacement = nil, &block|
+        unless replacement.instance_of?(::String) && block.nil?
+          ::Kernel.raise Unrecordable, "calls #{name} without a string replacement"
+        end
+
+        @substitutions << [pattern.is_a?(::Regexp) ? pattern : ::Regexp.new(::Regexp.escape(pattern)), replacement]
+        self
+      end
+    end
+
+    # @param name [Symbol] method called
+    # @raise [Unrecordable] always
+    #: (Symbol name, *untyped _args) -> bot
+    def method_missing(name, *_args)
+      ::Kernel.raise Unrecordable, "calls #{name}"
+    end
+
+    # @return [Boolean] false
+    #: (Symbol _name, ?bool _include_private) -> bool
+    def respond_to_missing?(_name, _include_private = false) = false
+  end
+
   # Base class of device models.
   class Model
     include Oxidized::Config::Vars

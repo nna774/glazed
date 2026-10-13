@@ -239,7 +239,7 @@ Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.Batch
 - Oxidized commits whatever it collects. glazed's GitHub storage commits to a topic branch meant for pull requests, so the history on the default branch can explain why each change was made.
 - Oxidized is a daemon with a REST API and web UI (oxidized-web). glazed is a command and a set of building blocks, with steps defined as protobuf messages for external schedulers and orchestrators.
 - Oxidized models mix collection with per-run state. glazed dialects are declarations with inheritance, and per-run state lives in the run.
-- Oxidized has years of production use behind it. Its models run on glazed through `glazed-oxidized`, without glazed's redaction.
+- Oxidized has years of production use behind it. Its models run on glazed through `glazed-oxidized`, redacted with patterns derived from their `cmd :secret` blocks.
 
 ## Caveats
 

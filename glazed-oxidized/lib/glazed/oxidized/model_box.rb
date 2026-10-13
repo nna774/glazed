@@ -5,6 +5,7 @@
 
 require 'glazed/must'
 require 'glazed/oxidized/errors'
+require 'glazed/oxidized/secret_substitution'
 
 module Glazed
   module Oxidized
@@ -59,6 +60,18 @@ module Glazed
       # @return [Object] a new instance of the model
       #: () -> untyped
       def new_model = model_class.new
+
+      # @return [Array<SecretSubstitution>] substitutions of the model's `cmd :secret` blocks, in order
+      # @raise [UnredactableModel] when a block does anything but substitute strings for patterns
+      #: () -> Array[SecretSubstitution]
+      def secret_substitutions
+        recorder = oxidized.const_get(:SecretRecorder)
+        begin
+          recorder.record(model_class).map { |pattern, replacement| SecretSubstitution.new(pattern:, replacement:) }
+        rescue recorder.const_get(:Unrecordable) => e
+          raise UnredactableModel, "cmd :secret blocks of Oxidized model #{name} #{e.message}"
+        end
+      end
 
       # @return [Object] a new instance of the box's Oxidized::Input
       #: () -> untyped

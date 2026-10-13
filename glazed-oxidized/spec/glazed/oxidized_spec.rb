@@ -5,6 +5,7 @@
 # Under Ruby::Box on Ruby 4.0.7, rspec fails to shellsplit .rspec lines, so there is no .rspec.
 require 'spec_helper'
 require 'glazed/collector'
+require 'glazed/redactor'
 require 'open3'
 
 RSpec.describe Glazed::Oxidized do
@@ -134,6 +135,16 @@ RSpec.describe Glazed::Oxidized do
         expect(written).to include(' ')
       end
 
+      it 'redacts every line remove_secret hides' do
+        removed = Glazed::Collector.new(node: rootware, timeout: 1).call
+        rootware.params.delete('remove_secret')
+        raw = Glazed::Collector.new(node: rootware, timeout: 1).call
+        hidden = raw.lines.zip(removed.lines).reject { |line, without| line == without }.map(&:first)
+        redacted = Glazed::Redactor.new(patterns: Glazed::Dialects.find('oxidized_rootware').sensitive_patterns, mode: :remove).call(raw)
+        expect(hidden).to eq(["snmp community public\n"])
+        expect(redacted.lines & hidden).to be_empty
+      end
+
       it 'keeps secrets unless remove_secret is set' do
         rootware.params.delete('remove_secret')
         expect(Glazed::Collector.new(node: rootware, timeout: 1).call).to include('snmp community public')
@@ -154,6 +165,21 @@ RSpec.describe Glazed::Oxidized do
       stub_const('Glazed::Transports::Telnet', FakeTransport.device(greeting: 'rt1# '))
       expect { Glazed::Collector.new(node: node('oxidized_minimal', transport: 'telnet'), timeout: 1).call }
         .to raise_error(Glazed::Oxidized::UnsupportedTransport, /minimal has no cfg block for telnet/)
+    end
+
+    describe 'redaction' do
+      def redact(dialect, text)
+        Glazed::Redactor.new(patterns: Glazed::Dialects.find(dialect).sensitive_patterns, mode: :remove).call(text)
+      end
+
+      it "declares the substitutions of the model's secret blocks as sensitive patterns" do
+        expect(redact('oxidized_rootware', "snmp community public\n")).to eq("snmp community [~REDACTED~]\n")
+      end
+
+      it 'raises UnredactableModel for secret blocks that are not substitutions' do
+        expect { Glazed::Dialects.find('oxidized_unredactable').sensitive_patterns }
+          .to raise_error(Glazed::Oxidized::UnredactableModel, /unredactable .*calls each_line/)
+      end
     end
   end
 end

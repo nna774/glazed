@@ -32,7 +32,8 @@ module Glazed
       filter_output { |output| output.gsub(/[ \t]+$/, '') }
 
       # Locate secrets in the collected configuration. The pattern is matched against the
-      # whole text, so multiline patterns work; the block returns the secret within the match.
+      # whole text, so multiline patterns work; the block returns the secret within the match,
+      # or its offsets in the whole text as a Range.
       sensitive_pattern(/^enable (?:password|secret) \d (\S+)/) { it[1] }
 
       # Steps of the :get operation, which collects the running configuration.

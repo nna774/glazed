@@ -14,14 +14,15 @@ module Glazed
     #
     # The model's prompt, comment prefix, expect blocks and login prompts map
     # to dialect declarations. Commands, pre and post blocks, and cfg blocks
-    # run inside the model's box, as one :get runbook step. The model's
-    # `cmd :secret` blocks apply when the node param "remove_secret" is "true";
-    # the dialect declares no sensitive patterns.
+    # run inside the model's box, as one :get runbook step. The substitutions
+    # of the model's `cmd :secret` blocks become sensitive patterns, and the
+    # blocks themselves run when the node param "remove_secret" is "true".
     class ModelDialect < Dialects::Base
       # Prompt Oxidized uses for models that declare none.
       DEFAULT_PROMPT = /^([\w.@-]+[#>]\s?)$/ #: Regexp
 
       @model_box = nil #: ModelBox?
+      @unredactable = nil #: String?
 
       class << self
         # Builds a dialect class for a loaded model.
@@ -42,6 +43,16 @@ module Glazed
         #: () -> ModelBox
         def model_box = Must.expect(@model_box)
 
+        # @return [Array<Glazed::Dialect::SensitivePattern>] patterns from the model's `cmd :secret` blocks
+        # @raise [UnredactableModel] when the blocks cannot be turned into patterns
+        #: () -> Array[Glazed::Dialect::SensitivePattern]
+        def sensitive_patterns
+          reason = @unredactable
+          raise UnredactableModel, reason if reason
+
+          super
+        end
+
         # @param box [ModelBox] the model to run
         # @return [void]
         #: (ModelBox box) -> void
@@ -55,12 +66,28 @@ module Glazed
               Glazed::Dialect::Actions::Replace.new(content: Bridge.for(cli, box).apply_expect(index, buffer))
             end
           end
+          declare_secrets(box)
           ModelBox::INPUTS.each_key do |kind|
             communication(kind) { |config| configure(config, kind) }
           end
           runbook(:get) do |book|
             book.raw("oxidized model #{box.name}") { |run| run.emit(Bridge.for(run.cli, box).get) }
           end
+        end
+
+        # Declares a sensitive pattern for each substitution of the model's
+        # `cmd :secret` blocks. Blocks that do anything else make
+        # {sensitive_patterns} raise, so redaction fails rather than leaks.
+        #
+        # @param box [ModelBox] the loaded model
+        # @return [void]
+        #: (ModelBox box) -> void
+        private def declare_secrets(box)
+          box.secret_substitutions.each do |substitution|
+            sensitive_pattern(substitution.pattern) { substitution.offsets(it) }
+          end
+        rescue UnredactableModel => e
+          @unredactable = e.message
         end
 
         # Applies the model's cfg blocks for a transport to a communication config.

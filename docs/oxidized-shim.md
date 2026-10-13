@@ -2,7 +2,7 @@
 
 The `glazed-oxidized` gem runs [Oxidized](https://github.com/ytti/oxidized) model files as glazed dialects. A node whose dialect is `oxidized_<model>` runs the model file `<model>.rb`: `oxidized_eos` runs `eos.rb`, `oxidized_panos` runs `panos.rb`.
 
-Use it for devices that glazed has no native dialect for. Native dialects remain preferable where they exist, since they declare where secrets are and so work with the `redact` step (see [Secrets](#secrets)).
+Use it for devices that glazed has no native dialect for. Native dialects remain preferable where they exist, since their sensitive patterns are written for glazed rather than derived from a model (see [Secrets](#secrets)).
 
 ## Requirements
 
@@ -84,7 +84,8 @@ Variables controlling Oxidized's SSH client, such as `ssh_port`, `ssh_keys` or `
 | `exec true` in `cfg :ssh` | `exec`: each command runs on its own SSH exec channel |
 | `post_login`, `pre_logout` in `cfg` | `post_login`, `pre_logout` hooks |
 | `cmd`, `pre`, `post` | one step of the `:get` runbook, running the model's `get` |
-| `cmd :all`, `cmd :secret` | applied to each command output, as in Oxidized |
+| `cmd :all` | applied to each command output, as in Oxidized |
+| `cmd :secret` | sensitive patterns; applied to each command output with `remove_secret` |
 
 On a shell, `cmd` returns output the way Oxidized inputs do: with the echoed command line and the trailing prompt. Models remove them themselves, usually with `cut_both` in `cmd :all`. On an exec channel the output has neither.
 
@@ -92,12 +93,22 @@ Commands from `cmd` are written with `\n`. The Telnet input's `cmd(line, nil)`, 
 
 ## Secrets
 
-glazed keeps a raw copy of each configuration and publishes a redacted one, using the sensitive patterns each dialect declares. An Oxidized model only has `cmd :secret` blocks, which rewrite the output with `gsub` and cannot tell glazed where the secrets are. Dialects built from models therefore declare no sensitive patterns, and **the `redact` step publishes their configuration unchanged**.
+glazed keeps a raw copy of each configuration and publishes a redacted one, using the sensitive patterns each dialect declares. A dialect built from a model declares one sensitive pattern per substitution in the model's `cmd :secret` blocks, so the `redact` step works as with native dialects, including `MODE_HMAC`.
 
-Two ways to handle this:
+When the dialect is built, each `cmd :secret` block runs once on a stand-in for command output that records its `sub` and `gsub` calls. Each recorded pattern becomes a sensitive pattern. The secret in a match is what the replacement drops: the match without the start and end it shares with the expanded replacement, never splitting a word. For example, EdgeOS's `gsub!(/password (\S+).*/, 'password <secret removed>')` redacts everything after `password `, as Oxidized removes it.
 
-- Set the node param `remove_secret` to `"true"`. The model's `cmd :secret` blocks then run while collecting, as with Oxidized's `remove_secret` variable. The raw copy lacks the secrets as well.
-- Write a native glazed dialect for the device, with `sensitive_pattern` declarations. See [dialect-api.md](dialect-api.md).
+- All patterns run on the whole configuration at once, where Oxidized applies them one after another to each command output. Redaction therefore hides at least what Oxidized removes, but misses a secret in output the model turns into comments, as the comment prefix stops patterns anchored with `^` from matching.
+- A model whose `cmd :secret` blocks do anything but call `sub` or `gsub` with a pattern and a string can still collect, but its `redact` step fails with `Glazed::Oxidized::UnredactableModel` rather than publish secrets. All of Oxidized's own models record.
+- A model without `cmd :secret` blocks declares no sensitive patterns, and the `redact` step publishes its configuration unchanged.
+
+Patterns the model lacks can be added to its dialect from Ruby, for example in a file listed in the config's `requires`:
+
+```ruby
+require 'glazed/oxidized'
+Glazed::Dialects.find('oxidized_edgeos').sensitive_pattern(/^set service snmp community (\S+)/) { it[1] }
+```
+
+The node param `remove_secret` set to `"true"` also runs the model's `cmd :secret` blocks while collecting, as with Oxidized's `remove_secret` variable, so the raw copy lacks the secrets as well.
 
 ## Isolation
 

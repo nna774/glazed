@@ -96,8 +96,13 @@ module Glazed
     private def secret_ranges(text)
       ranges = @patterns.flat_map do |sensitive|
         matches(sensitive.pattern, text).filter_map do |match|
-          secret = sensitive.determiner.call(match)
-          locate(match, secret) if secret && !secret.empty?
+          case (secret = sensitive.determiner.call(match))
+          when Range
+            start = secret.begin
+            finish = secret.exclude_end? ? secret.end : secret.end + 1
+            [start, finish] if finish > start
+          when String then locate(match, secret) unless secret.empty?
+          end
         end
       end
       kept = [] #: Array[[Integer, Integer]]

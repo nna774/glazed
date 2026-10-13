@@ -13,4 +13,4 @@ Requires Ruby 4.0 or later, started with `RUBY_BOX=1`, and Oxidized model files 
 RUBY_BOX=1 bundle exec glazed run -c glazed.json
 ```
 
-Dialects built from Oxidized models declare no sensitive patterns, so the `redact` step publishes their configuration unchanged. See [docs/oxidized-shim.md](../docs/oxidized-shim.md) for usage, node variables, secrets and limitations.
+The substitutions in a model's `cmd :secret` blocks become the dialect's sensitive patterns, so the `redact` step hides the secrets the model knows about. See [docs/oxidized-shim.md](../docs/oxidized-shim.md) for usage, node variables, secrets and limitations.

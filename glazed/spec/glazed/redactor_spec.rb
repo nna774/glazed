@@ -53,6 +53,11 @@ RSpec.describe Glazed::Redactor do
     expect(described_class.new(patterns: overlapping, mode: :remove).call("key a b\n")).to eq("key [~REDACTED~]\n")
   end
 
+  it 'removes the offsets a determiner returns' do
+    by_offsets = [pattern(/^key a a$/) { (it.begin(0) + 6)...it.end(0) }]
+    expect(described_class.new(patterns: by_offsets, mode: :remove).call("key a a\n")).to eq("key a [~REDACTED~]\n")
+  end
+
   it 'skips matches whose determiner returns nil or empty' do
     skipping = [pattern(/^key (\S*)/) { nil }, pattern(/^key2 (\S*)/)]
     expect(described_class.new(patterns: skipping, mode: :remove).call("key a\nkey2 \n")).to eq("key a\nkey2 \n")

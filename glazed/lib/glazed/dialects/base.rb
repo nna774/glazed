@@ -166,11 +166,11 @@ module Glazed
         #
         # @param pattern [Regexp] pattern matched against the whole configuration
         # @yieldparam match [MatchData] a match
-        # @yieldreturn [String, nil] the secret within the match
+        # @yieldreturn [String, Range<Integer>, nil] the secret within the match, or its offsets in the configuration
         # @return [void]
         # @example
         #   sensitive_pattern(/^enable secret \d (\S+)/) { it[1] }
-        #: (Regexp pattern) { (MatchData match) -> String? } -> void
+        #: (Regexp pattern) { (MatchData match) -> (String | Range[Integer])? } -> void
         def sensitive_pattern(pattern, &determiner)
           (@sensitive_patterns ||= []) << Dialect::SensitivePattern.new(pattern:, determiner:)
         end
