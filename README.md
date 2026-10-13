@@ -141,6 +141,7 @@ In both, `defaults` fill the fields each node leaves unset, with `params` and `s
 - `dialect` (required): see [Supported devices](#supported-devices)
 - `transport` (default: `ssh`): `ssh` or `telnet`
 - `username`, `password`
+- `transport_options`: connection options per transport, replacing the one in `defaults` as a whole. `ssh` takes net-ssh options: `keys` (each `{"path": ...}` or `{"raw": <secret>}` holding the key text), `passphrase`, `keys_only`, `auth_methods`, `number_of_password_prompts`, `verify_host_key` (`HOST_KEY_VERIFICATION_NEVER`, `_ACCEPT_NEW`, `_ACCEPT_NEW_OR_LOCAL_TUNNEL` or `_ALWAYS`), `user_known_hosts_file`, `global_known_hosts_file`, `host_key`, `kex`, `encryption`, `hmac`, `compression`, `proxy_command`, `forward_agent` and `use_ssh_config` (default: `true`, reading `~/.ssh/config`). See `glazed.v1.SshOptions`
 - `params`: dialect options, such as `"ios_rbac": "true"` to collect `show running-config view full`, or `"junos_license": "false"` to skip Junos license commands
 - `secrets`: dialect secrets, such as `enable` for `ios` and `awplus`
 
@@ -249,7 +250,7 @@ Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.Batch
 ## Caveats
 
 - Not production-tested yet. The `ios` and `junos` dialects are tested against device captures from Oxidized's test suite; the `wlc`, `nec_ix` and `awplus` fixtures are written from command references and need checking against real devices.
-- SSH host keys are verified with net-ssh's defaults and `~/.ssh/known_hosts`; there is no setting for them yet.
+- SSH host keys are verified with net-ssh's defaults and `~/.ssh/known_hosts` unless the node sets `transport_options.ssh.verify_host_key` or the known_hosts files.
 - A node removed from the inventory leaves its file in the storages.
 - Not yet available: opening pull requests automatically, the AWS Lambda and Step Functions coordinator, and receivers turning syslog messages or SNMP traps into signals.
 

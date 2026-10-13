@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 require 'net/ssh'
+require 'net/ssh/proxy/command'
 require 'glazed'
 require 'glazed/must'
 require 'glazed/transports/base'
@@ -18,14 +19,24 @@ module Glazed
       DEFAULT_PTY_OPTIONS = {term: 'vt100', chars_wide: 512}.freeze #: Hash[Symbol, untyped]
       # Seconds {#close} waits for the device to acknowledge closing channels.
       CLOSE_TIMEOUT = 5 #: Integer
+      # net-ssh verify_host_key values by {Proto::V1::SshOptions::HostKeyVerification}.
+      VERIFY_HOST_KEY = {
+        HOST_KEY_VERIFICATION_NEVER: :never,
+        HOST_KEY_VERIFICATION_ACCEPT_NEW: :accept_new,
+        HOST_KEY_VERIFICATION_ACCEPT_NEW_OR_LOCAL_TUNNEL: :accept_new_or_local_tunnel,
+        HOST_KEY_VERIFICATION_ALWAYS: :always,
+      }.freeze #: Hash[Symbol, Symbol]
+      # Repeated string fields of {Proto::V1::SshOptions} that are net-ssh options of the same name.
+      LIST_OPTIONS = %i[auth_methods user_known_hosts_file global_known_hosts_file host_key kex encryption hmac].freeze #: Array[Symbol]
 
       # @param host [String] hostname or address
       # @param port [Integer, nil] port, or nil for 22
       # @param username [String] login user name
       # @param password [Secret, nil] login password
       # @param connect_timeout [Numeric] seconds to wait for a connection
-      #: (host: String, port: Integer?, username: String, password: Secret?, ?connect_timeout: Numeric) -> void
-      def initialize(host:, port:, username:, password:, connect_timeout: DEFAULT_CONNECT_TIMEOUT)
+      # @param transport_options [Proto::V1::TransportOptions, nil] per-transport connection options
+      #: (host: String, port: Integer?, username: String, password: Secret?, ?connect_timeout: Numeric, ?transport_options: Proto::V1::TransportOptions?) -> void
+      def initialize(host:, port:, username:, password:, connect_timeout: DEFAULT_CONNECT_TIMEOUT, transport_options: nil)
         super
         @session = nil #: Net::SSH::Connection::Session?
         @shell = nil #: Net::SSH::Connection::Channel?
@@ -41,11 +52,52 @@ module Glazed
       def open
         @session = Net::SSH.start(
           host, username,
+          **ssh_options,
           port: port || DEFAULT_PORT,
           password: password&.value,
           timeout: connect_timeout,
           non_interactive: true,
         )
+      end
+
+      # Builds Net::SSH.start options from the node, resolving secrets.
+      #
+      # @return [Hash{Symbol => Object}] net-ssh options, with only the fields the node sets
+      # @raise [Secret::Unavailable] when a referenced secret cannot be read
+      #: () -> Hash[Symbol, untyped]
+      private def ssh_options
+        ssh = transport_options&.ssh
+        return {} unless ssh
+
+        options = {} #: Hash[Symbol, untyped]
+        options[:config] = ssh.use_ssh_config if ssh.has_use_ssh_config?
+        LIST_OPTIONS.each do |name|
+          values = ssh.public_send(name).to_a
+          options[name] = values unless values.empty?
+        end
+        key_options(ssh, options)
+        options[:keys_only] = true if ssh.keys_only
+        options[:passphrase] = Secret.maybe(ssh.passphrase)&.value if ssh.passphrase
+        options[:number_of_password_prompts] = ssh.number_of_password_prompts if ssh.number_of_password_prompts.positive?
+        verification = Must.be_a(ssh.verify_host_key, Symbol)
+        options[:verify_host_key] = VERIFY_HOST_KEY.fetch(verification) unless verification == :HOST_KEY_VERIFICATION_UNSPECIFIED
+        options[:compression] = true if ssh.compression
+        options[:forward_agent] = true if ssh.forward_agent
+        options[:proxy] = Net::SSH::Proxy::Command.new(ssh.proxy_command) unless ssh.proxy_command.empty?
+        options
+      end
+
+      # Sets the keys and key_data options from the keys of the node.
+      #
+      # @param ssh [Proto::V1::SshOptions] options of the node
+      # @param options [Hash{Symbol => Object}] net-ssh options to add to
+      # @return [void]
+      # @raise [Secret::Unavailable] when a referenced secret cannot be read
+      #: (Proto::V1::SshOptions ssh, Hash[Symbol, untyped] options) -> void
+      private def key_options(ssh, options)
+        paths, raws = ssh.keys.partition { _1.source == :path }
+        options[:keys] = paths.map(&:path) unless paths.empty?
+        options[:key_data] = raws.map { Secret.maybe(_1.raw)&.value } unless raws.empty?
       end
 
       # Sends data to the shell, opening it on first use.

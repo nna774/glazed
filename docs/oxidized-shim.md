@@ -68,7 +68,7 @@ Oxidized's own variables keep their meaning where they apply:
 | `ssh_no_exec` | disables `exec true` in `cfg :ssh` blocks; read only after login, see [Limitations](#limitations) |
 | `enable`, and any model-specific variable | passed to the model as is |
 
-Variables controlling Oxidized's SSH client, such as `ssh_port`, `ssh_keys` or `auth_methods`, have no effect: glazed's transports take their settings from the node (`port`, `username`, `password`).
+Variables controlling Oxidized's SSH client, such as `ssh_port`, `ssh_keys` or `auth_methods`, have no effect: glazed's transports take their settings from the node (`port`, `username`, `password`, `transport_options`).
 
 `@node` inside a model provides `name`, `ip` (the node's `host`, or its name when empty), `group`, `auth` (`{username:, password:}`), `prompt` and `vars`.
 

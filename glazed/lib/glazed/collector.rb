@@ -107,6 +107,7 @@ module Glazed
         port: node.port.zero? ? nil : node.port,
         username: node.username,
         password: Secret.maybe(node.password),
+        transport_options: node.transport_options,
       )
     end
   end

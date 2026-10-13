@@ -38,6 +38,77 @@ message Node {
   map<string, string> params = 9 [(buf.validate.field).map.keys.string.min_len = 1];
   // Dialect-specific secrets, such as "enable".
   map<string, SecretRef> secrets = 10 [(buf.validate.field).map.keys.string.min_len = 1];
+  // Transport-specific connection options. Options for other transports than
+  // the node's are ignored.
+  TransportOptions transport_options = 11;
+}
+
+// Connection options per transport.
+message TransportOptions {
+  // Options for the "ssh" transport.
+  SshOptions ssh = 1;
+}
+
+// Options passed to Net::SSH.start. Unset fields keep net-ssh's defaults.
+message SshOptions {
+  // How the server's host key is checked.
+  enum HostKeyVerification {
+    // net-ssh's default (:accept_new_or_local_tunnel).
+    HOST_KEY_VERIFICATION_UNSPECIFIED = 0;
+    // Accept any host key without checking known_hosts. (:never)
+    HOST_KEY_VERIFICATION_NEVER = 1;
+    // Accept and record unknown host keys, reject changed ones. (:accept_new)
+    HOST_KEY_VERIFICATION_ACCEPT_NEW = 2;
+    // Like ACCEPT_NEW, but also accept unknown keys on local tunnels. (:accept_new_or_local_tunnel)
+    HOST_KEY_VERIFICATION_ACCEPT_NEW_OR_LOCAL_TUNNEL = 3;
+    // Reject keys not already in known_hosts. (:always)
+    HOST_KEY_VERIFICATION_ALWAYS = 4;
+  }
+
+  // Private keys to try, from files or inline. (keys, key_data)
+  repeated SshKey keys = 1;
+  // Passphrase of the private keys. (passphrase)
+  SecretRef passphrase = 2;
+  // Use only keys and ignore ssh-agent and default key files. (keys_only)
+  bool keys_only = 3;
+  // Authentication methods to try, in order, such as "publickey" or "password". (auth_methods)
+  repeated string auth_methods = 4 [(buf.validate.field).repeated.items.string.min_len = 1];
+  // Password prompts to answer before giving up. net-ssh's default is used when 0. (number_of_password_prompts)
+  uint32 number_of_password_prompts = 5;
+  // Host key verification mode. (verify_host_key)
+  HostKeyVerification verify_host_key = 6 [(buf.validate.field).enum.defined_only = true];
+  // known_hosts files of the user. (user_known_hosts_file)
+  repeated string user_known_hosts_file = 7 [(buf.validate.field).repeated.items.string.min_len = 1];
+  // System-wide known_hosts files. (global_known_hosts_file)
+  repeated string global_known_hosts_file = 8 [(buf.validate.field).repeated.items.string.min_len = 1];
+  // Accepted host key algorithms, such as "ssh-ed25519". (host_key)
+  repeated string host_key = 9 [(buf.validate.field).repeated.items.string.min_len = 1];
+  // Accepted key exchange algorithms. (kex)
+  repeated string kex = 10 [(buf.validate.field).repeated.items.string.min_len = 1];
+  // Accepted encryption ciphers. (encryption)
+  repeated string encryption = 11 [(buf.validate.field).repeated.items.string.min_len = 1];
+  // Accepted MAC algorithms. (hmac)
+  repeated string hmac = 12 [(buf.validate.field).repeated.items.string.min_len = 1];
+  // Enable compression. (compression)
+  bool compression = 13;
+  // Command run to reach the host, like ssh's ProxyCommand. "%h" and "%p" are replaced by the host and port. (proxy)
+  string proxy_command = 14;
+  // Forward the ssh-agent to the device. (forward_agent)
+  bool forward_agent = 15;
+  // Read ~/.ssh/config and system ssh_config. net-ssh's default (true) is used when unset. (config)
+  optional bool use_ssh_config = 16;
+}
+
+// Private key for SSH authentication.
+message SshKey {
+  // Where the private key comes from.
+  oneof source {
+    option (buf.validate.oneof).required = true;
+    // Path of a private key file, read by net-ssh.
+    string path = 1 [(buf.validate.field).string.min_len = 1];
+    // Private key as PEM/OpenSSH text, resolved from a secret (value, env, file or plugin) when connecting.
+    SecretRef raw = 2;
+  }
 }
 
 // Contents of one inventory file.
