@@ -22,10 +22,7 @@ module Glazed
     #   Glazed::Sources::JsonFiles.new(paths: ['inventory/*.json']).nodes
     class JsonFiles < Base
       # Raised when a file is not a valid inventory file.
-      class InvalidFile < Glazed::Error; end
-
-      # Node fields merged key by key with defaults.
-      MAP_FIELDS = %w[params secrets].freeze #: Array[String]
+      InvalidFile = Base::InvalidInventory
 
       # @param paths [Array<String>] file paths or glob patterns
       #: (paths: Array[String]) -> void
@@ -89,34 +86,9 @@ module Glazed
         json = File.read(path)
         ProtoJson.load(Proto::V1::InventoryFile, json)
         document = JSON.parse(json) #: Hash[String, untyped]
-        defaults = document.fetch('defaults', {}) #: Hash[String, untyped]
-        nodes = document.fetch('nodes', []) #: Array[Hash[String, untyped]]
-        nodes.map { |attributes| build_node(merge(defaults, attributes), path) }
+        nodes_from(document, origin: path)
       rescue Google::Protobuf::ParseError, JSON::ParserError => e
         raise InvalidFile, "#{path}: #{e.message}"
-      end
-
-      # @param defaults [Hash{String => Object}] default node attributes
-      # @param attributes [Hash{String => Object}] node attributes
-      # @return [Hash{String => Object}] attributes with defaults applied
-      #: (Hash[String, untyped] defaults, Hash[String, untyped] attributes) -> Hash[String, untyped]
-      private def merge(defaults, attributes)
-        defaults.merge(attributes) do |key, default, value|
-          MAP_FIELDS.include?(key) ? default.merge(value) : value
-        end
-      end
-
-      # @param attributes [Hash{String => Object}] merged node attributes
-      # @param path [String] file the node came from
-      # @return [Proto::V1::Node] the node
-      # @raise [InvalidFile] when the name or dialect is missing
-      #: (Hash[String, untyped] attributes, String path) -> Proto::V1::Node
-      private def build_node(attributes, path)
-        node = ProtoJson.load(Proto::V1::Node, JSON.generate(attributes))
-        raise InvalidFile, "#{path}: a node has no name" if node.name.empty?
-        raise InvalidFile, "#{path}: node #{node.name.inspect} has no dialect" if node.dialect.empty?
-
-        node
       end
     end
   end

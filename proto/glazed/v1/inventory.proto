@@ -47,6 +47,8 @@ message InventorySource {
   oneof provider {
     // ProtoJSON files of InventoryFile.
     JsonFilesInventory json_files = 1;
+    // Nodes written in the config itself.
+    InventoryFile embedded = 2;
   }
 }
 

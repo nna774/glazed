@@ -6,11 +6,28 @@
 
 
 class Glazed::Proto::V1::InventorySource < Google::Protobuf::AbstractMessage
-  sig { params(json_files: T.nilable(Glazed::Proto::V1::JsonFilesInventory)).void }
-  def initialize(json_files: nil); end
+  sig do
+    params(
+      embedded: T.nilable(Glazed::Proto::V1::InventoryFile),
+      json_files: T.nilable(Glazed::Proto::V1::JsonFilesInventory)
+    ).void
+  end
+  def initialize(embedded: nil, json_files: nil); end
+
+  sig { void }
+  def clear_embedded; end
 
   sig { void }
   def clear_json_files; end
+
+  sig { returns(T.nilable(Glazed::Proto::V1::InventoryFile)) }
+  def embedded; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::InventoryFile)).void }
+  def embedded=(value); end
+
+  sig { returns(Object) }
+  def has_embedded?; end
 
   sig { returns(Object) }
   def has_json_files?; end
