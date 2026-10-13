@@ -6,7 +6,7 @@
 # Fails unless every listed gem is 100% documented by YARD.
 require 'open3'
 
-gems = ARGV.empty? ? %w[glazed glazed-aws] : ARGV
+gems = ARGV.empty? ? %w[glazed glazed-aws glazed-oxidized] : ARGV
 failed = gems.reject do |gem_dir|
   out, status = Open3.capture2e('bundle', 'exec', 'yard', 'stats', '--list-undoc', '--no-save', chdir: File.join(__dir__, '..', gem_dir))
   puts "== #{gem_dir}", out

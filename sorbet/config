@@ -2,7 +2,10 @@
 --dir=glazed/spec
 --dir=glazed-aws/lib
 --dir=glazed-aws/spec
+--dir=glazed-oxidized/lib
+--dir=glazed-oxidized/spec
 --dir=sorbet/rbi
 --ignore=/glazed/v1/
+--ignore=/fixtures/model
 --parser=prism
 --enable-experimental-rbs-comments

@@ -1,0 +1,5 @@
+--load ../support/yard/rbs_inline.rb
+--private
+--protected
+--exclude lib/glazed/v1/
+lib/**/*.rb

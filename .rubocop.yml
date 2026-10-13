@@ -6,6 +6,7 @@ AllCops:
   SuggestExtensions: false
   Exclude:
     - 'glazed/lib/glazed/v1/**/*_pb.rb'
+    - 'glazed-oxidized/spec/fixtures/**/*'
     - 'sorbet/**/*'
     - 'tmp/**/*'
     - 'pkg/**/*'

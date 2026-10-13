@@ -6,6 +6,7 @@ import "package://github.com/jdx/hk/releases/download/v1.53.0/hk@1.53.0#/Builtin
 exclude = List(
   "glazed/lib/glazed/v1/**",
   "glazed/spec/fixtures/**",
+  "glazed-oxidized/spec/fixtures/**",
   "sorbet/rbi/annotations/**",
   "sorbet/rbi/dsl/**",
   "sorbet/rbi/gems/**",
@@ -33,7 +34,7 @@ local linters = new Mapping<String, Step> {
     check = "bundle exec srb tc"
   }
   ["yard"] {
-    glob = List("glazed/lib/**/*.rb", "glazed-aws/lib/**/*.rb", "**/.yardopts")
+    glob = List("glazed/lib/**/*.rb", "glazed-aws/lib/**/*.rb", "glazed-oxidized/lib/**/*.rb", "**/.yardopts")
     check = "bin/check-docs"
   }
   ["buf-lint"] = Builtins.buf_lint

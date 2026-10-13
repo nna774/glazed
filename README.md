@@ -2,7 +2,7 @@
 
 glazed collects configuration from network devices over SSH or Telnet, keeps the raw copy where only operators can read it, and publishes a redacted copy to git for the wider team. It is a successor of [Oxidized](https://github.com/ytti/oxidized), built as small building blocks that run from a command, and are designed to run as separate steps under an orchestrator such as AWS Step Functions.
 
-If you need a web UI, a REST API, or one of the 100+ device models Oxidized supports today, Oxidized is the better choice for now. See [Difference with Oxidized](#difference-with-oxidized).
+If you need a web UI or a REST API, Oxidized is the better choice for now. Oxidized's device models can run on glazed through `glazed-oxidized`. See [Difference with Oxidized](#difference-with-oxidized).
 
 ## Features
 
@@ -23,13 +23,16 @@ If you need a web UI, a REST API, or one of the 100+ device models Oxidized supp
 | `nec_ix` | NEC UNIVERGE IX | SSH, Telnet |
 | `awplus` | Allied Telesis AlliedWare Plus | SSH, Telnet |
 
-All five are ported from Oxidized models. Other gems can add dialects as `Glazed::Dialects::<Name>` in `glazed/dialects/<name>.rb`.
+All five are ported from Oxidized models. Other gems can add dialects as `Glazed::Dialects::<Name>` in `glazed/dialects/<name>.rb`, or resolve names with `Glazed::Dialects.add_resolver`.
+
+Any other Oxidized model runs through `glazed-oxidized` as the `oxidized_<model>` dialect, such as `oxidized_eos`. See [docs/oxidized-shim.md](docs/oxidized-shim.md).
 
 ## Requirements
 
 - Ruby 3.4 or later
 - `git`, for the `git` storage
 - The `glazed-aws` gem, for the `s3` storage
+- Ruby 4.0 or later and the `glazed-oxidized` gem, for Oxidized models
 
 ## Installation
 
@@ -41,6 +44,7 @@ source 'https://rubygems.org'
 
 gem 'glazed', git: 'https://github.com/sorah/glazed', glob: 'glazed/*.gemspec'
 gem 'glazed-aws', git: 'https://github.com/sorah/glazed', glob: 'glazed-aws/*.gemspec' # for S3
+gem 'glazed-oxidized', git: 'https://github.com/sorah/glazed', glob: 'glazed-oxidized/*.gemspec' # for Oxidized models
 ```
 
 ```
@@ -235,14 +239,14 @@ Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.Batch
 - Oxidized commits whatever it collects. glazed's GitHub storage commits to a topic branch meant for pull requests, so the history on the default branch can explain why each change was made.
 - Oxidized is a daemon with a REST API and web UI (oxidized-web). glazed is a command and a set of building blocks, with steps defined as protobuf messages for external schedulers and orchestrators.
 - Oxidized models mix collection with per-run state. glazed dialects are declarations with inheritance, and per-run state lives in the run.
-- Oxidized supports far more devices, and has years of production use behind it.
+- Oxidized has years of production use behind it. Its models run on glazed through `glazed-oxidized`, without glazed's redaction.
 
 ## Caveats
 
 - Not production-tested yet. The `ios` and `junos` dialects are tested against device captures from Oxidized's test suite; the `wlc`, `nec_ix` and `awplus` fixtures are written from command references and need checking against real devices.
 - SSH host keys are verified with net-ssh's defaults and `~/.ssh/known_hosts`; there is no setting for them yet.
 - A node removed from the inventory leaves its file in the storages.
-- Not yet available: opening pull requests automatically, the AWS Lambda and Step Functions coordinator, schedule and notification (syslog, SNMP trap) triggers, and the Oxidized model compatibility layer (`glazed-oxidized`).
+- Not yet available: opening pull requests automatically, the AWS Lambda and Step Functions coordinator, schedule and notification (syslog, SNMP trap) triggers.
 
 ## Development
 
@@ -250,6 +254,7 @@ Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.Batch
 mise trust && mise install  # tools; mise.toml also lets bundler use platform gems (sorbet-static)
 bundle install
 (cd glazed && bundle exec rspec) && (cd glazed-aws && bundle exec rspec)
+(cd glazed-oxidized && RUBY_BOX=1 bundle exec rspec)  # Ruby 4.0+
 bundle exec srb tc          # inline RBS (#:) signatures, typed: strict
 bin/check-docs              # YARD coverage must be 100%
 hk check --all              # what CI lints: RuboCop, SPDX headers, Sorbet, YARD, buf, workflows
