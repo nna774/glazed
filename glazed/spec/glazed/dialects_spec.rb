@@ -13,7 +13,7 @@ RSpec.describe Glazed::Dialects do
     expect { described_class.find('base') }.to raise_error(Glazed::Must::Violation)
   end
 
-  %w[awplus junos nec_ix].each do |name|
+  %w[awplus ios junos nec_ix wlc].each do |name|
     it "loads #{name} with a get runbook and prompt" do
       dialect = described_class.find(name)
       expect(dialect.runbook_for(:get).steps).not_to be_empty
