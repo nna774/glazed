@@ -3,10 +3,8 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
-require 'securerandom'
-require 'socket'
 require 'glazed'
-require 'glazed/must'
+require 'glazed/coordinator'
 require 'glazed/orchestrator/policy'
 require 'glazed/proto'
 require 'glazed/runner'
@@ -31,9 +29,6 @@ module Glazed
     DEFAULT_POLL = 30 #: Integer
     # Seconds between inventory reloads when the settings set none.
     DEFAULT_INVENTORY_REFRESH = 300 #: Integer
-    # Seconds a lease lasts when the settings set none.
-    DEFAULT_LEASE = 3600 #: Integer
-
     # Byte written to the wakeup pipe by {#stop}.
     STOP = 's' #: String
     # Byte written to the wakeup pipe by {#reload_inventory}.
@@ -74,13 +69,11 @@ module Glazed
 
       @settings = settings #: Proto::V1::Orchestrator
       @workflows = workflows #: Hash[String, Workflow]
-      @backend = backend #: StateBackends::Base
+      @coordinator = Coordinator.new(settings:, backend:, listener:, clock:, random:) #: Coordinator
       @inventory = inventory #: Orchestrator::inventory
       @jobs = jobs #: Integer
       @listener = listener #: Runner::listener
       @clock = clock #: ^() -> Time
-      @random = random #: Random
-      @owner = "#{Socket.gethostname}:#{Process.pid}:#{SecureRandom.hex(4)}" #: String
       @nodes = {} #: Hash[String, Proto::V1::Node]
       @inventory_loaded_at = nil #: Time?
       # A pipe, as a thread blocked in Queue#pop misses a push from a signal handler on that thread.
@@ -98,7 +91,7 @@ module Glazed
     # @raise [Glazed::Error] when the first inventory load or the state backend fails
     #: () -> void
     def run
-      notify(level: 'info', message: 'orchestrator started', owner: @owner)
+      notify(level: 'info', message: 'orchestrator started', owner: @coordinator.owner)
       until @stopping
         wait = tick
         wait_for_wakeup(wait)
@@ -128,15 +121,8 @@ module Glazed
       now = @clock.call
       loaded_at = @inventory_loaded_at
       refresh_inventory(now) if loaded_at.nil? || now - loaded_at >= inventory_refresh_seconds
-      @workflows.each_key { |workflow| run_batch(workflow, claim(workflow, @clock.call)) }
+      @workflows.each_key { |workflow| run_batch(workflow, @coordinator.claim(workflow)) }
       next_wait
-    end
-
-    # @param workflow [String] workflow name
-    # @return [Proto::V1::Orchestration] how the workflow is orchestrated
-    #: (String workflow) -> Proto::V1::Orchestration
-    private def orchestration(workflow)
-      Must.because(@settings.workflows[workflow]) { 'initialize checks the workflows against the settings' }
     end
 
     # @return [Integer] seconds between inventory reloads
@@ -189,40 +175,7 @@ module Glazed
       @nodes = nodes.to_h { [it.name, it] }
       @inventory_loaded_at = now
       notify(level: 'info', message: 'inventory loaded', nodes: @nodes.size)
-      @workflows.each_key do |workflow|
-        known = @backend.list(workflow).map(&:node)
-        added = @nodes.keys - known
-        removed = known - @nodes.keys
-        next if added.empty? && removed.empty?
-
-        schedule = orchestration(workflow).schedule
-        @backend.update_all(workflow, added + removed) do |node, record|
-          next nil unless @nodes.key?(node)
-
-          record || Policy.discovered(workflow, node, now:, schedule:, random: @random)
-        end
-        notify(level: 'info', workflow:, message: 'inventory changed', nodes: @nodes.size, added:, removed:)
-      end
-    end
-
-    # Leases due nodes of a workflow.
-    #
-    # @param workflow [String] workflow name
-    # @param now [Time] current time
-    # @return [Array(String, Array<String>)] identifier of the batch, and names of the leased nodes
-    #: (String workflow, Time now) -> [String, Array[String]]
-    private def claim(workflow, now)
-      owner = "#{@owner}:#{SecureRandom.hex(4)}"
-      settings = orchestration(workflow)
-      limit = settings.batch_size.zero? ? nil : settings.batch_size
-      due = @backend.list_due(workflow, now:, limit:)
-      return [owner, []] if due.empty?
-
-      lease_seconds = settings.lease_seconds.zero? ? DEFAULT_LEASE : settings.lease_seconds
-      records = @backend.update_all(workflow, due.map(&:node)) do |_node, record|
-        Policy.claim(record, owner:, now:, lease_seconds:)
-      end
-      [owner, records.values.select { it.lease_owner == owner }.map(&:node)]
+      @coordinator.sync_inventory(@nodes.keys)
     end
 
     # Runs the workflow for leased nodes and records the outcomes. When
@@ -242,16 +195,11 @@ module Glazed
       begin
         errors = run_workflow(workflow, nodes)
       rescue Interrupt
-        @backend.update_all(workflow, names) { |_node, record| Policy.released(record, owner:) }
+        @coordinator.release(workflow, owner:, names:)
         raise
       end
-      finished_at = @clock.call
-      schedule = orchestration(workflow).schedule
-      @backend.update_all(workflow, names) do |node, record|
-        next nil unless @nodes.key?(node)
-
-        Policy.completed(record, owner:, finished_at:, error: errors[node], schedule:, random: @random)
-      end
+      # Records of nodes gone from the inventory are deleted by the next reload.
+      @coordinator.complete(workflow, owner:, names: names & @nodes.keys, errors:)
       notify(level: 'info', workflow:, message: 'batch finished', nodes: nodes.size, failed: errors.size)
     end
 
@@ -273,11 +221,10 @@ module Glazed
     # @return [Float] seconds until the earliest known due date of any workflow, at most the poll interval
     #: () -> Float
     private def next_wait
-      now = @clock.call
-      upcoming = @workflows.keys.filter_map { @backend.list_due(it, now: now + poll_seconds, limit: 1).first&.due_at&.to_time }.min
+      upcoming = @coordinator.next_due
       return poll_seconds.to_f unless upcoming
 
-      (upcoming - now).clamp(0.0, poll_seconds.to_f).to_f
+      (upcoming - @clock.call).clamp(0.0, poll_seconds.to_f).to_f
     end
 
     # @param event [Hash{Symbol => String, Integer, Boolean, Array<String>, nil}] event fields
