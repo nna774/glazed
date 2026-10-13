@@ -3,6 +3,8 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
+require 'base64'
+require 'digest'
 require 'aws-sdk-s3'
 require 'glazed/must'
 require 'glazed/proto'
@@ -20,6 +22,10 @@ module Glazed
     class S3 < Base
       # Content type of stored objects.
       CONTENT_TYPE = 'text/plain; charset=utf-8' #: String
+      # Attempts at writing an object that other writers keep changing.
+      MAX_ATTEMPTS = 3 #: Integer
+      # Error codes of a failed conditional write.
+      CONDITION_FAILURES = %w[PreconditionFailed ConditionalRequestConflict].freeze #: Array[String]
 
       # @param bucket [String] bucket name
       # @param prefix [String] prefix prepended to every key
@@ -55,23 +61,20 @@ module Glazed
       #: String
       attr_reader :prefix
 
-      # Puts one object per file. S3 has no multi-object transaction, so the
-      # message is not recorded.
+      # Puts one object per changed file, compared by SHA-256 checksum. Puts are
+      # conditional on the object checked, so a concurrent writer is never
+      # overwritten unseen. S3 has no multi-object transaction, so the message
+      # is not recorded.
       #
       # @param files [Array<Array(String, String)>] keys and contents
-      # @param message [String] description of the change, unused
-      # @return [Array<Proto::V1::Pointer>] pointers to the written object versions
+      # @param message [Proc] builds a description of the change, unused
+      # @return [Array<WriteResult>] the object version holding each file, and whether the file changed
       # @raise [InvalidKey] for an unsafe key
-      # @raise [Aws::S3::Errors::ServiceError] when a put fails
-      #: (Array[Base::file] files, message: String) -> Array[Proto::V1::Pointer]
+      # @raise [Aws::S3::Errors::ServiceError] when a request fails, or the object keeps changing under concurrent writers
+      #: (Array[Base::file] files, message: Base::message_builder) -> Array[WriteResult]
       def write_all(files, message:)
         files.each { |key, _| validate_key(key) }
-        files.map do |key, content|
-          object_key = "#{prefix}#{key}"
-          response = client.put_object(bucket:, key: object_key, body: content, content_type: CONTENT_TYPE)
-          location = Proto::V1::S3Location.new(bucket:, key: object_key, version_id: response.version_id.to_s)
-          Proto::V1::Pointer.new(s3: location)
-        end
+        files.map { |key, content| write_object("#{prefix}#{key}", content) }
       end
 
       # Reads the object version a pointer names.
@@ -89,6 +92,54 @@ module Glazed
           client.get_object(bucket: location.bucket, key: location.key, version_id: location.version_id)
                    end
         response.body.read.to_s
+      end
+
+      # @param key [String] object key
+      # @param content [String] content
+      # @return [WriteResult] the version holding the content, and whether it was written
+      # @raise [Aws::S3::Errors::ServiceError] when a request fails or attempts run out
+      #: (String key, String content) -> WriteResult
+      private def write_object(key, content)
+        checksum = Base64.strict_encode64(Digest::SHA256.digest(content))
+        attempts = 0
+        begin
+          attempts += 1
+          current = head(key)
+          if current && current.checksum_sha256 == checksum
+            return WriteResult.new(pointer: pointer(key, current.version_id), changed: false)
+          end
+
+          response = if current
+            client.put_object(bucket:, key:, body: content, content_type: CONTENT_TYPE, checksum_sha256: checksum, if_match: current.etag)
+          else
+            client.put_object(bucket:, key:, body: content, content_type: CONTENT_TYPE, checksum_sha256: checksum, if_none_match: '*')
+                     end
+        rescue ::Aws::S3::Errors::ServiceError => e
+          # Another writer changed the object after it was checked.
+          retry if CONDITION_FAILURES.include?(e.code) && attempts < MAX_ATTEMPTS
+          raise
+        end
+        WriteResult.new(pointer: pointer(key, response.version_id), changed: true)
+      end
+
+      # @param key [String] object key
+      # @return [Aws::S3::Types::HeadObjectOutput, nil] the current object with its checksum, or nil when absent
+      # @raise [Aws::S3::Errors::ServiceError] for errors other than not found
+      #: (String key) -> ::Aws::S3::Types::HeadObjectOutput?
+      private def head(key)
+        client.head_object(bucket:, key:, checksum_mode: 'ENABLED')
+      rescue ::Aws::S3::Errors::ServiceError => e
+        raise unless e.code == 'NotFound'
+
+        nil
+      end
+
+      # @param key [String] object key
+      # @param version_id [String, nil] object version; nil for an unversioned bucket
+      # @return [Proto::V1::Pointer] pointer to the version
+      #: (String key, String? version_id) -> Proto::V1::Pointer
+      private def pointer(key, version_id)
+        Proto::V1::Pointer.new(s3: Proto::V1::S3Location.new(bucket:, key:, version_id: version_id.to_s))
       end
 
       # @return [Aws::S3::Client] the injected client, or one built on first use

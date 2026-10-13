@@ -67,21 +67,24 @@ module Glazed
         states = batch.nodes.to_a
         return batch if states.empty?
 
+        names = {} #: Hash[String, String]
         files = states.map do |state|
           node = state.node or raise ArgumentError, "#{name}: state has no node"
-          [Storages.key_for(node), @context.read(artifact(state, @input))] #: Storages::Base::file
+          key = Storages.key_for(node)
+          names[key] = node.name
+          [key, @context.read(artifact(state, @input))] #: Storages::Base::file
         end
-        pointers = @storage.write_all(files, message: message(states.map { it.node&.name.to_s }))
+        results = @storage.write_all(files, message: ->(changed_keys) { message(changed_keys.map { names.fetch(it, it) }) })
         output = @output
         return batch unless output
 
-        nodes = states.zip(pointers).map do |state, pointer|
-          with_artifacts(state, output => Proto::V1::Artifact.new(storage: @storage_name, pointer:))
+        nodes = states.zip(results).map do |state, result|
+          with_artifacts(state, output => Proto::V1::Artifact.new(storage: @storage_name, pointer: result&.pointer))
         end
         Proto::V1::BatchState.new(nodes:)
       end
 
-      # @param names [Array<String>] published node names
+      # @param names [Array<String>] names of the nodes whose content changed
       # @return [String] commit message naming the nodes
       #: (Array[String] names) -> String
       private def message(names)

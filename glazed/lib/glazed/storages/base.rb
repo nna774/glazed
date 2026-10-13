@@ -16,6 +16,26 @@ module Glazed
       class InvalidKey < Glazed::Error; end
 
       #: type file = [String, String]
+      #: type message_builder = ^(Array[String] changed_keys) -> String
+
+      # Outcome of writing one file.
+      class WriteResult
+        # @param pointer [Proto::V1::Pointer] location holding the content
+        # @param changed [Boolean] whether the content differs from what the key held before
+        #: (pointer: Proto::V1::Pointer, changed: bool) -> void
+        def initialize(pointer:, changed:)
+          @pointer = pointer #: Proto::V1::Pointer
+          @changed = changed #: bool
+        end
+
+        # @return [Proto::V1::Pointer] location holding the content; the existing one when unchanged
+        #: Proto::V1::Pointer
+        attr_reader :pointer
+
+        # @return [Boolean] whether the content differs from what the key held before
+        #: () -> bool
+        def changed? = @changed
+      end
 
       # Builds a storage from its settings message.
       #
@@ -29,20 +49,22 @@ module Glazed
       # @param key [String] file key
       # @param content [String] file content
       # @param message [String] description of the change, such as a commit message
-      # @return [Proto::V1::Pointer] location of the written content
+      # @return [WriteResult] where the content is and whether it changed
       # @raise [InvalidKey] for an unsafe key
-      #: (key: String, content: String, message: String) -> Proto::V1::Pointer
+      #: (key: String, content: String, message: String) -> WriteResult
       def write(key:, content:, message:)
-        write_all([[key, content]], message:).fetch(0)
+        write_all([[key, content]], message: ->(_changed_keys) { message }).fetch(0)
       end
 
-      # Writes several files as one change where the storage supports it.
+      # Writes several files as one change where the storage supports it. Files
+      # whose content equals what their key holds are not written again.
       #
       # @param files [Array<Array(String, String)>] keys and contents
-      # @param message [String] description of the change, such as a commit message
-      # @return [Array<Proto::V1::Pointer>] locations, in the order of files
+      # @param message [Proc] builds the description of the change, such as a
+      #   commit message, from the keys whose content changed; not called when none did
+      # @return [Array<WriteResult>] results, in the order of files
       # @raise [InvalidKey] for an unsafe key
-      #: (Array[Base::file] files, message: String) -> Array[Proto::V1::Pointer]
+      #: (Array[Base::file] files, message: Base::message_builder) -> Array[WriteResult]
       def write_all(files, message:) = raise NotImplementedError
 
       # Reads content written earlier.

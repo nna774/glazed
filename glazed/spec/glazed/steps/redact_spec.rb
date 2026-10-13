@@ -25,7 +25,7 @@ RSpec.describe Glazed::Steps::Redact do
   end
 
   def state_with_raw
-    pointer = raw.write(key: 'rt1', content: "password hunter2\n", message: 'raw')
+    pointer = raw.write(key: 'rt1', content: "password hunter2\n", message: 'raw').pointer
     Glazed::Proto::V1::NodeState.new(node:, artifacts: {'raw' => {storage: 'vault', pointer:}})
   end
 

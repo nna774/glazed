@@ -72,15 +72,15 @@ module Glazed
       #: String?
       attr_reader :remote
 
-      # Writes files in one commit. Nothing is committed when the content is
-      # unchanged, and the pointers then name the existing HEAD.
+      # Writes files in one commit. Nothing is committed when no content
+      # changed, and the pointers then name the existing HEAD.
       #
       # @param files [Array<Array(String, String)>] keys and contents
-      # @param message [String] commit message
-      # @return [Array<Proto::V1::Pointer>] pointers to the commit holding each file
+      # @param message [Proc] builds the commit message from the changed keys
+      # @return [Array<WriteResult>] the commit holding each file, and whether the file changed
       # @raise [InvalidKey] for an unsafe key
       # @raise [CommandFailed] when a git command fails
-      #: (Array[Base::file] files, message: String) -> Array[Proto::V1::Pointer]
+      #: (Array[Base::file] files, message: Base::message_builder) -> Array[WriteResult]
       def write_all(files, message:)
         keys = files.map { |key, _| validate_key(key) }
         @lock.synchronize do
@@ -91,12 +91,15 @@ module Glazed
             File.write(file, content)
           end
           git(['add', '--', *keys])
-          unless git_success?(['diff', '--cached', '--quiet'])
-            git(['commit', '--quiet', '--no-verify', '-m', message])
+          changed = git(['diff', '--cached', '--name-only', '-z', '--', *keys]).split("\0")
+          unless changed.empty?
+            git(['commit', '--quiet', '--no-verify', '-m', message.call(changed)])
             git(['push', '--quiet', Must.expect(remote), "HEAD:refs/heads/#{branch}"]) if remote
           end
           commit = git(%w[rev-parse HEAD]).strip
-          keys.map { Proto::V1::Pointer.new(git: Proto::V1::GitLocation.new(path: it, commit:)) }
+          keys.map do |key|
+            WriteResult.new(pointer: Proto::V1::Pointer.new(git: Proto::V1::GitLocation.new(path: key, commit:)), changed: changed.include?(key))
+          end
         end
       end
 

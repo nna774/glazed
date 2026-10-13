@@ -74,7 +74,7 @@ module Glazed
         node = state.node or raise ArgumentError, "#{name}: state has no node"
         redactor = Redactor.from_proto(@redaction, patterns: Dialects.find(node.dialect).sensitive_patterns)
         content = redactor.call(@context.read(artifact(state, @input)))
-        pointer = @storage.write(key: Storages.key_for(node), content:, message: "#{node.name}: #{name}")
+        pointer = @storage.write(key: Storages.key_for(node), content:, message: "#{node.name}: #{name}").pointer
         with_artifacts(state, @output => Proto::V1::Artifact.new(storage: @storage_name, pointer:))
       end
     end

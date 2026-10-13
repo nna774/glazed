@@ -2,6 +2,7 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
+require 'digest'
 require 'webmock/rspec'
 require 'httpx/adapters/webmock'
 require 'glazed/storages/github'
@@ -11,12 +12,20 @@ RSpec.describe Glazed::Storages::Github do
   let(:token) { Glazed::Secret.new(Glazed::Proto::V1::SecretRef.new(value: 'tok')) }
   let(:storage) { described_class.new(repository: 'org/netconf', branch: 'glazed/auto', token:) }
   let(:files) { [['core/rt1', "hostname rt1\n"]] }
+  let(:message) { ->(keys) { "update #{keys.join(', ')}" } }
 
   def reply(body, status: 200) = {status:, body: JSON.generate(body), headers: {'content-type' => 'application/json'}}
 
-  def stub_tree(base_tree:, result:)
+  def blob(content) = Digest::SHA1.hexdigest("blob #{content.bytesize}\0#{content}")
+
+  def stub_listing(tree, entries, truncated: false)
+    stub_request(:get, "#{api}/git/trees/#{tree}?recursive=1")
+      .to_return(reply({sha: tree, truncated:, tree: entries.map { |path, sha| {path:, type: 'blob', sha:} }}))
+  end
+
+  def stub_tree(base_tree:, entries:, result:)
     stub_request(:post, "#{api}/git/trees")
-      .with(body: {base_tree:, tree: [{path: 'core/rt1', mode: '100644', type: 'blob', content: "hostname rt1\n"}]})
+      .with(body: {base_tree:, tree: entries.map { |path, content| {path:, mode: '100644', type: 'blob', content:} }})
       .to_return(reply({sha: result}))
   end
 
@@ -28,44 +37,69 @@ RSpec.describe Glazed::Storages::Github do
       stub_request(:get, "#{api}/git/commits/head").to_return(reply({tree: {sha: 'base-tree'}}))
     end
 
-    it 'commits on top of the branch head and moves the branch' do
-      stub_tree(base_tree: 'base-tree', result: 'new-tree')
+    it 'commits changed files on top of the head and moves the branch' do
+      stub_listing('base-tree', {'core/rt1' => blob("old\n")})
+      stub_tree(base_tree: 'base-tree', entries: files, result: 'new-tree')
       commit = stub_request(:post, "#{api}/git/commits")
-               .with(body: {message: 'rt1', tree: 'new-tree', parents: ['head']})
+               .with(body: {message: 'update core/rt1', tree: 'new-tree', parents: ['head']})
                .to_return(reply({sha: 'new-commit'}))
       ref = stub_request(:patch, "#{api}/git/refs/heads/glazed/auto")
             .with(body: {sha: 'new-commit', force: false})
             .to_return(reply({}))
 
-      pointer = storage.write(key: 'core/rt1', content: "hostname rt1\n", message: 'rt1')
-      expect(pointer.github.to_h).to eq(repository: 'org/netconf', path: 'core/rt1', commit: 'new-commit')
+      result = storage.write_all(files, message:).first
+      expect(result).to be_changed
+      expect(result.pointer.github.to_h).to eq(repository: 'org/netconf', path: 'core/rt1', commit: 'new-commit')
       expect([commit, ref]).to all(have_been_requested)
     end
 
-    it 'makes no commit when the tree is unchanged' do
-      stub_tree(base_tree: 'base-tree', result: 'base-tree')
-      expect(storage.write_all(files, message: 'rt1').first.github.commit).to eq('head')
-      expect(a_request(:post, "#{api}/git/commits")).not_to have_been_made
+    it 'sends only changed files and names only them in the message' do
+      stub_listing('base-tree', {'core/rt1' => blob("hostname rt1\n"), 'core/rt2' => blob("old\n")})
+      stub_tree(base_tree: 'base-tree', entries: [['core/rt2', "hostname rt2\n"]], result: 'new-tree')
+      stub_request(:post, "#{api}/git/commits").with(body: hash_including(message: 'update core/rt2')).to_return(reply({sha: 'new-commit'}))
+      stub_request(:patch, "#{api}/git/refs/heads/glazed/auto").to_return(reply({}))
+
+      results = storage.write_all([['core/rt1', "hostname rt1\n"], ['core/rt2', "hostname rt2\n"]], message:)
+      expect(results.map(&:changed?)).to eq([false, true])
+      expect(results.map { it.pointer.github.commit }).to all(eq('new-commit'))
+    end
+
+    it 'makes no request beyond reading when every file is unchanged' do
+      stub_listing('base-tree', {'core/rt1' => blob("hostname rt1\n")})
+      result = storage.write_all(files, message: ->(_) { raise 'unexpected' }).first
+      expect(result).not_to be_changed
+      expect(result.pointer.github.commit).to eq('head')
+      expect(a_request(:post, %r{/git/})).not_to have_been_made
       expect(a_request(:patch, %r{/git/refs/})).not_to have_been_made
     end
 
+    it 'falls back to comparing trees when the listing is truncated' do
+      stub_listing('base-tree', {}, truncated: true)
+      stub_tree(base_tree: 'base-tree', entries: files, result: 'base-tree')
+      result = storage.write_all(files, message:).first
+      expect(result).not_to be_changed
+      expect(a_request(:post, "#{api}/git/commits")).not_to have_been_made
+    end
+
     it 'retries when the branch moved concurrently' do
-      stub_tree(base_tree: 'base-tree', result: 'new-tree')
+      stub_listing('base-tree', {})
+      stub_tree(base_tree: 'base-tree', entries: files, result: 'new-tree')
       stub_request(:post, "#{api}/git/commits").to_return(reply({sha: 'new-commit'}))
       stub_request(:patch, "#{api}/git/refs/heads/glazed/auto")
         .to_return(reply({message: 'Update is not a fast forward'}, status: 422)).then
         .to_return(reply({}))
 
-      expect(storage.write_all(files, message: 'rt1').first.github.commit).to eq('new-commit')
+      expect(storage.write_all(files, message:).first.pointer.github.commit).to eq('new-commit')
       expect(a_request(:get, "#{api}/git/ref/heads/glazed/auto")).to have_been_made.twice
     end
 
     it 'raises ApiError after repeated conflicts' do
-      stub_tree(base_tree: 'base-tree', result: 'new-tree')
+      stub_listing('base-tree', {})
+      stub_tree(base_tree: 'base-tree', entries: files, result: 'new-tree')
       stub_request(:post, "#{api}/git/commits").to_return(reply({sha: 'new-commit'}))
       stub_request(:patch, "#{api}/git/refs/heads/glazed/auto").to_return(reply({}, status: 422))
 
-      expect { storage.write_all(files, message: 'rt1') }.to raise_error(described_class::ApiError) { expect(it.status).to eq(422) }
+      expect { storage.write_all(files, message:) }.to raise_error(described_class::ApiError) { expect(it.status).to eq(422) }
     end
   end
 
@@ -75,9 +109,10 @@ RSpec.describe Glazed::Storages::Github do
       stub_request(:get, api).to_return(reply({default_branch: 'main'}))
       stub_request(:get, "#{api}/git/ref/heads/main").to_return(reply({object: {sha: 'main-head'}}))
       stub_request(:get, "#{api}/git/commits/main-head").to_return(reply({tree: {sha: 'main-tree'}}))
-      stub_tree(base_tree: 'main-tree', result: 'new-tree')
+      stub_listing('main-tree', {})
+      stub_tree(base_tree: 'main-tree', entries: files, result: 'new-tree')
       stub_request(:post, "#{api}/git/commits")
-        .with(body: {message: 'rt1', tree: 'new-tree', parents: ['main-head']})
+        .with(body: {message: 'update core/rt1', tree: 'new-tree', parents: ['main-head']})
         .to_return(reply({sha: 'new-commit'}))
     end
 
@@ -85,7 +120,7 @@ RSpec.describe Glazed::Storages::Github do
       create = stub_request(:post, "#{api}/git/refs")
                .with(body: {ref: 'refs/heads/glazed/auto', sha: 'new-commit'})
                .to_return(reply({}, status: 201))
-      expect(storage.write_all(files, message: 'rt1').first.github.commit).to eq('new-commit')
+      expect(storage.write_all(files, message:).first.pointer.github.commit).to eq('new-commit')
       expect(create).to have_been_requested
     end
   end

@@ -22,7 +22,7 @@ RSpec.describe Glazed::Steps::Publish do
   let(:step) { described_class.from_proto('publish', settings, context:) }
 
   def state(name)
-    pointer = staging.write(key: "core/#{name}", content: "hostname #{name}\n", message: name)
+    pointer = staging.write(key: "core/#{name}", content: "hostname #{name}\n", message: name).pointer
     Glazed::Proto::V1::NodeState.new(node: {name:, group: 'core'}, artifacts: {'redacted' => {storage: 'staging', pointer:}})
   end
 

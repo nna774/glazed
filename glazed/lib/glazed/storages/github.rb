@@ -3,6 +3,7 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
+require 'digest'
 require 'httpx'
 require 'uri'
 require 'glazed'
@@ -91,27 +92,22 @@ module Glazed
       #: String
       attr_reader :branch
 
-      # Writes files in one commit. Nothing is committed when the content is
-      # unchanged, and the pointers then name the existing head.
+      # Writes the changed files in one commit. Nothing is committed when no
+      # content changed, and the pointers then name the existing head.
       #
       # @param files [Array<Array(String, String)>] keys and contents
-      # @param message [String] commit message
-      # @return [Array<Proto::V1::Pointer>] pointers to the commit holding each file
+      # @param message [Proc] builds the commit message from the changed keys
+      # @return [Array<WriteResult>] the commit holding each file, and whether the file changed
       # @raise [InvalidKey] for an unsafe key
       # @raise [ApiError] when the API fails, or the branch keeps moving under concurrent writers
-      #: (Array[Base::file] files, message: String) -> Array[Proto::V1::Pointer]
+      #: (Array[Base::file] files, message: Base::message_builder) -> Array[WriteResult]
       def write_all(files, message:)
         keys = files.map { |key, _| validate_key(key) }
-        attempt = 0
-        begin
-          attempt += 1
-          commit = commit_files(files, message)
-        rescue ApiError => e
-          # 422 means the branch moved or appeared between reading and updating it.
-          retry if e.status == 422 && attempt < MAX_ATTEMPTS
-          raise
+        commit, changed = with_retries { commit_files(files, message) }
+        keys.map do |key|
+          pointer = Proto::V1::Pointer.new(github: Proto::V1::GithubLocation.new(repository:, path: key, commit:))
+          WriteResult.new(pointer:, changed: changed.include?(key))
         end
-        keys.map { Proto::V1::Pointer.new(github: Proto::V1::GithubLocation.new(repository:, path: it, commit:)) }
       end
 
       # Reads a file at the commit a pointer names.
@@ -127,31 +123,70 @@ module Glazed
         check(http.get(url(path), headers: {'accept' => 'application/vnd.github.raw+json'})).body.to_s
       end
 
+      # @yieldreturn [Object] result of one attempt
+      # @return [Object] result of the first attempt that succeeded
+      # @raise [ApiError] when attempts run out
+      #: [T] () { () -> T } -> T
+      private def with_retries(&attempt)
+        attempts = 0
+        begin
+          attempts += 1
+          attempt.call
+        rescue ApiError => e
+          # 422 means the branch moved or appeared between reading and updating it.
+          retry if e.status == 422 && attempts < MAX_ATTEMPTS
+          raise
+        end
+      end
+
       # @param files [Array<Array(String, String)>] keys and contents
-      # @param message [String] commit message
-      # @return [String] SHA of the commit holding the files
+      # @param message [Proc] builds the commit message from the changed keys
+      # @return [Array(String, Array<String>)] SHA of the commit holding the files, and the changed keys
       # @raise [ApiError] when the API fails
-      #: (Array[Base::file] files, String message) -> String
+      #: (Array[Base::file] files, Base::message_builder message) -> [String, Array[String]]
       private def commit_files(files, message)
         head = ref_sha(branch)
         parent = head || ref_sha(base_branch) || raise(ApiError.new(status: 404, message: "#{repository}: base branch #{base_branch} not found"))
         base_tree = json(get("/repos/#{repository}/git/commits/#{parent}")).dig('tree', 'sha')
-        entries = files.map { |key, content| {path: key, mode: '100644', type: 'blob', content:} }
-        tree = json(post("/repos/#{repository}/git/trees", {base_tree:, tree: entries})).fetch('sha')
+        existing = blob_shas(base_tree)
+        candidates = existing ? files.reject { |key, content| existing[key] == blob_sha(content) } : files
 
-        commit = if tree == base_tree
-          parent
-        else
-          body = {message:, tree:, parents: [parent], author: @author}.compact
-          json(post("/repos/#{repository}/git/commits", body)).fetch('sha')
-                 end
+        commit = parent
+        changed = [] #: Array[String]
+        unless candidates.empty?
+          entries = candidates.map { |key, content| {path: key, mode: '100644', type: 'blob', content:} }
+          tree = json(post("/repos/#{repository}/git/trees", {base_tree:, tree: entries})).fetch('sha')
+          unless tree == base_tree
+            changed = candidates.map(&:first)
+            body = {message: message.call(changed), tree:, parents: [parent], author: @author}.compact
+            commit = json(post("/repos/#{repository}/git/commits", body)).fetch('sha')
+          end
+        end
+
         if head.nil?
           post("/repos/#{repository}/git/refs", {ref: "refs/heads/#{branch}", sha: commit})
         elsif commit != head
           patch("/repos/#{repository}/git/refs/heads/#{escape(branch)}", {sha: commit, force: false})
         end
-        commit
+        [commit, changed]
       end
+
+      # @param tree [String] tree SHA
+      # @return [Hash{String => String}, nil] blob SHAs by path, or nil when GitHub truncates the listing
+      # @raise [ApiError] when the tree cannot be read
+      #: (String tree) -> Hash[String, String]?
+      private def blob_shas(tree)
+        listing = json(get("/repos/#{repository}/git/trees/#{tree}?recursive=1"))
+        return nil if listing['truncated']
+
+        entries = listing.fetch('tree') #: Array[Hash[String, String]]
+        entries.select { it['type'] == 'blob' }.to_h { [it.fetch('path'), it.fetch('sha')] }
+      end
+
+      # @param content [String] file content
+      # @return [String] git blob SHA-1 of the content
+      #: (String content) -> String
+      private def blob_sha(content) = Digest::SHA1.hexdigest("blob #{content.bytesize}\0".b + content.b)
 
       # @param name [String] branch name
       # @return [String, nil] SHA the branch points to, or nil when it does not exist
