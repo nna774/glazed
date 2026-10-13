@@ -7,15 +7,18 @@ require 'yaml'
 # Device capture in Oxidized's spec/model/data simulation format (read the same
 # way as its spec/model/model_helper.rb, Apache License 2.0): an initial
 # prompt and, per command, the raw response including the echoed command and
-# the trailing prompt. Escapes such as \x20 are interpreted.
+# the trailing prompt. Escapes such as \x20 are interpreted. A fixture with an
+# "oxidized" key adds to that simulation of Oxidized's in third_party.
 class Simulation
   ROOT = File.expand_path('../fixtures/dialects', __dir__)
+  OXIDIZED_DATA = File.expand_path('../../../third_party/oxidized/spec/model/data', __dir__)
 
   def self.load(name) = new(name)
 
   def initialize(name)
     @name = name
     data = YAML.load_file(File.join(ROOT, "#{name}.yaml"))
+    data = YAML.load_file(File.join(OXIDIZED_DATA, "#{data.fetch('oxidized')}:simulation.yaml")).merge(data) if data.key?('oxidized')
     @init_prompt = undump(data.fetch('init_prompt'))
     @commands = data.fetch('commands').to_h { |command, response| [command, undump(response)] }
     @secrets = data.fetch('secrets', [])

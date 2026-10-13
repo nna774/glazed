@@ -11,7 +11,10 @@ require_relative '../../glazed/spec/support/fake_transport'
 require_relative '../../glazed/spec/support/simulation'
 
 FIXTURE_MODELS = File.expand_path('fixtures/model', __dir__)
-Glazed::Oxidized.model_paths = [FIXTURE_MODELS]
+# Unmodified models of Oxidized.
+OXIDIZED_MODELS = File.expand_path('../../third_party/oxidized/lib/oxidized/model', __dir__)
+MODEL_PATHS = [FIXTURE_MODELS, OXIDIZED_MODELS].freeze
+Glazed::Oxidized.model_paths = MODEL_PATHS.dup
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

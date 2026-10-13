@@ -18,7 +18,7 @@ RSpec.describe Glazed::Oxidized do
       dialect = Glazed::Dialects.find('oxidized_aireos')
       expect(dialect).to be < Glazed::Oxidized::ModelDialect
       expect(dialect.name).to eq('Glazed::Dialects::OxidizedAireos')
-      expect(dialect.model_box.path).to eq(File.join(FIXTURE_MODELS, 'aireos.rb'))
+      expect(dialect.model_box.path).to eq(File.join(OXIDIZED_MODELS, 'aireos.rb'))
     end
 
     it 'loads models from threads other than the main thread' do
@@ -58,10 +58,10 @@ RSpec.describe Glazed::Oxidized do
   describe '.model_path' do
     it 'searches model_paths in order' do
       other = File.expand_path('fixtures/other', __dir__)
-      described_class.model_paths = [other, FIXTURE_MODELS]
-      expect(described_class.model_path('junos')).to eq(File.join(FIXTURE_MODELS, 'junos.rb'))
+      described_class.model_paths = [other, OXIDIZED_MODELS]
+      expect(described_class.model_path('junos')).to eq(File.join(OXIDIZED_MODELS, 'junos.rb'))
     ensure
-      described_class.model_paths = [FIXTURE_MODELS]
+      described_class.model_paths = MODEL_PATHS.dup
     end
 
     it 'rejects names that are not file names' do

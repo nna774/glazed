@@ -153,7 +153,7 @@ cd glazed-oxidized
 RUBY_BOX=1 bundle exec rspec
 ```
 
-They replay the device simulations of the glazed gem's own specs through models under `glazed-oxidized/spec/fixtures/model`, including copies of Oxidized's `aireos.rb` and `junos.rb`.
+They replay the device simulations of the glazed gem's own specs through models under `glazed-oxidized/spec/fixtures/model`, and through Oxidized's `aireos.rb` and `junos.rb` kept unmodified in `third_party/oxidized`.
 
 With `OXIDIZED_SOURCE` set to an Oxidized source tree, they also replay Oxidized's own model tests (`spec/model/data`) for selected models with that tree's model files, and check that redaction hides what `remove_secret` removes. CI runs them against Oxidized 0.32.2.
 

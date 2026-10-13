@@ -2,8 +2,10 @@ amends "package://github.com/jdx/hk/releases/download/v1.53.0/hk@1.53.0#/Config.
 import "package://github.com/jdx/hk/releases/download/v1.53.0/hk@1.53.0#/Builtins.pkl"
 
 // Generated code is checked as generated; only hand-written files get linted.
+// third_party holds other projects' files unmodified.
 // vendor/bundle is where setup-ruby installs gems in CI.
 exclude = List(
+  "third_party/**",
   "glazed/lib/glazed/v1/**",
   "glazed/spec/fixtures/**",
   "glazed-oxidized/spec/fixtures/**",

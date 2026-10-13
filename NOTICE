@@ -14,8 +14,11 @@ Derived from Oxidized as of commit d7f51c2, and modified for glazed:
 - glazed/lib/glazed/dialects/{awplus,ios,junos,nec_ix,wlc}.rb
   Prompts, command sequences, output cleanup and secret patterns ported
   from lib/oxidized/model/{awplus,ios,junos,necix,aireos}.rb.
-- glazed/spec/fixtures/dialects/ios/*.yaml, glazed/spec/fixtures/dialects/junos/*.yaml
-  Device simulations from spec/model/data, and the outputs collected
-  from them (*.collected.txt, *.redacted.txt).
+- glazed/spec/fixtures/dialects/ios/*, glazed/spec/fixtures/dialects/junos/*
+  Additions to the device simulations in third_party/oxidized, and the
+  outputs collected from them (*.collected.txt, *.redacted.txt).
 - glazed/spec/support/simulation.rb
   Reads Oxidized's device simulation format (spec/model/model_helper.rb).
+
+third_party/oxidized holds files of Oxidized as of commit d7f51c2,
+unmodified, under the license in third_party/oxidized/LICENSE.

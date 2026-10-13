@@ -8,6 +8,7 @@ AllCops:
     - 'glazed/lib/glazed/v1/**/*_pb.rb'
     - 'glazed-oxidized/spec/fixtures/**/*'
     - 'sorbet/**/*'
+    - 'third_party/**/*'
     - 'tmp/**/*'
     - 'pkg/**/*'
     - 'vendor/**/*'

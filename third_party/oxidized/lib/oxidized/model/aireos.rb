@@ -1,7 +1,3 @@
-# Copied from Oxidized (https://github.com/ytti/oxidized) lib/oxidized/model/aireos.rb,
-# Copyright 2013-2015 Saku Ytti, Samer Abdel-Hafez and Oxidized contributors,
-# licensed under the Apache License, Version 2.0.
-
 class Aireos < Oxidized::Model
   using Refinements
 
