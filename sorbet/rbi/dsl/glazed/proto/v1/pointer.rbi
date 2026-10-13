@@ -9,16 +9,20 @@ class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
   sig do
     params(
       git: T.nilable(Glazed::Proto::V1::GitLocation),
-      github: T.nilable(Glazed::Proto::V1::GithubLocation)
+      github: T.nilable(Glazed::Proto::V1::GithubLocation),
+      s3: T.nilable(Glazed::Proto::V1::S3Location)
     ).void
   end
-  def initialize(git: nil, github: nil); end
+  def initialize(git: nil, github: nil, s3: nil); end
 
   sig { void }
   def clear_git; end
 
   sig { void }
   def clear_github; end
+
+  sig { void }
+  def clear_s3; end
 
   sig { returns(T.nilable(Glazed::Proto::V1::GitLocation)) }
   def git; end
@@ -38,6 +42,15 @@ class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
   sig { returns(Object) }
   def has_github?; end
 
+  sig { returns(Object) }
+  def has_s3?; end
+
   sig { returns(T.nilable(Symbol)) }
   def location; end
+
+  sig { returns(T.nilable(Glazed::Proto::V1::S3Location)) }
+  def s3; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::S3Location)).void }
+  def s3=(value); end
 end

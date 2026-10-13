@@ -16,6 +16,8 @@ message StorageConfig {
     GitStorage git = 1;
     // GitHub repository, written through the API.
     GithubStorage github = 2;
+    // Amazon S3 bucket, provided by the glazed-aws gem.
+    S3Storage s3 = 3;
   }
 }
 
@@ -51,6 +53,16 @@ message GithubStorage {
   string author_email = 7;
 }
 
+// Amazon S3 bucket. Enable bucket versioning to keep history.
+message S3Storage {
+  // Bucket name.
+  string bucket = 1;
+  // Prefix prepended to every key, such as "raw/".
+  string prefix = 2;
+  // Bucket region. The SDK default region is used when empty.
+  string region = 3;
+}
+
 // Location of one stored file.
 message Pointer {
   // Storage-specific location.
@@ -59,6 +71,8 @@ message Pointer {
     GitLocation git = 1;
     // File in a GitHub repository.
     GithubLocation github = 2;
+    // Object in an Amazon S3 bucket.
+    S3Location s3 = 3;
   }
 }
 
@@ -78,4 +92,14 @@ message GithubLocation {
   string path = 2;
   // Commit holding the file content.
   string commit = 3;
+}
+
+// Version of an object in an Amazon S3 bucket.
+message S3Location {
+  // Bucket name.
+  string bucket = 1;
+  // Object key, including the storage prefix.
+  string key = 2;
+  // Object version. Empty when the bucket is not versioned, meaning the latest content.
+  string version_id = 3;
 }
