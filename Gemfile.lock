@@ -12,6 +12,7 @@ PATH
       dry-cli
       google-protobuf
       httpx
+      logger
       net-ssh
       net-telnet
       protovalidate (>= 0.1.0.beta3, < 0.2)

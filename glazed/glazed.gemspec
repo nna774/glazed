@@ -34,6 +34,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency "dry-cli"
   spec.add_dependency "google-protobuf"
   spec.add_dependency "httpx"
+  # net-ssh requires it, and it is no longer a default gem since Ruby 4.0.
+  spec.add_dependency "logger"
   spec.add_dependency "net-ssh"
   spec.add_dependency "net-telnet"
   spec.add_dependency "protovalidate", ">= 0.1.0.beta3", "< 0.2"
