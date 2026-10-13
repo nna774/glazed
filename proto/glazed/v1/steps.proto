@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package glazed.v1;
+
+import "glazed/v1/inventory.proto";
+import "glazed/v1/storage.proto";
+
+option ruby_package = "Glazed::Proto::V1";
+
+// Input of the fetch step: collect one node's configuration and store it raw.
+message FetchRequest {
+  // Node to collect from.
+  Node node = 1;
+}
+
+// Output of the fetch step.
+message FetchResult {
+  // Node the configuration was collected from.
+  Node node = 1;
+  // Location of the raw configuration.
+  Pointer raw = 2;
+}
+
+// Input of the publish step: redact raw configurations and store them together.
+message PublishRequest {
+  // Fetch results to publish.
+  repeated FetchResult entries = 1;
+}
+
+// Output of the publish step.
+message PublishResult {
+  // Locations of the redacted configurations, in the order of the request entries.
+  repeated Pointer redacted = 1;
+}

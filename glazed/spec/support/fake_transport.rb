@@ -83,3 +83,16 @@ class FakeTransport < Glazed::Transports::Base
     @outbox << @more unless @pending_pages.empty?
   end
 end
+
+class FakeTransport
+  # A transport class whose instances, however constructed, play the given
+  # script. Built instances are kept in .instances.
+  def self.device(**script)
+    parent = self
+    Class.new(self) do
+      instances = []
+      define_singleton_method(:new) { |**_connection| parent.new(**script).tap { instances << it } }
+      define_singleton_method(:instances) { instances }
+    end
+  end
+end
