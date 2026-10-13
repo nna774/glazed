@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+# SPDX-License-Identifier: Apache-2.0
+
 source 'https://rubygems.org'
 gem 'glazed', path: './glazed'
 gem 'glazed-aws', path: './glazed-aws'

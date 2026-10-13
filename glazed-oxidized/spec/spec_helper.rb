@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# SPDX-License-Identifier: Apache-2.0
+
 require "glazed/oxidized"
 
 RSpec.configure do |config|
