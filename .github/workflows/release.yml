@@ -1,0 +1,84 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'glazed/v*'
+      - 'glazed-aws/v*'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_test.yml # zizmor: ignore[self-repository]
+
+  release:
+    needs: [test]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # Tags are "<gem>/v<version>" (Bundler::GemHelper.tag_prefix in each gem's
+    # Rakefile), and the gem name is also its subdirectory.
+    permissions:
+      contents: write
+      id-token: write
+    environment:
+      name: rubygems-org
+      url: ${{ steps.gem.outputs.url }}
+    steps:
+      - name: Identify gem from tag
+        id: gem
+        run: |
+          gem_name="${GITHUB_REF_NAME%/v*}"
+          version="${GITHUB_REF_NAME##*/v}"
+          {
+            echo "name=${gem_name}"
+            echo "version=${version}"
+            echo "url=https://rubygems.org/gems/${gem_name}/versions/${version}"
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@a0102e0972be65f351c307e2d64b9314a57c8073 # v1.324.0
+        with:
+          ruby-version: '4.0'
+          # Not cached: a restored cache would be a way to smuggle code into the
+          # gem this job publishes.
+          bundler-cache: false
+      - run: bundle install
+      - name: Create GitHub release
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          VERSION: ${{ steps.gem.outputs.version }}
+          GEM_DIR: ${{ steps.gem.outputs.name }}
+        with:
+          script: |
+            const fs = require('fs');
+            const tag = process.env.GITHUB_REF_NAME;
+            const { VERSION, GEM_DIR } = process.env;
+            const { owner, repo } = context.repo;
+
+            // Generate notes first so GitHub computes the "Full Changelog" compare link.
+            const { data: release } = await github.rest.repos.createRelease({
+              owner, repo, tag_name: tag, draft: true, generate_notes: true,
+            });
+
+            // Extract this version's section from the gem CHANGELOG.md.
+            const lines = fs.readFileSync(`${GEM_DIR}/CHANGELOG.md`, 'utf8').split('\n');
+            const start = lines.findIndex((l) => l.startsWith(`## [${VERSION}]`));
+            if (start === -1) throw new Error(`no CHANGELOG.md section for ${VERSION}`);
+            const rest = lines.slice(start + 1);
+            const end = rest.findIndex((l) => l.startsWith('## ['));
+            const section = (end === -1 ? rest : rest.slice(0, end)).join('\n').trim();
+
+            // Keep the auto-generated "Full Changelog" link.
+            const fullChangelog = (release.body || '').split('\n').find((l) => l.includes('Full Changelog'));
+            const body = fullChangelog ? `${section}\n\n${fullChangelog}` : section;
+
+            await github.rest.repos.updateRelease({ owner, repo, release_id: release.id, body });
+      - name: Publish to RubyGems
+        uses: rubygems/release-gem@7f9650160c1a4e7989fdc9855807bdbd421d8b6b # v1.4.1
+        with:
+          working-directory: ${{ steps.gem.outputs.name }}
