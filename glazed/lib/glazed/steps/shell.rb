@@ -27,10 +27,10 @@ module Glazed
       # @param input [String, nil] artifact written to stdin
       # @param output [String, nil] artifact produced from stdout
       # @param storage_name [String, nil] storage for the output, by name
-      # @param context [Context] named storages
+      # @param context [StepContext] named storages
       # @param timeout [Numeric] seconds before the command is killed
-      # @raise [Context::UnknownStorage] when the storage is not configured
-      #: (name: String, run: String, input: String?, output: String?, storage_name: String?, context: Context, ?timeout: Numeric) -> void
+      # @raise [StepContext::UnknownStorage] when the storage is not configured
+      #: (name: String, run: String, input: String?, output: String?, storage_name: String?, context: StepContext, ?timeout: Numeric) -> void
       def initialize(name:, run:, input:, output:, storage_name:, context:, timeout: DEFAULT_TIMEOUT)
         super(name:)
         @run = run #: String
@@ -38,7 +38,7 @@ module Glazed
         @output = output #: String?
         @storage_name = storage_name #: String?
         @storage = (context.storage(storage_name) if storage_name) #: Storages::Base?
-        @context = context #: Context
+        @context = context #: StepContext
         @timeout = timeout #: Numeric
       end
 
@@ -46,10 +46,10 @@ module Glazed
       #
       # @param name [String] step name
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::ShellStep}
-      # @param context [Context] named storages
+      # @param context [StepContext] named storages
       # @return [Shell] the step
       # @raise [InvalidStep] when run is missing, or output and storage are not set together
-      #: (String name, Google::Protobuf::MessageExts settings, context: Context) -> Shell
+      #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Shell
       def self.from_proto(name, settings, context:)
         shell = Must.be_a(settings, Proto::V1::ShellStep)
         raise InvalidStep, "#{name}: shell needs run" if shell.run.empty?

@@ -8,8 +8,8 @@ require 'glazed/finder'
 require 'glazed/must'
 require 'glazed/plugin_registry'
 require 'glazed/proto'
+require 'glazed/step_context'
 require 'glazed/steps/base'
-require 'glazed/steps/context'
 
 module Glazed
   # Units of work in a workflow. Each takes and returns a protobuf state
@@ -49,12 +49,12 @@ module Glazed
     # Builds the step a definition selects.
     #
     # @param step [Proto::V1::Step] step definition
-    # @param context [Context] named storages the step refers to
+    # @param context [StepContext] named storages the step refers to
     # @return [Base] the step
     # @raise [InvalidStep] when no action or name is set
-    # @raise [Context::UnknownStorage] when the step names an unknown storage
+    # @raise [StepContext::UnknownStorage] when the step names an unknown storage
     # @raise [PluginRegistry::UnknownPlugin] when no plugin is registered for the settings type
-    #: (Proto::V1::Step step, context: Context) -> Base
+    #: (Proto::V1::Step step, context: StepContext) -> Base
     def self.build(step, context:)
       raise InvalidStep, 'a step has no name' if step.name.empty?
 

@@ -67,7 +67,7 @@ module Glazed
       #: (out: IO, err: IO) -> Integer
       def call(out:, err:)
         config = load_config
-        context = Steps::Context.from_proto(config.storages)
+        context = StepContext.from_proto(config.storages)
         workflow = Workflow.from_proto(select_workflow(config), context:)
         nodes = select_nodes(Sources.nodes(config.inventory.to_a))
 

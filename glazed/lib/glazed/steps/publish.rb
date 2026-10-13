@@ -23,26 +23,26 @@ module Glazed
       # @param input [String] artifact to read from each node
       # @param storage_name [String] storage to write to, by name
       # @param output [String, nil] artifact recording the written locations
-      # @param context [Context] named storages
-      # @raise [Context::UnknownStorage] when the storage is not configured
-      #: (name: String, input: String, storage_name: String, output: String?, context: Context) -> void
+      # @param context [StepContext] named storages
+      # @raise [StepContext::UnknownStorage] when the storage is not configured
+      #: (name: String, input: String, storage_name: String, output: String?, context: StepContext) -> void
       def initialize(name:, input:, storage_name:, output:, context:)
         super(name:)
         @input = input #: String
         @storage_name = storage_name #: String
         @storage = context.storage(storage_name) #: Storages::Base
         @output = output #: String?
-        @context = context #: Context
+        @context = context #: StepContext
       end
 
       # Builds the step from {Proto::V1::PublishStep}.
       #
       # @param name [String] step name
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::PublishStep}
-      # @param context [Context] named storages
+      # @param context [StepContext] named storages
       # @return [Publish] the step
       # @raise [InvalidStep] when input or storage is missing
-      #: (String name, Google::Protobuf::MessageExts settings, context: Context) -> Publish
+      #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Publish
       def self.from_proto(name, settings, context:)
         publish = Must.be_a(settings, Proto::V1::PublishStep)
         raise InvalidStep, "#{name}: publish needs input and storage" if publish.input.empty? || publish.storage.empty?

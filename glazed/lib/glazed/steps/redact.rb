@@ -24,9 +24,9 @@ module Glazed
       # @param output [String] artifact to produce
       # @param storage_name [String] storage to write to, by name
       # @param redaction [Proto::V1::Redaction] how secrets are hidden
-      # @param context [Context] named storages
-      # @raise [Context::UnknownStorage] when the storage is not configured
-      #: (name: String, input: String, output: String, storage_name: String, redaction: Proto::V1::Redaction, context: Context) -> void
+      # @param context [StepContext] named storages
+      # @raise [StepContext::UnknownStorage] when the storage is not configured
+      #: (name: String, input: String, output: String, storage_name: String, redaction: Proto::V1::Redaction, context: StepContext) -> void
       def initialize(name:, input:, output:, storage_name:, redaction:, context:)
         super(name:)
         @input = input #: String
@@ -34,17 +34,17 @@ module Glazed
         @storage_name = storage_name #: String
         @storage = context.storage(storage_name) #: Storages::Base
         @redaction = redaction #: Proto::V1::Redaction
-        @context = context #: Context
+        @context = context #: StepContext
       end
 
       # Builds the step from {Proto::V1::RedactStep}.
       #
       # @param name [String] step name
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::RedactStep}
-      # @param context [Context] named storages
+      # @param context [StepContext] named storages
       # @return [Redact] the step
       # @raise [InvalidStep] when input, output or storage is missing
-      #: (String name, Google::Protobuf::MessageExts settings, context: Context) -> Redact
+      #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Redact
       def self.from_proto(name, settings, context:)
         redact = Must.be_a(settings, Proto::V1::RedactStep)
         if redact.input.empty? || redact.output.empty? || redact.storage.empty?

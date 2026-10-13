@@ -35,10 +35,10 @@ module Glazed
       #
       # @param name [String] step name
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::BatchShellStep}
-      # @param context [Context] named storages, unused
+      # @param context [StepContext] named storages, unused
       # @return [BatchShell] the step
       # @raise [InvalidStep] when run is missing
-      #: (String name, Google::Protobuf::MessageExts settings, context: Context) -> BatchShell
+      #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> BatchShell
       def self.from_proto(name, settings, context:)
         shell = Must.be_a(settings, Proto::V1::BatchShellStep)
         raise InvalidStep, "#{name}: batch_shell needs run" if shell.run.empty?

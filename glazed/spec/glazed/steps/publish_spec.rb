@@ -17,7 +17,7 @@ RSpec.describe Glazed::Steps::Publish do
 
   let(:staging) { Glazed::Storages::Git.new(path: File.join(@dir, 'staging')) }
   let(:team) { Glazed::Storages::Git.new(path: File.join(@dir, 'team')) }
-  let(:context) { Glazed::Steps::Context.new(storages: {'staging' => staging, 'team' => team}) }
+  let(:context) { Glazed::StepContext.new(storages: {'staging' => staging, 'team' => team}) }
   let(:settings) { Glazed::Proto::V1::PublishStep.new(input: 'redacted', storage: 'team') }
   let(:step) { described_class.from_proto('publish', settings, context:) }
 

@@ -15,7 +15,7 @@ RSpec.describe Glazed::Steps::Redact do
   end
 
   let(:raw) { Glazed::Storages::Git.new(path: File.join(@dir, 'raw')) }
-  let(:context) { Glazed::Steps::Context.new(storages: {'vault' => raw, 'staging' => Glazed::Storages::Git.new(path: File.join(@dir, 'staging'))}) }
+  let(:context) { Glazed::StepContext.new(storages: {'vault' => raw, 'staging' => Glazed::Storages::Git.new(path: File.join(@dir, 'staging'))}) }
   let(:settings) { Glazed::Proto::V1::RedactStep.new(input: 'raw', output: 'redacted', storage: 'staging') }
   let(:step) { described_class.from_proto('redact', settings, context:) }
   let(:node) { Glazed::Proto::V1::Node.new(name: 'rt1', dialect: 'test_os') }

@@ -20,10 +20,10 @@ module Glazed
       # @param name [String] step name
       # @param output [String] artifact to produce
       # @param storage_name [String] storage to write to, by name
-      # @param context [Context] named storages
+      # @param context [StepContext] named storages
       # @param timeout [Numeric] seconds to wait for each expected device output
-      # @raise [Context::UnknownStorage] when the storage is not configured
-      #: (name: String, output: String, storage_name: String, context: Context, ?timeout: Numeric) -> void
+      # @raise [StepContext::UnknownStorage] when the storage is not configured
+      #: (name: String, output: String, storage_name: String, context: StepContext, ?timeout: Numeric) -> void
       def initialize(name:, output:, storage_name:, context:, timeout: CliSession::DEFAULT_TIMEOUT)
         super(name:)
         @output = output #: String
@@ -36,10 +36,10 @@ module Glazed
       #
       # @param name [String] step name
       # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::FetchStep}
-      # @param context [Context] named storages
+      # @param context [StepContext] named storages
       # @return [Fetch] the step
       # @raise [InvalidStep] when output or storage is missing
-      #: (String name, Google::Protobuf::MessageExts settings, context: Context) -> Fetch
+      #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Fetch
       def self.from_proto(name, settings, context:)
         fetch = Must.be_a(settings, Proto::V1::FetchStep)
         raise InvalidStep, "#{name}: fetch needs output and storage" if fetch.output.empty? || fetch.storage.empty?

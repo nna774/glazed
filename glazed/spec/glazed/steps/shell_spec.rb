@@ -17,7 +17,7 @@ RSpec.describe Glazed::Steps::Shell do
   end
 
   let(:files) { Glazed::Storages::Filesystem.new(path: @dir) }
-  let(:context) { Glazed::Steps::Context.new(storages: {'files' => files}) }
+  let(:context) { Glazed::StepContext.new(storages: {'files' => files}) }
   let(:node) { Glazed::Proto::V1::Node.new(name: 'rt1', group: 'core', dialect: 'ios', password: {env: 'PW'}) }
 
   def step(**settings) = described_class.from_proto('script', Glazed::Proto::V1::ShellStep.new(**settings), context:)

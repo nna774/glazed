@@ -5,7 +5,7 @@
 require 'glazed/workflow'
 
 RSpec.describe Glazed::Workflow do
-  let(:context) { Glazed::Steps::Context.new(storages: {'s' => instance_double(Glazed::Storages::Base)}) }
+  let(:context) { Glazed::StepContext.new(storages: {'s' => instance_double(Glazed::Storages::Base)}) }
 
   def build(*steps) = described_class.from_proto(Glazed::Proto::V1::Workflow.new(steps:), context:)
 

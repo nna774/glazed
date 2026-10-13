@@ -11,7 +11,7 @@ module Glazed
   # Ordered, validated steps built from a {Proto::V1::Workflow}.
   #
   # @example
-  #   context = Glazed::Steps::Context.from_proto(config.storages)
+  #   context = Glazed::StepContext.from_proto(config.storages)
   #   workflow = Glazed::Workflow.from_proto(config.workflows.fetch('backup'), context:)
   class Workflow
     # Raised when steps are wired inconsistently.
@@ -29,12 +29,12 @@ module Glazed
     # Builds every step of a workflow definition.
     #
     # @param workflow [Proto::V1::Workflow] workflow definition
-    # @param context [Steps::Context] named storages
+    # @param context [StepContext] named storages
     # @return [Workflow] the workflow
     # @raise [Invalid] when steps are wired inconsistently
     # @raise [Steps::InvalidStep] when a step definition is incomplete
-    # @raise [Steps::Context::UnknownStorage] when a step names an unknown storage
-    #: (Proto::V1::Workflow workflow, context: Steps::Context) -> Workflow
+    # @raise [StepContext::UnknownStorage] when a step names an unknown storage
+    #: (Proto::V1::Workflow workflow, context: StepContext) -> Workflow
     def self.from_proto(workflow, context:)
       new(steps: workflow.steps.map { Steps.build(it, context:) })
     end

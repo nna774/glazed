@@ -15,7 +15,7 @@ RSpec.describe Glazed::Steps::Fetch do
     end
   end
 
-  let(:context) { Glazed::Steps::Context.new(storages: {'vault' => Glazed::Storages::Git.new(path: @dir)}) }
+  let(:context) { Glazed::StepContext.new(storages: {'vault' => Glazed::Storages::Git.new(path: @dir)}) }
   let(:step) { described_class.from_proto('fetch', Glazed::Proto::V1::FetchStep.new(output: 'raw', storage: 'vault', timeout_seconds: 1), context:) }
   let(:dialect) do
     Class.new(Glazed::Dialects::Base) do
@@ -61,6 +61,6 @@ RSpec.describe Glazed::Steps::Fetch do
 
   it 'rejects an unknown storage' do
     expect { described_class.from_proto('fetch', Glazed::Proto::V1::FetchStep.new(output: 'raw', storage: 'nope'), context:) }
-      .to raise_error(Glazed::Steps::Context::UnknownStorage, /nope/)
+      .to raise_error(Glazed::StepContext::UnknownStorage, /nope/)
   end
 end

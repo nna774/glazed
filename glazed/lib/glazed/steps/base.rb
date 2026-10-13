@@ -19,9 +19,9 @@ module Glazed
       #
       # @param name [String] step name, unique within the workflow
       # @param settings [Google::Protobuf::MessageExts] action settings from {Proto::V1::Step}
-      # @param context [Context] named storages
+      # @param context [StepContext] named storages
       # @return [Base] the step
-      #: (String name, Google::Protobuf::MessageExts settings, context: Context) -> Base
+      #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Base
       def self.from_proto(name, settings, context:) = raise NotImplementedError
 
       # @param name [String] step name, unique within the workflow

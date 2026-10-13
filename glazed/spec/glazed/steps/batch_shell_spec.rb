@@ -6,7 +6,7 @@ require 'tmpdir'
 require 'glazed/steps/batch_shell'
 
 RSpec.describe Glazed::Steps::BatchShell do
-  let(:context) { Glazed::Steps::Context.new(storages: {}) }
+  let(:context) { Glazed::StepContext.new(storages: {}) }
   let(:batch) do
     Glazed::Proto::V1::BatchState.new(nodes: [
       {node: {name: 'rt1'}, artifacts: {'raw' => {storage: 'files', changed: true}}},

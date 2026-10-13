@@ -40,7 +40,7 @@ RSpec.describe 'plugins' do
   it 'builds a registered step' do
     step = Class.new(Glazed::Steps::BatchStep) { define_singleton_method(:from_proto) { |name, _settings, context:| new(name:) } }
     Glazed::Steps.register(settings_class, step)
-    built = Glazed::Steps.build(load(Glazed::Proto::V1::Step, name: 'custom', plugin: plugin), context: Glazed::Steps::Context.new(storages: {}))
+    built = Glazed::Steps.build(load(Glazed::Proto::V1::Step, name: 'custom', plugin: plugin), context: Glazed::StepContext.new(storages: {}))
     expect(built).to be_a(step).and(have_attributes(name: 'custom'))
   end
 
@@ -62,7 +62,7 @@ RSpec.describe 'plugins' do
   end
 
   it 'raises UnknownPlugin for an unregistered type' do
-    expect { Glazed::Steps.build(load(Glazed::Proto::V1::Step, name: 'x', plugin: plugin), context: Glazed::Steps::Context.new(storages: {})) }
+    expect { Glazed::Steps.build(load(Glazed::Proto::V1::Step, name: 'x', plugin: plugin), context: Glazed::StepContext.new(storages: {})) }
       .to raise_error(Glazed::PluginRegistry::UnknownPlugin, /no step plugin/)
   end
 end

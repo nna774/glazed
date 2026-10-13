@@ -5,7 +5,7 @@
 require 'glazed/steps'
 
 RSpec.describe Glazed::Steps do
-  let(:context) { Glazed::Steps::Context.new(storages: {'vault' => instance_double(Glazed::Storages::Base)}) }
+  let(:context) { Glazed::StepContext.new(storages: {'vault' => instance_double(Glazed::Storages::Base)}) }
 
   it 'builds a step by its action name' do
     step = described_class.build(Glazed::Proto::V1::Step.new(name: 'f', fetch: {output: 'raw', storage: 'vault'}), context:)
