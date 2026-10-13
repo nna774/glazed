@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package glazed.v1;
+
+import "glazed/v1/secret.proto";
+
+option ruby_package = "Glazed::Proto::V1";
+
+// Network device to collect configuration from.
+message Node {
+  // Unique node name, also used as its storage key within the group.
+  string name = 1;
+  // Group of the node, used as a storage key prefix.
+  string group = 2;
+  // Hostname or address to connect to. The name is used when empty.
+  string host = 3;
+  // Port to connect to. The transport's standard port is used when 0.
+  uint32 port = 4;
+  // Dialect name, such as "ios" or "junos".
+  string dialect = 5;
+  // Transport name, "ssh" or "telnet". "ssh" is used when empty.
+  string transport = 6;
+  // Login user name.
+  string username = 7;
+  // Login password.
+  SecretRef password = 8;
+  // Dialect-specific parameters that are not secret.
+  map<string, string> params = 9;
+  // Dialect-specific secrets, such as "enable".
+  map<string, SecretRef> secrets = 10;
+}
+
+// Contents of one inventory file.
+message InventoryFile {
+  // Field values applied to every node in this file unless the node sets them.
+  Node defaults = 1;
+  // Nodes defined in this file.
+  repeated Node nodes = 2;
+}

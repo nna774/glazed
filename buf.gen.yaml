@@ -1,0 +1,6 @@
+version: v2
+plugins:
+  - protoc_builtin: ruby
+    out: glazed/lib
+inputs:
+  - directory: proto
