@@ -26,7 +26,7 @@ module Glazed
   #   orchestrator.run
   class Orchestrator
     # Seconds between checks for due nodes when the settings set none.
-    DEFAULT_POLL = 30 #: Integer
+    DEFAULT_POLL = Coordinator::DEFAULT_POLL #: Integer
     # Seconds between inventory reloads when the settings set none.
     DEFAULT_INVENTORY_REFRESH = 300 #: Integer
     # Byte written to the wakeup pipe by {#stop}.
@@ -134,7 +134,7 @@ module Glazed
 
     # @return [Integer] seconds between checks for due nodes
     #: () -> Integer
-    private def poll_seconds = @settings.poll_seconds.zero? ? DEFAULT_POLL : @settings.poll_seconds
+    private def poll_seconds = @coordinator.poll_seconds
 
     # @param request [String] one byte naming the request
     # @return [void]

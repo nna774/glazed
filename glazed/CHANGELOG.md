@@ -5,6 +5,7 @@
 - Redaction hides additional secrets given as secret references, as literal text or regular expressions and optionally split by a delimiter, in a `redact` step or in the top-level `redaction` shared by all of them
 - Storages: `subdirectory` for `git` and `github` places files in a directory of the repository instead of its root
 - `glazed signal --all`, and `all_nodes` and `workflows` on `glazed.v1.Signal`, signal every node of chosen workflows, for scheduled runs
+- `sqlite` state backend: schema version 2 keeps the waiting coordinator execution. Version 1 databases are upgraded on first use, after which glazed 0.1.0 refuses them
 
 ## [0.1.0] - 2026-10-14
 

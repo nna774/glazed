@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 require 'securerandom'
+require 'time'
 require 'socket'
 require 'glazed'
 require 'glazed/must'
@@ -26,6 +27,8 @@ module Glazed
   class Coordinator
     # Seconds a lease lasts when the settings set none.
     DEFAULT_LEASE = 3600 #: Integer
+    # Seconds between checks for due nodes when the settings set none.
+    DEFAULT_POLL = 30 #: Integer
 
     # @param settings [Proto::V1::Orchestrator] orchestrator settings
     # @param backend [StateBackends::Base] where schedules are kept
@@ -57,6 +60,14 @@ module Glazed
     # @return [Array<String>] names of the orchestrated workflows
     #: () -> Array[String]
     def workflows = @settings.workflows.keys
+
+    # @return [Integer] seconds between checks for due nodes
+    #: () -> Integer
+    def poll_seconds = @settings.poll_seconds.zero? ? DEFAULT_POLL : @settings.poll_seconds
+
+    # @return [Integer] the longest seconds a lease of any workflow lasts
+    #: () -> Integer
+    def longest_lease = @settings.workflows.values.map { lease_seconds(it) }.max || DEFAULT_LEASE
 
     # @param workflow [String] workflow name
     # @return [Proto::V1::Orchestration] how the workflow is orchestrated
@@ -139,7 +150,7 @@ module Glazed
       due = @backend.list_due(workflow, now:, limit:)
       return [owner, []] if due.empty?
 
-      lease_seconds = settings.lease_seconds.zero? ? DEFAULT_LEASE : settings.lease_seconds
+      lease_seconds = lease_seconds(settings)
       records = @backend.update_all(workflow, due.map(&:node)) do |_node, record|
         Orchestrator::Policy.claim(record, owner:, now:, lease_seconds:)
       end
@@ -188,6 +199,37 @@ module Glazed
       end
       times.min
     end
+
+    # Decides whether a coordinator execution waits for the next due node,
+    # recording it as the waiter, or ends because another execution already
+    # waits until then. See {Orchestrator::Policy.arm}.
+    #
+    # @param token [String] identifies the execution
+    # @param cycle [Integer] times the execution has run due nodes already
+    # @param max_cycles [Integer] cycles after which the execution ends
+    # @param grace [Integer, nil] seconds after waking until another execution may take over; {#longest_lease} when nil
+    # @return [Time, nil] when to wake up; nil when the execution ends
+    #: (token: String, cycle: Integer, max_cycles: Integer, ?grace: Integer?) -> Time?
+    def arm(token:, cycle:, max_cycles:, grace: nil)
+      next_due = self.next_due
+      now = @clock.call
+      wake = nil #: Time?
+      @backend.update_wakeup do |record|
+        kept, wake = Orchestrator::Policy.arm(record, token:, next_due:, now:, gap: poll_seconds, grace: grace || longest_lease, cycle:, max_cycles:)
+        kept
+      end
+      if wake
+        notify(level: 'info', message: 'waiting for due nodes', token:, cycle:, wait_until: wake.utc.iso8601)
+      else
+        notify(level: 'info', message: 'not waiting', token:, cycle:)
+      end
+      wake
+    end
+
+    # @param settings [Proto::V1::Orchestration] how a workflow is orchestrated
+    # @return [Integer] seconds a lease of the workflow lasts
+    #: (Proto::V1::Orchestration settings) -> Integer
+    private def lease_seconds(settings) = settings.lease_seconds.zero? ? DEFAULT_LEASE : settings.lease_seconds
 
     # @param signal [Proto::V1::Signal] a signal for one node or every node
     # @param node [String] node name
