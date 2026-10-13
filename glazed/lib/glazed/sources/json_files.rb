@@ -5,11 +5,13 @@
 
 require 'json'
 require 'glazed'
+require 'glazed/must'
 require 'glazed/proto'
 require 'glazed/proto_json'
+require 'glazed/sources'
+require 'glazed/sources/base'
 
 module Glazed
-  # Inventory sources that produce {Proto::V1::Node} messages.
   module Sources
     # Inventory read from ProtoJSON files of {Proto::V1::InventoryFile}.
     #
@@ -18,11 +20,9 @@ module Glazed
     #
     # @example
     #   Glazed::Sources::JsonFiles.new(paths: ['inventory/*.json']).nodes
-    class JsonFiles
+    class JsonFiles < Base
       # Raised when a file is not a valid inventory file.
       class InvalidFile < Glazed::Error; end
-      # Raised when two nodes share a name.
-      class DuplicateNode < Glazed::Error; end
 
       # Node fields merged key by key with defaults.
       MAP_FIELDS = %w[params secrets].freeze #: Array[String]
@@ -30,7 +30,18 @@ module Glazed
       # @param paths [Array<String>] file paths or glob patterns
       #: (paths: Array[String]) -> void
       def initialize(paths:)
+        super()
         @paths = paths #: Array[String]
+      end
+
+      # Builds a provider from {Proto::V1::JsonFilesInventory}.
+      #
+      # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::JsonFilesInventory}
+      # @return [JsonFiles] the provider
+      # @raise [Must::Violation] when settings is another message
+      #: (Google::Protobuf::MessageExts settings) -> JsonFiles
+      def self.from_proto(settings)
+        new(paths: Must.be_a(settings, Proto::V1::JsonFilesInventory).paths.to_a)
       end
 
       # @return [Array<String>] file paths or glob patterns
@@ -41,7 +52,7 @@ module Glazed
       #
       # @return [Array<Proto::V1::Node>] nodes in file order
       # @raise [InvalidFile] when a file is malformed or a node lacks a name or dialect
-      # @raise [DuplicateNode] when a node name appears twice
+      # @raise [Sources::DuplicateNode] when a node name appears twice
       # @raise [Errno::ENOENT] when a literal path does not exist
       #: () -> Array[Proto::V1::Node]
       def nodes
@@ -56,6 +67,10 @@ module Glazed
           end
         end
       end
+
+      # @return [String] the path patterns
+      #: () -> String
+      def description = "json_files #{paths.join(', ')}"
 
       # @return [Array<String>] files matched by {#paths}, in a stable order
       #: () -> Array[String]

@@ -39,3 +39,19 @@ message InventoryFile {
   // Nodes defined in this file.
   repeated Node nodes = 2;
 }
+
+// Where nodes come from. Providers are looked up by the oneof case name, so
+// another gem can implement one added here as glazed/sources/<name>.
+message InventorySource {
+  // Provider and its settings.
+  oneof provider {
+    // ProtoJSON files of InventoryFile.
+    JsonFilesInventory json_files = 1;
+  }
+}
+
+// ProtoJSON files of InventoryFile.
+message JsonFilesInventory {
+  // File paths or glob patterns. Relative paths resolve from the current directory.
+  repeated string paths = 1;
+}

@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package glazed.v1;
 
+import "glazed/v1/inventory.proto";
 import "glazed/v1/redaction.proto";
 import "glazed/v1/storage.proto";
 
@@ -11,8 +12,8 @@ option ruby_package = "Glazed::Proto::V1";
 
 // Settings of the glazed command. Relative paths are resolved from the current directory.
 message Config {
-  // Inventory file paths or glob patterns.
-  repeated string inventory = 1;
+  // Sources of nodes. Node names must be unique across all of them.
+  repeated InventorySource inventory = 1;
   // Storage for unredacted configuration.
   StorageConfig raw = 2;
   // Storage for redacted configuration.

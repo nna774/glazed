@@ -8,7 +8,7 @@
 class Glazed::Proto::V1::Config < Google::Protobuf::AbstractMessage
   sig do
     params(
-      inventory: T.nilable(T::Array[String]),
+      inventory: T.nilable(T::Array[Glazed::Proto::V1::InventorySource]),
       jobs: T.nilable(Integer),
       raw: T.nilable(Glazed::Proto::V1::StorageConfig),
       redacted: T.nilable(Glazed::Proto::V1::StorageConfig),
@@ -45,10 +45,10 @@ class Glazed::Proto::V1::Config < Google::Protobuf::AbstractMessage
   sig { returns(Object) }
   def has_redaction?; end
 
-  sig { returns(Google::Protobuf::RepeatedField[String]) }
+  sig { returns(Google::Protobuf::RepeatedField[Glazed::Proto::V1::InventorySource]) }
   def inventory; end
 
-  sig { params(value: Google::Protobuf::RepeatedField[String]).void }
+  sig { params(value: Google::Protobuf::RepeatedField[Glazed::Proto::V1::InventorySource]).void }
   def inventory=(value); end
 
   sig { returns(Integer) }

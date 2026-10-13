@@ -32,7 +32,7 @@ Configuration and inventory files are ProtoJSON of the messages in [`proto/glaze
 
 ```json
 {
-  "inventory": ["inventory/*.json"],
+  "inventory": [{"json_files": {"paths": ["inventory/*.json"]}}],
   "raw": {"s3": {"bucket": "netconf-raw", "prefix": "raw/"}},
   "redacted": {"github": {"repository": "example/netconf", "branch": "glazed/auto", "token": {"env": "GITHUB_TOKEN"}}},
   "redaction": {"mode": "MODE_HMAC", "hmac_key": {"env": "GLAZED_HMAC_KEY"}},
@@ -40,7 +40,7 @@ Configuration and inventory files are ProtoJSON of the messages in [`proto/glaze
 }
 ```
 
-`inventory/core.json` (`glazed.v1.InventoryFile`); `defaults` fill fields each node leaves unset:
+Inventory comes from a list of `glazed.v1.InventorySource`, a oneof of providers. A provider is looked up by its case name as `Glazed::Sources::<Name>` (requiring `glazed/sources/<name>`), so another gem can implement one added to the schema; node names must be unique across all sources. The `json_files` provider reads files such as `inventory/core.json` (`glazed.v1.InventoryFile`), where `defaults` fill fields each node leaves unset:
 
 ```json
 {

@@ -39,7 +39,7 @@ RSpec.describe 'glazed run' do
   def run_command(*options)
     write_json('inventory.json', defaults: {group: 'core', dialect: 'ios', transport: 'telnet', username: 'admin', password: {env: 'GLAZED_TEST_PASSWORD'}}, nodes:)
     config = write_json('glazed.json',
-      inventory: [path('inventory.json')],
+      inventory: [{json_files: {paths: [path('inventory.json')]}}],
       raw: {git: {path: path('raw')}},
       redacted: {git: {path: path('redacted')}},
       redaction: {mode: 'MODE_HMAC', hmac_key: {value: 'k'}},

@@ -50,7 +50,7 @@ RSpec.describe Glazed::Sources::JsonFiles do
   it 'raises DuplicateNode naming both files' do
     a = write('a.json', nodes: [{name: 'rt1', dialect: 'ios'}])
     b = write('b.json', nodes: [{name: 'rt1', dialect: 'ios'}])
-    expect { nodes('*.json') }.to raise_error(described_class::DuplicateNode, /#{a}.*#{b}/)
+    expect { nodes('*.json') }.to raise_error(Glazed::Sources::DuplicateNode, /#{a}.*#{b}/)
   end
 
   it 'raises InvalidFile for unknown fields' do

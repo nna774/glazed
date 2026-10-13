@@ -8,7 +8,7 @@ require 'optparse'
 require 'glazed/command'
 require 'glazed/proto'
 require 'glazed/proto_json'
-require 'glazed/sources/json_files'
+require 'glazed/sources'
 require 'glazed/steps/fetch'
 require 'glazed/steps/publish'
 require 'glazed/storages'
@@ -68,7 +68,7 @@ module Glazed
         redacted_storage = Storages.build(config.redacted || raise(Glazed::Error, 'config sets no redacted storage'))
         fetch = Steps::Fetch.new(storage: raw_storage, timeout: config.timeout_seconds.zero? ? CliSession::DEFAULT_TIMEOUT : config.timeout_seconds)
 
-        nodes = select_nodes(Sources::JsonFiles.new(paths: config.inventory.to_a).nodes)
+        nodes = select_nodes(Sources.nodes(config.inventory.to_a))
         results = fetch_all(fetch, nodes, jobs: @jobs || (config.jobs.zero? ? DEFAULT_JOBS : config.jobs), err:)
 
         publish = Steps::Publish.new(raw_storage:, redacted_storage:, redaction: config.redaction || Proto::V1::Redaction.new)
