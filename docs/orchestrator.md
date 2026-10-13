@@ -114,7 +114,7 @@ WantedBy=multi-user.target
 ```
 
 - TERM or INT stops the orchestrator after the current batch. A second one interrupts the batch, releasing its nodes so they run again soon. `TimeoutStopSec` should cover a batch.
-- HUP reloads the inventory before the next batch.
+- HUP reloads the inventory before the next batch, logging `inventory loaded` with the node count.
 - The first inventory load must succeed. Later reload failures are logged and the previous inventory is kept.
 - A failure of the state backend, such as S3 being unreachable, stops the orchestrator with an error, and `Restart=on-failure` starts it again.
 

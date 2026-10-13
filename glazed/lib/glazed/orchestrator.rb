@@ -188,6 +188,7 @@ module Glazed
 
       @nodes = nodes.to_h { [it.name, it] }
       @inventory_loaded_at = now
+      notify(level: 'info', message: 'inventory loaded', nodes: @nodes.size)
       @workflows.each_key do |workflow|
         known = @backend.list(workflow).map(&:node)
         added = @nodes.keys - known

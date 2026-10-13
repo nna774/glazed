@@ -162,6 +162,18 @@ RSpec.describe Glazed::Orchestrator do
     expect(runs.last).to eq(['rt3'])
   end
 
+  it 'reports every inventory load, changed or not' do
+    orchestrator.tick
+    orchestrator.reload_inventory
+    subject = orchestrator
+    events.define_singleton_method(:<<) do |event|
+      super(event).tap { subject.stop if event[:message] == 'inventory loaded' }
+    end
+    subject.run
+    expect(events.select { it[:message] == 'inventory loaded' }).to eq([{level: 'info', message: 'inventory loaded', nodes: 2}] * 2)
+    expect(events.count { it[:message] == 'inventory changed' }).to eq(1)
+  end
+
   it 'runs each workflow on its own schedule from one state' do
     audits = []
     audit = Class.new(Glazed::Steps::BatchStep) do
