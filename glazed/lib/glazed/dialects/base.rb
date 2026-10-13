@@ -46,6 +46,7 @@ module Glazed
       @communications = nil #: Array[[Array[Symbol], ^(Dialect::CommunicationConfig) -> void]]?
       @runbooks = nil #: Hash[Symbol, Dialect::Runbook]?
 
+
       class << self
         # Records the parent so subclasses inherit declarations.
         #
@@ -235,6 +236,9 @@ module Glazed
           @parent = parent
         end
       end
+
+      # A PTY ends lines with CRLF; normalised on whole output, as a fragment may split the pair.
+      filter_output { it.gsub(/\r+\n/, "\n") }
     end
   end
 end
