@@ -20,12 +20,10 @@ module Glazed
     #   storage = Glazed::Storages::S3.new(bucket: 'netconf', prefix: 'raw/')
     #   storage.write(key: 'core/rt1', content: config, message: 'rt1')
     class S3 < Base
-      # Content type of stored objects.
-      CONTENT_TYPE = 'text/plain; charset=utf-8' #: String
+      # Content type of stored objects. No charset: devices do not all use UTF-8.
+      CONTENT_TYPE = 'text/plain' #: String
       # Attempts at writing an object that other writers keep changing.
       MAX_ATTEMPTS = 3 #: Integer
-      # Error codes of a failed conditional write.
-      CONDITION_FAILURES = %w[PreconditionFailed ConditionalRequestConflict].freeze #: Array[String]
 
       # @param bucket [String] bucket name
       # @param prefix [String] prefix prepended to every key
@@ -114,9 +112,9 @@ module Glazed
           else
             client.put_object(bucket:, key:, body: content, content_type: CONTENT_TYPE, checksum_sha256: checksum, if_none_match: '*')
                      end
-        rescue ::Aws::S3::Errors::ServiceError => e
+        rescue ::Aws::S3::Errors::PreconditionFailed, ::Aws::S3::Errors::ConditionalRequestConflict
           # Another writer changed the object after it was checked.
-          retry if CONDITION_FAILURES.include?(e.code) && attempts < MAX_ATTEMPTS
+          retry if attempts < MAX_ATTEMPTS
           raise
         end
         WriteResult.new(pointer: pointer(key, response.version_id), changed: true)
@@ -128,9 +126,7 @@ module Glazed
       #: (String key) -> ::Aws::S3::Types::HeadObjectOutput?
       private def head(key)
         client.head_object(bucket:, key:, checksum_mode: 'ENABLED')
-      rescue ::Aws::S3::Errors::ServiceError => e
-        raise unless e.code == 'NotFound'
-
+      rescue ::Aws::S3::Errors::NotFound
         nil
       end
 

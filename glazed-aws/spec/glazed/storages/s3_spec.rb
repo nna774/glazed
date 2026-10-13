@@ -23,7 +23,7 @@ RSpec.describe Glazed::Storages::S3 do
     expect(result).to be_changed
     expect(result.pointer.s3.to_h).to eq(bucket: 'netconf', key: 'raw/core/rt1', version_id: 'v1')
     expect(requests(:put_object)).to contain_exactly(
-      include(key: 'raw/core/rt1', body: "a\n", content_type: 'text/plain; charset=utf-8', checksum_sha256: checksum("a\n"), if_none_match: '*'),
+      include(key: 'raw/core/rt1', body: "a\n", content_type: 'text/plain', checksum_sha256: checksum("a\n"), if_none_match: '*'),
     )
     expect(requests(:head_object)).to contain_exactly(include(key: 'raw/core/rt1', checksum_mode: 'ENABLED'))
   end
@@ -59,6 +59,12 @@ RSpec.describe Glazed::Storages::S3 do
     client.stub_responses(:put_object, ['PreconditionFailed', {version_id: 'v3'}])
     expect(storage.write(key: 'rt1', content: "new\n", message: 'x').pointer.s3.version_id).to eq('v3')
     expect(requests(:put_object).map { it[:if_match] }).to eq(['"e1"', '"e2"'])
+  end
+
+  it 'propagates errors of the existence check other than not found' do
+    client.stub_responses(:head_object, 'AccessDenied')
+    expect { storage.write(key: 'rt1', content: '', message: 'x') }.to raise_error(Aws::S3::Errors::AccessDenied)
+    expect(requests(:put_object)).to be_empty
   end
 
   it 'gives up after repeated conflicts' do
