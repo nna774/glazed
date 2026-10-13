@@ -8,12 +8,16 @@
 class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
   sig do
     params(
+      filesystem: T.nilable(Glazed::Proto::V1::FilesystemLocation),
       git: T.nilable(Glazed::Proto::V1::GitLocation),
       github: T.nilable(Glazed::Proto::V1::GithubLocation),
       s3: T.nilable(Glazed::Proto::V1::S3Location)
     ).void
   end
-  def initialize(git: nil, github: nil, s3: nil); end
+  def initialize(filesystem: nil, git: nil, github: nil, s3: nil); end
+
+  sig { void }
+  def clear_filesystem; end
 
   sig { void }
   def clear_git; end
@@ -23,6 +27,12 @@ class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
 
   sig { void }
   def clear_s3; end
+
+  sig { returns(T.nilable(Glazed::Proto::V1::FilesystemLocation)) }
+  def filesystem; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::FilesystemLocation)).void }
+  def filesystem=(value); end
 
   sig { returns(T.nilable(Glazed::Proto::V1::GitLocation)) }
   def git; end
@@ -35,6 +45,9 @@ class Glazed::Proto::V1::Pointer < Google::Protobuf::AbstractMessage
 
   sig { params(value: T.nilable(Glazed::Proto::V1::GithubLocation)).void }
   def github=(value); end
+
+  sig { returns(Object) }
+  def has_filesystem?; end
 
   sig { returns(Object) }
   def has_git?; end

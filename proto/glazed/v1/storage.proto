@@ -18,7 +18,16 @@ message StorageConfig {
     GithubStorage github = 2;
     // Amazon S3 bucket, provided by the glazed-aws gem.
     S3Storage s3 = 3;
+    // Local directory holding the latest content only.
+    FilesystemStorage filesystem = 4;
   }
+}
+
+// Local directory. Each key is a file under the path, overwritten in place;
+// use git or S3 storage when history matters.
+message FilesystemStorage {
+  // Directory holding the files. It is created when missing.
+  string path = 1;
 }
 
 // Local git repository, committed to on each write.
@@ -73,6 +82,8 @@ message Pointer {
     GithubLocation github = 2;
     // Object in an Amazon S3 bucket.
     S3Location s3 = 3;
+    // File in a local directory.
+    FilesystemLocation filesystem = 4;
   }
 }
 
@@ -102,4 +113,12 @@ message S3Location {
   string key = 2;
   // Object version. Empty when the bucket is not versioned, meaning the latest content.
   string version_id = 3;
+}
+
+// File in a local directory, as written.
+message FilesystemLocation {
+  // Path of the file within the directory.
+  string path = 1;
+  // Hex SHA-256 of the content written. Reading fails once the file holds other content.
+  string sha256 = 2;
 }

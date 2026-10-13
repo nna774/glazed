@@ -141,6 +141,9 @@ Configuration and inventory files are ProtoJSON of the messages in [`proto/glaze
 
 // s3 (glazed-aws): one object per node; enable bucket versioning to keep history
 {"s3": {"bucket": "example-netconf", "prefix": "raw/", "region": "us-west-2"}}
+
+// filesystem: plain files under a directory, latest content only, for scripts and other tools
+{"filesystem": {"path": "/var/lib/glazed/latest"}}
 ```
 
 For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed after each commit when set. For `github`, `api_url` points to GitHub Enterprise Server, and `author_name`/`author_email` override the token owner. For `s3`, the region defaults to the SDK's.
