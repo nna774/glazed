@@ -37,13 +37,13 @@ module Glazed
       end
     end
 
-    # Returns the value narrowed to the class, or raises.
+    # Returns the value narrowed to the class or module, or raises.
     #
     # @param value [Object] value to narrow
-    # @param klass [Class] expected class
+    # @param klass [Module] expected class or module
     # @return [Object] the value
     # @raise [Violation] when the value is not a klass
-    #: [T] (untyped value, Class[T] klass) -> T
+    #: [T] (untyped value, Module[T] klass) -> T
     def self.be_a(value, klass)
       case value
       when klass then value

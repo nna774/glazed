@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package glazed.v1;
+
+option ruby_package = "Glazed::Proto::V1";
+
+// Where configuration files are stored.
+message StorageConfig {
+  // Storage implementation and its settings.
+  oneof backend {
+    // Local git repository.
+    GitStorage git = 1;
+  }
+}
+
+// Local git repository, committed to on each write.
+message GitStorage {
+  // Path of the working tree. A repository is initialised when missing.
+  string path = 1;
+  // Branch to commit to. "main" is used when empty.
+  string branch = 2;
+  // Remote name or URL. When set, the branch is pulled before and pushed after each commit.
+  string remote = 3;
+  // Commit author name. "glazed" is used when empty.
+  string author_name = 4;
+  // Commit author email. "glazed@localhost" is used when empty.
+  string author_email = 5;
+}
+
+// Location of one stored file.
+message Pointer {
+  // Storage-specific location.
+  oneof location {
+    // File in a git repository.
+    GitLocation git = 1;
+  }
+}
+
+// File at a commit of a git repository.
+message GitLocation {
+  // Path of the file within the repository.
+  string path = 1;
+  // Commit holding the file content.
+  string commit = 2;
+}

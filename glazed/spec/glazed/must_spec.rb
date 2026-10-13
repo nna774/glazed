@@ -31,6 +31,10 @@ RSpec.describe Glazed::Must do
       expect(described_class.be_a('x', String)).to eq('x')
     end
 
+    it 'returns a value including the module' do
+      expect(described_class.be_a(1, Comparable)).to eq(1)
+    end
+
     it 'raises Violation for another class' do
       expect { described_class.be_a(1, String) }
         .to raise_error(Glazed::Must::Violation, 'expected String, got Integer')
