@@ -5,6 +5,7 @@ on:
     tags:
       - 'glazed/v*'
       - 'glazed-aws/v*'
+      - 'glazed-oxidized/v*'
 
 permissions:
   contents: read
