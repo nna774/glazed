@@ -30,6 +30,10 @@ message Step {
     RedactStep redact = 3;
     // Batch: write an artifact of every node in one change.
     PublishStep publish = 4;
+    // Per node: run a shell command.
+    ShellStep shell = 5;
+    // Batch: run a shell command once with every node's state.
+    BatchShellStep batch_shell = 6;
   }
 }
 
@@ -63,4 +67,32 @@ message PublishStep {
   string storage = 2;
   // Name of the artifact recording the written locations. Nothing is recorded when empty.
   string output = 3;
+}
+
+// Per node: runs a command with /bin/sh -c. The input artifact's content is on
+// stdin and stdout becomes the output artifact; both are optional. GLAZED_STEP,
+// GLAZED_NODE_NAME, GLAZED_NODE_GROUP, GLAZED_NODE_DIALECT, GLAZED_NODE_HOST and
+// GLAZED_NODE (the node as ProtoJSON, secrets unresolved) are set. A non-zero
+// exit fails the node.
+message ShellStep {
+  // Command line, run by /bin/sh -c.
+  string run = 1;
+  // Name of the artifact whose content is written to stdin. stdin is empty when unset.
+  string input = 2;
+  // Name of the artifact to produce from stdout. stdout is discarded when unset.
+  string output = 3;
+  // Storage to write the output to, by name in Config.storages. Required with output.
+  string storage = 4;
+  // Seconds before the command is killed. 300 is used when 0.
+  uint32 timeout_seconds = 5;
+}
+
+// Batch: runs a command with /bin/sh -c once, with the BatchState of every
+// node that got this far as ProtoJSON on stdin and GLAZED_STEP set. A non-zero
+// exit fails the run.
+message BatchShellStep {
+  // Command line, run by /bin/sh -c.
+  string run = 1;
+  // Seconds before the command is killed. 300 is used when 0.
+  uint32 timeout_seconds = 2;
 }
