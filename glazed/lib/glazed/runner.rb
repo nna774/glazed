@@ -18,7 +18,7 @@ module Glazed
   #   result = Glazed::Runner.new(workflow:, jobs: 4).call(nodes)
   #   result.failures.each { warn "#{it.node.name}: #{it.error.message}" }
   class Runner
-    #: type event_value = String | Integer | bool | nil
+    #: type event_value = String | Integer | bool | Array[String] | nil
     #: type listener = ^(Hash[Symbol, Runner::event_value] event) -> void
 
     # A node that failed a step.
@@ -122,12 +122,20 @@ module Glazed
         Thread.new do
           while (item = queue.pop)
             state, index = item
+            Thread.current.name = state.node&.name
             result = run_node(steps, state, failures)
             @lock.synchronize { results[index] = result } if result
           end
         end
       end
-      workers.each(&:join)
+      begin
+        workers.each(&:join)
+      rescue Interrupt
+        workers.select(&:alive?).each do |worker|
+          notify(level: 'error', node: worker.name, message: 'interrupted', backtrace: worker.backtrace || [])
+        end
+        raise
+      end
       results.sort.map { |_, state| state }
     end
 

@@ -47,4 +47,21 @@ RSpec.describe Glazed::Runner do
     expect { described_class.new(workflow: Glazed::Workflow.new(steps: [failing]), jobs: 1).call(nodes) }
       .to raise_error(Glazed::Error, 'push rejected')
   end
+
+  it 'reports where unfinished nodes are when interrupted' do
+    release = Thread::Queue.new
+    stuck = Class.new(Glazed::Steps::NodeStep) do
+      define_method(:call) do |_state|
+        Thread.pass until Thread.main.status == 'sleep'
+        Thread.main.raise(Interrupt)
+        release.pop
+      end
+    end.new(name: 'fetch')
+    runner = described_class.new(workflow: Glazed::Workflow.new(steps: [stuck]), jobs: 1, listener: ->(event) { events << event })
+
+    expect { runner.call(nodes.first(1)) }.to raise_error(Interrupt)
+    expect(events).to contain_exactly(include(level: 'error', node: 'a', message: 'interrupted', backtrace: include(/in 'Thread::Queue#pop'/)))
+  ensure
+    release&.close
+  end
 end
