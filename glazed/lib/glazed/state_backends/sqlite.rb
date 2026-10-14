@@ -34,7 +34,7 @@ module Glazed
       class SchemaMismatch < Glazed::Error; end
 
       # Version of the database layout.
-      SCHEMA_VERSION = 1 #: Integer
+      SCHEMA_VERSION = 2 #: Integer
       # Attempts at a change that keeps conflicting with other processes.
       MAX_ATTEMPTS = 5 #: Integer
       # Milliseconds to wait for another process holding the database lock.
@@ -110,6 +110,32 @@ module Glazed
             result[node] = updated
           end
           result
+        end
+      end
+
+      # @yieldparam record [Proto::V1::Wakeup, nil] the current record, or nil when there is none
+      # @yieldreturn [Proto::V1::Wakeup, nil] the new record, or nil to delete it
+      # @return [Proto::V1::Wakeup, nil] the record held afterwards
+      # @raise [InvalidMessage] when the block returns an invalid record
+      # @raise [Storages::Base::Conflict] when other processes keep changing the database
+      #: () { (Proto::V1::Wakeup? record) -> Proto::V1::Wakeup? } -> Proto::V1::Wakeup?
+      def update_wakeup(&block)
+        write do |db|
+          stored = db.get_first_value("select record from wakeups where name = 'default'") #: String?
+          updated = block.call(stored && Proto::V1::Wakeup.decode(stored))
+          if updated
+            Validation.validate!(updated)
+            encoded = Proto::V1::Wakeup.encode(updated)
+            unless encoded == stored
+              db.execute(<<~SQL, [SQLite3::Blob.new(encoded)])
+                insert into wakeups (name, record) values ('default', ?)
+                on conflict (name) do update set record = excluded.record
+              SQL
+            end
+          elsif stored
+            db.execute("delete from wakeups where name = 'default'")
+          end
+          updated
         end
       end
 
@@ -288,11 +314,22 @@ module Glazed
               ) strict
             SQL
             db.execute('create index schedules_due on schedules (workflow, due_at_ms)')
+            create_wakeups(db)
             db.execute('insert into glazed_schema (version) values (?)', [SCHEMA_VERSION])
+          when 1
+            create_wakeups(db)
+            db.execute('update glazed_schema set version = ?', [SCHEMA_VERSION])
           else
             raise SchemaMismatch, "#{@path} has state schema version #{version}, while this glazed uses #{SCHEMA_VERSION}"
           end
         end
+      end
+
+      # @param db [SQLite3::Database] the database, in a transaction
+      # @return [void]
+      #: (SQLite3::Database db) -> void
+      private def create_wakeups(db)
+        db.execute('create table wakeups (name text primary key, record blob not null) strict')
       end
     end
   end

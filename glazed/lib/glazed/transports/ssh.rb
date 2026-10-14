@@ -35,8 +35,9 @@ module Glazed
       # @param password [Secret, nil] login password
       # @param connect_timeout [Numeric] seconds to wait for a connection
       # @param transport_options [Proto::V1::TransportOptions, nil] per-transport connection options
-      #: (host: String, port: Integer?, username: String, password: Secret?, ?connect_timeout: Numeric, ?transport_options: Proto::V1::TransportOptions?) -> void
-      def initialize(host:, port:, username:, password:, connect_timeout: DEFAULT_CONNECT_TIMEOUT, transport_options: nil)
+      # @param secrets [SecretsResolver] reads secrets in the transport options
+      #: (host: String, port: Integer?, username: String, password: Secret?, ?connect_timeout: Numeric, ?transport_options: Proto::V1::TransportOptions?, ?secrets: SecretsResolver) -> void
+      def initialize(host:, port:, username:, password:, connect_timeout: DEFAULT_CONNECT_TIMEOUT, transport_options: nil, secrets: SecretsResolver.new)
         super
         @session = nil #: Net::SSH::Connection::Session?
         @shell = nil #: Net::SSH::Connection::Channel?
@@ -77,7 +78,7 @@ module Glazed
         end
         key_options(ssh, options)
         options[:keys_only] = true if ssh.keys_only
-        options[:passphrase] = Secret.maybe(ssh.passphrase)&.value if ssh.passphrase
+        options[:passphrase] = secrets.maybe(ssh.passphrase)&.value if ssh.passphrase
         options[:number_of_password_prompts] = ssh.number_of_password_prompts if ssh.number_of_password_prompts.positive?
         verification = Must.be_a(ssh.verify_host_key, Symbol)
         options[:verify_host_key] = VERIFY_HOST_KEY.fetch(verification) unless verification == :HOST_KEY_VERIFICATION_UNSPECIFIED
@@ -97,7 +98,7 @@ module Glazed
       private def key_options(ssh, options)
         paths, raws = ssh.keys.partition { _1.source == :path }
         options[:keys] = paths.map(&:path) unless paths.empty?
-        options[:key_data] = raws.map { Secret.maybe(_1.raw)&.value } unless raws.empty?
+        options[:key_data] = raws.map { secrets.maybe(_1.raw)&.value } unless raws.empty?
       end
 
       # Sends data to the shell, opening it on first use.

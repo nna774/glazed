@@ -68,7 +68,7 @@ module Glazed
       def call(state)
         node = state.node or raise ArgumentError, "#{name}: state has no node"
         redactor = Redactor.from_proto(
-          @redaction, patterns: Dialects.find(node.dialect).sensitive_patterns, global: @context.redaction,
+          @redaction, patterns: Dialects.find(node.dialect).sensitive_patterns, global: @context.redaction, secrets: @context.secrets,
         )
         content = redactor.call(@context.read(artifact(state, @input)))
         result = @storage.write(key: Storages.key_for(node), content:, message: "#{node.name}: #{name}")

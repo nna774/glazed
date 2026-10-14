@@ -60,4 +60,16 @@ RSpec.shared_examples 'a state backend' do
   it 'refuses an invalid record' do
     expect { backend.update('backup', 'rt1') { Glazed::Proto::V1::NodeSchedule.new(workflow: 'backup', node: 'rt1') } }.to raise_error(Glazed::InvalidMessage)
   end
+
+  it 'creates, replaces and clears the waiter record' do
+    wakeup = ->(owner, at) { Glazed::Proto::V1::Wakeup.new(owner:, wake_at: Google::Protobuf::Timestamp.from_time(at), expires_at: Google::Protobuf::Timestamp.from_time(at + 60)) }
+    expect(backend.update_wakeup { |record| record || wakeup.('a', now) }.owner).to eq('a')
+    expect(backend.update_wakeup { |record| wakeup.("#{record.owner}b", now + 1) }.owner).to eq('ab')
+    expect(backend.update_wakeup { nil }).to be_nil
+    expect(backend.update_wakeup { it }).to be_nil
+  end
+
+  it 'refuses an invalid waiter record' do
+    expect { backend.update_wakeup { Glazed::Proto::V1::Wakeup.new(owner: 'a') } }.to raise_error(Glazed::InvalidMessage)
+  end
 end

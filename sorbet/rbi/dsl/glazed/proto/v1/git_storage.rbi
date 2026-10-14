@@ -12,10 +12,11 @@ class Glazed::Proto::V1::GitStorage < Google::Protobuf::AbstractMessage
       author_name: T.nilable(String),
       branch: T.nilable(String),
       path: T.nilable(String),
-      remote: T.nilable(String)
+      remote: T.nilable(String),
+      subdirectory: T.nilable(String)
     ).void
   end
-  def initialize(author_email: nil, author_name: nil, branch: nil, path: nil, remote: nil); end
+  def initialize(author_email: nil, author_name: nil, branch: nil, path: nil, remote: nil, subdirectory: nil); end
 
   sig { returns(String) }
   def author_email; end
@@ -50,6 +51,9 @@ class Glazed::Proto::V1::GitStorage < Google::Protobuf::AbstractMessage
   sig { void }
   def clear_remote; end
 
+  sig { void }
+  def clear_subdirectory; end
+
   sig { returns(String) }
   def path; end
 
@@ -61,4 +65,10 @@ class Glazed::Proto::V1::GitStorage < Google::Protobuf::AbstractMessage
 
   sig { params(value: String).void }
   def remote=(value); end
+
+  sig { returns(String) }
+  def subdirectory; end
+
+  sig { params(value: String).void }
+  def subdirectory=(value); end
 end

@@ -16,11 +16,11 @@ exclude = List(
   "vendor/**",
 )
 
-local ruby_files = List("**/*.rb", "**/*.rbi", "**/*.gemspec", "Gemfile", "Rakefile", "**/Rakefile", "bin/*", "glazed/exe/*")
+local ruby_files = List("**/*.rb", "**/*.rbi", "**/*.gemspec", "Gemfile", "Rakefile", "**/Rakefile", "bin/*", "glazed/exe/*", "glazed-aws/exe/*")
 
 local linters = new Mapping<String, Step> {
   ["rubocop"] {
-    glob = List("**/*.rb", "**/*.gemspec", "Gemfile", "**/Rakefile", "bin/*", "glazed/exe/*")
+    glob = List("**/*.rb", "**/*.gemspec", "Gemfile", "**/Rakefile", "bin/*", "glazed/exe/*", "glazed-aws/exe/*")
     check = "bundle exec rubocop --force-exclusion {{files}}"
     fix = "bundle exec rubocop --force-exclusion --autocorrect {{files}}"
     batch = true

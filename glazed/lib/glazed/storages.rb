@@ -8,6 +8,7 @@ require 'glazed/finder'
 require 'glazed/must'
 require 'glazed/plugin_registry'
 require 'glazed/proto'
+require 'glazed/storage_context'
 require 'glazed/storages/base'
 require 'glazed/validation'
 
@@ -49,21 +50,22 @@ module Glazed
     # Builds the storage a config selects.
     #
     # @param config [Proto::V1::StorageConfig] storage settings
+    # @param context [StorageContext] secrets the settings refer to
     # @return [Base] the storage
     # @raise [InvalidMessage] when the config breaks the rules of its schema
     # @raise [Finder::NotFound] when the backend is not available
     # @raise [PluginRegistry::UnknownPlugin] when no plugin is registered for the settings type
-    #: (Proto::V1::StorageConfig config) -> Base
-    def self.build(config)
+    #: (Proto::V1::StorageConfig config, ?context: StorageContext) -> Base
+    def self.build(config, context: StorageContext.new)
       Validation.validate!(config)
       backend = config.backend or raise MissingBackend, 'storage config sets no backend'
       if (packed = config.plugin)
         implementation, settings = PLUGINS.resolve(packed)
-        return storage_class(implementation).from_proto(settings)
+        return storage_class(implementation).from_proto(settings, context:)
       end
 
       settings = Must.be_a(config[backend.to_s], Google::Protobuf::MessageExts)
-      find(backend).from_proto(settings)
+      find(backend).from_proto(settings, context:)
     end
 
     # @param implementation [Module] registered implementation

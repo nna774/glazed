@@ -34,6 +34,18 @@ RSpec.describe Glazed::StateBackends::Sqlite do
       other.close
     end
 
+    it 'upgrades a database of schema version 1' do
+      FileUtils.mkdir_p(File.dirname(path))
+      SQLite3::Database.new(path) do |db|
+        db.execute('create table glazed_schema (version integer not null) strict')
+        db.execute('insert into glazed_schema (version) values (1)')
+        db.execute('create table schedules (workflow text not null, node text not null, due_at_ms integer not null, lease_until_ms integer not null, record blob not null, primary key (workflow, node)) strict')
+      end
+      wakeup = Glazed::Proto::V1::Wakeup.new(owner: 'a', wake_at: Google::Protobuf::Timestamp.from_time(now), expires_at: Google::Protobuf::Timestamp.from_time(now))
+      expect(backend.update_wakeup { wakeup }.owner).to eq('a')
+      expect(SQLite3::Database.new(path).get_first_value('select version from glazed_schema')).to eq(2)
+    end
+
     it 'refuses a database of another schema version' do
       backend.list('backup')
       backend.close
@@ -80,6 +92,19 @@ RSpec.describe Glazed::StateBackends::Sqlite do
       expect(calls).to eq(2)
       expect(other.list('backup').map(&:node)).to eq(%w[rt1 rt2])
       expect(events).to contain_exactly(include(level: 'info', message: /redoing the change/))
+      other.close
+    end
+
+    it 'redoes a waiter change on the newer copy when another backend uploaded first' do
+      other = described_class.new(storage:, key: 'state/db')
+      wakeup = ->(owner) { Glazed::Proto::V1::Wakeup.new(owner:, wake_at: Google::Protobuf::Timestamp.from_time(now), expires_at: Google::Protobuf::Timestamp.from_time(now)) }
+      seen = []
+      backend.update_wakeup do |record|
+        seen << record&.owner
+        other.update_wakeup { wakeup.('other') } if seen.size == 1
+        record || wakeup.('me')
+      end
+      expect(seen).to eq([nil, 'other'])
       other.close
     end
 

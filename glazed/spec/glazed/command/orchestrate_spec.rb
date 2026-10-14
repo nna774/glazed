@@ -92,6 +92,17 @@ RSpec.describe 'glazed orchestrate and glazed signal' do
     expect(out.string).to start_with('sw1 backup due at ')
   end
 
+  it 'signals every node with --all' do
+    expect(Glazed::Command.start(['signal', '-c', config, '-w', 'backup', '--all', '--source', 'daily'], out:, err:)).to eq(0)
+    expect(out.string.lines.map { it.split.first(2) }).to eq([%w[sw1 backup]])
+  end
+
+  it 'refuses node names with --all, and neither' do
+    expect(Glazed::Command.start(['signal', '-c', config, '--all', 'sw1'], out:, err:)).to eq(1)
+    expect(Glazed::Command.start(['signal', '-c', config], out:, err:)).to eq(1)
+    expect(err.string).to include('name nodes, or give --all')
+  end
+
   it 'refuses to signal a workflow not orchestrated' do
     expect { Glazed::Command.start(['signal', '-c', config, '-w', 'nope', 'sw1'], out:, err:) }.to raise_error(Glazed::Error, /not orchestrated workflows: nope/)
   end

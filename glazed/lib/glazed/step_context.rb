@@ -6,10 +6,13 @@
 require 'google/protobuf'
 require 'glazed'
 require 'glazed/proto'
+require 'glazed/secrets_resolver'
+require 'glazed/storage_context'
 require 'glazed/storages'
 
 module Glazed
-  # Named storages shared by the steps of a workflow, and where steps report progress.
+  # Named storages shared by the steps of a workflow, the resolver of the
+  # secrets they refer to, and where steps report progress.
   class StepContext
     # Raised when a step names a storage that is not configured.
     class UnknownStorage < Glazed::Error; end
@@ -21,14 +24,20 @@ module Glazed
     # @param storages [Hash{String => Storages::Base}] storages by name
     # @param redaction [Proto::V1::Redaction, nil] redaction settings shared by redact steps
     # @param listener [Proc] receives progress events from steps, possibly from several threads at once
-    #: (storages: Hash[String, Storages::Base], ?redaction: Proto::V1::Redaction?, ?listener: Runner::listener) -> void
-    def initialize(storages:, redaction: nil, listener: ->(_event) {})
+    # @param secrets [SecretsResolver] reads secrets of nodes and settings
+    #: (storages: Hash[String, Storages::Base], ?redaction: Proto::V1::Redaction?, ?listener: Runner::listener, ?secrets: SecretsResolver) -> void
+    def initialize(storages:, redaction: nil, listener: ->(_event) {}, secrets: SecretsResolver.new)
       @storages = storages #: Hash[String, Storages::Base]
       @redaction = redaction #: Proto::V1::Redaction?
       @listener = listener #: Runner::listener
+      @secrets = secrets #: SecretsResolver
     end
 
-    # Builds every configured storage.
+    # @return [SecretsResolver] reads secrets of nodes and settings
+    #: SecretsResolver
+    attr_reader :secrets
+
+    # Builds every configured storage, with one secrets resolver for the storages and the steps.
     #
     # @param storages [Google::Protobuf::Map] storage configs by name, from {Proto::V1::Config#storages}
     # @param redaction [Proto::V1::Redaction, nil] redaction settings shared by redact steps, from {Proto::V1::Config#redaction}
@@ -37,10 +46,12 @@ module Glazed
     # @raise [Storages::MissingBackend] when a storage config sets no backend
     #: (Google::Protobuf::Map[String, Proto::V1::StorageConfig] storages, ?redaction: Proto::V1::Redaction?, ?listener: Runner::listener) -> StepContext
     def self.from_proto(storages, redaction: nil, listener: ->(_event) {})
+      secrets = SecretsResolver.new
+      storage_context = StorageContext.new(secrets:)
       # Map#to_h would turn the messages into hashes.
       built = {} #: Hash[String, Storages::Base]
-      storages.each { |name, config| built[name] = Storages.build(config) }
-      new(storages: built, redaction:, listener:)
+      storages.each { |name, config| built[name] = Storages.build(config, context: storage_context) }
+      new(storages: built, redaction:, listener:, secrets:)
     end
 
     # Reports progress of a step.

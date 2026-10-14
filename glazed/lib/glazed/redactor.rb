@@ -54,30 +54,32 @@ module Glazed
     # @param redaction [Proto::V1::Redaction] redaction settings
     # @param patterns [Array<Dialect::SensitivePattern>] where secrets appear
     # @param global [Proto::V1::Redaction, nil] settings shared by every redactor
+    # @param secrets [SecretsResolver] reads the HMAC key and the secrets to hide
     # @return [Redactor] the redactor
     # @raise [InvalidConfiguration] when the mode is unknown, the HMAC key is missing or not base64, or a regexp is invalid
     # @raise [Secret::Unavailable] when the HMAC key or a secret cannot be read
-    #: (Proto::V1::Redaction redaction, patterns: Array[Dialect::SensitivePattern], ?global: Proto::V1::Redaction?) -> Redactor
-    def self.from_proto(redaction, patterns:, global: nil)
-      patterns += ((global&.secrets&.to_a || []) + redaction.secrets.to_a).filter_map { extra_pattern(it) }
+    #: (Proto::V1::Redaction redaction, patterns: Array[Dialect::SensitivePattern], secrets: SecretsResolver, ?global: Proto::V1::Redaction?) -> Redactor
+    def self.from_proto(redaction, patterns:, secrets:, global: nil)
+      patterns += ((global&.secrets&.to_a || []) + redaction.secrets.to_a).filter_map { extra_pattern(it, secrets) }
       mode = redaction.mode == :MODE_UNSPECIFIED && global ? global.mode : redaction.mode
       case mode
       when :MODE_UNSPECIFIED, :MODE_REMOVE then new(patterns:, mode: :remove)
-      when :MODE_HMAC then new(patterns:, mode: :hmac, key: hmac_key(redaction.hmac_key || global&.hmac_key))
+      when :MODE_HMAC then new(patterns:, mode: :hmac, key: hmac_key(redaction.hmac_key || global&.hmac_key, secrets))
       else raise InvalidConfiguration, "unknown redaction mode #{mode.inspect}"
       end
     end
 
     # @param extra [Proto::V1::ExtraSecret] secret to hide
+    # @param secrets [SecretsResolver] reads the secret
     # @return [Dialect::SensitivePattern, nil] pattern locating it, or nil when it has no value
     # @raise [InvalidConfiguration] when a regexp is invalid
     # @raise [Secret::Unavailable] when the referenced value cannot be read
-    #: (Proto::V1::ExtraSecret extra) -> Dialect::SensitivePattern?
-    private_class_method def self.extra_pattern(extra)
+    #: (Proto::V1::ExtraSecret extra, SecretsResolver secrets) -> Dialect::SensitivePattern?
+    private_class_method def self.extra_pattern(extra, secrets)
       whole_match = ->(match) { match.begin(0)...match.end(0) } #: Dialect::SensitivePattern::determiner
       note = extra.note.empty? ? nil : extra.note
       ref = extra.ref or raise InvalidConfiguration, 'redaction secret has no ref'
-      value = Secret.new(ref).value
+      value = secrets.secret(ref).value
       values = (extra.delimiter.empty? ? [value] : value.split(extra.delimiter)).reject(&:empty?)
       return nil if values.empty?
 
@@ -92,12 +94,13 @@ module Glazed
     end
 
     # @param ref [Proto::V1::SecretRef, nil] reference to the base64 key
+    # @param secrets [SecretsResolver] reads the key
     # @return [String, nil] the HMAC key, decoded from base64
     # @raise [InvalidConfiguration] when the key is not base64
     # @raise [Secret::Unavailable] when the key cannot be read
-    #: (Proto::V1::SecretRef? ref) -> String?
-    private_class_method def self.hmac_key(ref)
-      encoded = Secret.maybe(ref)&.value or return nil
+    #: (Proto::V1::SecretRef? ref, SecretsResolver secrets) -> String?
+    private_class_method def self.hmac_key(ref, secrets)
+      encoded = secrets.maybe(ref)&.value or return nil
       encoded.unpack1('m0')
     rescue ArgumentError
       raise InvalidConfiguration, 'hmac_key is not base64'

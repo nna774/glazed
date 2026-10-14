@@ -23,8 +23,9 @@ module Glazed
       # @param password [Secret, nil] login password
       # @param connect_timeout [Numeric] seconds to wait for a connection
       # @param transport_options [Proto::V1::TransportOptions, nil] per-transport connection options
-      #: (host: String, port: Integer?, username: String, password: Secret?, ?connect_timeout: Numeric, ?transport_options: Proto::V1::TransportOptions?) -> void
-      def initialize(host:, port:, username:, password:, connect_timeout: DEFAULT_CONNECT_TIMEOUT, transport_options: nil)
+      # @param secrets [SecretsResolver] reads secrets in the transport options
+      #: (host: String, port: Integer?, username: String, password: Secret?, ?connect_timeout: Numeric, ?transport_options: Proto::V1::TransportOptions?, ?secrets: SecretsResolver) -> void
+      def initialize(host:, port:, username:, password:, connect_timeout: DEFAULT_CONNECT_TIMEOUT, transport_options: nil, secrets: SecretsResolver.new)
         super
         @telnet = nil #: Net::Telnet?
         @rest = +'' #: String

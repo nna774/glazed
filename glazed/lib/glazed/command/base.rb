@@ -6,13 +6,12 @@
 require 'json'
 require 'dry/cli'
 require 'glazed'
+require 'glazed/config'
 require 'glazed/must'
 require 'glazed/proto'
-require 'glazed/proto_json'
 require 'glazed/runner'
 require 'glazed/state_backends'
 require 'glazed/step_context'
-require 'glazed/validation'
 
 module Glazed
   module Command
@@ -91,8 +90,7 @@ module Glazed
       #: (Proto::V1::Config config) -> Integer
       private def default_jobs(config) = config.jobs.zero? ? DEFAULT_JOBS : config.jobs
 
-      # Reads the config, first requiring the features its `requires` lists so
-      # plugin settings types are known when it is decoded.
+      # Reads the config with {Glazed::Config.load}.
       #
       # @param path [String] config file
       # @return [Proto::V1::Config] the config
@@ -100,20 +98,7 @@ module Glazed
       # @raise [InvalidMessage] when the config breaks the rules of its schema
       # @raise [LoadError] when a required feature is missing
       #: (String path) -> Proto::V1::Config
-      private def load_config(path)
-        json = ::File.read(path)
-        document = JSON.parse(json) #: untyped
-        requires = document.is_a?(Hash) ? document.fetch('requires', []) : []
-        unless requires.is_a?(Array) && requires.all?(String)
-          raise Glazed::Error, "#{path}: requires must be a list of strings"
-        end
-
-        requires.each { require it }
-        ProtoJson.load(Proto::V1::Config, json).tap { Validation.validate!(it, origin: path) }
-      rescue Google::Protobuf::ParseError, JSON::ParserError => e
-        hint = e.message.include?('Type was not found') ? '; list the gem providing that plugin type in requires' : ''
-        raise Glazed::Error, "#{path}: #{e.message}#{hint}"
-      end
+      private def load_config(path) = Glazed::Config.load(path)
 
       # @param config [Proto::V1::Config] the config
       # @param name [String, nil] requested workflow

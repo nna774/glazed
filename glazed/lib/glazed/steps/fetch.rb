@@ -58,7 +58,7 @@ module Glazed
       def call(state)
         node = state.node or raise ArgumentError, "#{name}: state has no node"
         progress = ->(message) { @context.notify(level: 'info', step: name, node: node.name, message:) } #: ^(String) -> void
-        config = Collector.new(node:, timeout: @timeout, progress:).call
+        config = Collector.new(node:, timeout: @timeout, progress:, secrets: @context.secrets).call
         result = @storage.write(key: Storages.key_for(node), content: config, message: "#{node.name}: #{name}")
         with_artifacts(state, @output => stored(@storage_name, result))
       end

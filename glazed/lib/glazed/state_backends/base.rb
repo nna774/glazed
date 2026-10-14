@@ -13,7 +13,8 @@ module Glazed
     # Records change only through read-modify-write blocks, which a backend may
     # run more than once when another process changed the records meanwhile,
     # so a block must compute its result from the record it is given alone.
-    # Subclasses implement {.from_proto}, {#update_all}, {#list_due} and {#list}.
+    # Subclasses implement {.from_proto}, {#update_all}, {#list_due}, {#list}
+    # and {#update_wakeup}.
     class Base
       #: type updater = ^(String node, Proto::V1::NodeSchedule? record) -> Proto::V1::NodeSchedule?
 
@@ -61,6 +62,15 @@ module Glazed
       # @return [Array<Proto::V1::NodeSchedule>] every record of the workflow, by node name
       #: (String workflow) -> Array[Proto::V1::NodeSchedule]
       def list(workflow) = raise NotImplementedError
+
+      # Replaces the record of the waiting coordinator execution with what the
+      # block returns, with the same guarantees as {#update_all}.
+      #
+      # @yieldparam record [Proto::V1::Wakeup, nil] the current record, or nil when there is none
+      # @yieldreturn [Proto::V1::Wakeup, nil] the new record, or nil to delete it
+      # @return [Proto::V1::Wakeup, nil] the record held afterwards
+      #: () { (Proto::V1::Wakeup? record) -> Proto::V1::Wakeup? } -> Proto::V1::Wakeup?
+      def update_wakeup(&) = raise NotImplementedError
 
       # Releases resources held by the backend.
       #

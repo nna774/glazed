@@ -137,4 +137,52 @@ RSpec.describe Glazed::Orchestrator::Policy do
       expect(result.due_at.to_time).to eq(t0)
     end
   end
+  describe '.arm' do
+    def wakeup(owner, wake_at, expires_at = wake_at + 3600) = Glazed::Proto::V1::Wakeup.new(owner:, wake_at: ts(wake_at), expires_at: ts(expires_at))
+
+    def arm(record, token: 'me', next_due: t0 + 60, cycle: 0, now: t0)
+      described_class.arm(record, token:, next_due:, now:, gap: 30, grace: 3600, cycle:, max_cycles: 3)
+    end
+
+    it 'waits for the next due node when nobody waits' do
+      record, wake = arm(nil)
+      expect(wake).to eq(t0 + 60)
+      expect(record.to_h).to include(owner: 'me', wake_at: {seconds: t0.to_i + 60}, expires_at: {seconds: t0.to_i + 3660})
+    end
+
+    it 'runs a node due already right away on the first cycle' do
+      expect(arm(nil, next_due: t0 - 5).last).to eq(t0)
+    end
+
+    it 'waits at least the gap on later cycles' do
+      expect(arm(nil, next_due: t0 + 5, cycle: 1).last).to eq(t0 + 30)
+    end
+
+    it 'ends when another live waiter wakes earlier or at the same time' do
+      other = wakeup('other', t0 + 60)
+      expect(arm(other)).to eq([other, nil])
+      expect(arm(other, next_due: t0 + 100)).to eq([other, nil])
+    end
+
+    it 'takes over from a waiter waking later' do
+      record, wake = arm(wakeup('other', t0 + 600))
+      expect([record.owner, wake]).to eq(['me', t0 + 60])
+    end
+
+    it 'takes over from a waiter presumed lost' do
+      expect(arm(wakeup('other', t0 - 10, t0)).first.owner).to eq('me')
+    end
+
+    it 'moves its own wake time later' do
+      record, wake = arm(wakeup('me', t0), next_due: t0 + 600, cycle: 1)
+      expect([record.owner, wake]).to eq(['me', t0 + 600])
+    end
+
+    it 'gives up its record when nothing is due, or after the last cycle' do
+      expect(arm(wakeup('me', t0), next_due: nil)).to eq([nil, nil])
+      expect(arm(wakeup('me', t0), cycle: 3)).to eq([nil, nil])
+      other = wakeup('other', t0)
+      expect(arm(other, next_due: nil)).to eq([other, nil])
+    end
+  end
 end

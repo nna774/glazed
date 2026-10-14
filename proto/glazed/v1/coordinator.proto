@@ -1,0 +1,115 @@
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package glazed.v1;
+
+import "buf/validate/validate.proto";
+import "glazed/v1/orchestrator.proto";
+import "glazed/v1/steps.proto";
+import "google/protobuf/timestamp.proto";
+
+option ruby_package = "Glazed::Proto::V1";
+
+// One call of an external coordinator, such as AWS Step Functions, into glazed.
+// A coordinator execution checks when to run, waits, prepares batches of due
+// nodes, runs each step, completes the batches, and checks again.
+message CoordinatorTask {
+  // What to do.
+  oneof task {
+    option (buf.validate.oneof).required = true;
+    // Apply signals and decide whether and until when to wait. Returns Armed.
+    CheckTask check = 1;
+    // Lease due nodes of every orchestrated workflow. Returns PreparedBatches.
+    PrepareTask prepare = 2;
+    // Run a per-node step for one node. Returns NodeOutcome.
+    NodeStepTask node_step = 3;
+    // Run a batch step. Returns Batch.
+    BatchStepTask batch_step = 4;
+    // Record the outcome of a batch. Returns Batch.
+    CompleteTask complete = 5;
+  }
+}
+
+// Applies signals, follows the inventory, and decides whether the execution
+// waits for the next due node or ends because another execution already waits.
+message CheckTask {
+  // Signals to apply.
+  repeated Signal signals = 1;
+  // Identifies the execution among waiters.
+  string token = 2 [(buf.validate.field).string.min_len = 1];
+  // Times the execution has run due nodes already.
+  uint32 cycle = 3;
+  // Seconds after waking until another execution may take over. The longest
+  // lease_seconds of the orchestrated workflows is used when 0.
+  uint32 grace_seconds = 4;
+  // Cycles after which the execution ends. 20 is used when 0.
+  uint32 max_cycles = 5;
+}
+
+// Outcome of a CheckTask.
+message Armed {
+  // When to wake up and prepare batches. The execution ends when unset.
+  google.protobuf.Timestamp wait_until = 1;
+}
+
+// Leases due nodes of every orchestrated workflow.
+message PrepareTask {}
+
+// Batches leased by a PrepareTask.
+message PreparedBatches {
+  // Batch of each orchestrated workflow, by workflow name; without nodes when none is due.
+  map<string, Batch> batches = 1;
+}
+
+// Nodes of a workflow leased together, and how far each got.
+message Batch {
+  // Name of the workflow.
+  string workflow = 1 [(buf.validate.field).string.min_len = 1];
+  // Identifier the nodes are leased under.
+  string owner = 2;
+  // Outcome of each node so far.
+  repeated NodeOutcome nodes = 3;
+  // Error of a failed batch step, which fails every node; empty while none failed.
+  string error = 4;
+}
+
+// State of a node after the steps run so far, or the step that failed it.
+message NodeOutcome {
+  // The node and its artifacts.
+  NodeState state = 1 [(buf.validate.field).required = true];
+  // Step that failed the node; unset while it has not failed.
+  StepFailure failure = 2;
+}
+
+// A step failing a node.
+message StepFailure {
+  // Name of the step.
+  string step = 1;
+  // What went wrong.
+  string error = 2;
+}
+
+// Runs a per-node step for one node.
+message NodeStepTask {
+  // Name of the workflow.
+  string workflow = 1 [(buf.validate.field).string.min_len = 1];
+  // Name of the step.
+  string step = 2 [(buf.validate.field).string.min_len = 1];
+  // The node's outcome so far. A failed node passes through unchanged.
+  NodeOutcome outcome = 3 [(buf.validate.field).required = true];
+}
+
+// Runs a batch step with the nodes that have not failed.
+message BatchStepTask {
+  // Name of the step.
+  string step = 1 [(buf.validate.field).string.min_len = 1];
+  // The batch so far. A failed batch passes through unchanged.
+  Batch batch = 2 [(buf.validate.field).required = true];
+}
+
+// Records the outcome of every node of a batch and schedules its next run.
+message CompleteTask {
+  // The batch after its last step.
+  Batch batch = 1 [(buf.validate.field).required = true];
+}

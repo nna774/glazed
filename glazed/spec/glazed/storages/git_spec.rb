@@ -4,6 +4,7 @@
 
 require 'open3'
 require 'tmpdir'
+require 'glazed/storage_context'
 require 'glazed/storages/git'
 
 RSpec.describe Glazed::Storages::Git do
@@ -82,6 +83,28 @@ RSpec.describe Glazed::Storages::Git do
     expect { storage.read(pointer) }.to raise_error(described_class::CommandFailed, /git show failed/)
   end
 
+  context 'with a path prefix' do
+    let(:storage) { described_class.new(path:, subdirectory: 'network/glazed/') }
+
+    it 'places files under the prefix and names keys without it in the message' do
+      keys = nil
+      result = storage.write_all([['core/rt1', "1\n"]], message: ->(changed) { 'x'.tap { keys = changed } }).first
+      expect(keys).to eq(['core/rt1'])
+      expect(location(result.pointer).path).to eq('network/glazed/core/rt1')
+      expect(git('ls-files')).to eq("network/glazed/core/rt1\n")
+      expect(storage.read(result.pointer)).to eq("1\n")
+    end
+
+    it 'reports unchanged content as unchanged' do
+      storage.write(key: 'rt1', content: "x\n", message: 'x')
+      expect(storage.write(key: 'rt1', content: "x\n", message: 'x')).not_to be_changed
+    end
+
+    it 'rejects a prefix that could escape the repository' do
+      expect { described_class.new(path:, subdirectory: '../x') }.to raise_error(Glazed::Storages::Base::InvalidKey)
+    end
+  end
+
   context 'with a remote' do
     let(:remote) { File.join(@dir, 'remote.git').tap { system('git', 'init', '--quiet', '--bare', it, exception: true) } }
 
@@ -95,8 +118,13 @@ RSpec.describe Glazed::Storages::Git do
 
   describe '.from_proto' do
     it 'fills defaults for empty fields' do
-      storage = described_class.from_proto(Glazed::Proto::V1::GitStorage.new(path: '/x'))
-      expect([storage.path, storage.branch, storage.remote]).to eq(['/x', 'main', nil])
+      storage = described_class.from_proto(Glazed::Proto::V1::GitStorage.new(path: '/x'), context: Glazed::StorageContext.new)
+      expect([storage.path, storage.branch, storage.remote, storage.subdirectory]).to eq(['/x', 'main', nil, nil])
+    end
+
+    it 'reads the path prefix' do
+      storage = described_class.from_proto(Glazed::Proto::V1::GitStorage.new(path: '/x', subdirectory: 'network/glazed'), context: Glazed::StorageContext.new)
+      expect(storage.subdirectory).to eq('network/glazed')
     end
   end
 end

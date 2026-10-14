@@ -99,14 +99,14 @@ The comments are for this README only: ProtoJSON files must not contain them.
 BACKUP_PASSWORD=... ENABLE_SECRET=... GLAZED_HMAC_KEY=... bundle exec glazed run -c glazed.json
 ```
 
-Each node and step logs one JSON line on stderr, and the run ends with a summary such as `completed 2 of 2 nodes, 1 changed, 0 failed`. Run it from cron or a systemd timer to keep the copies current, or keep it running with `glazed orchestrate` ([docs/orchestrator.md](docs/orchestrator.md)), which runs workflows for each node on an interval and soon after a signal such as `glazed signal sw1`.
+Each node and step logs one JSON line on stderr, and the run ends with a summary such as `completed 2 of 2 nodes, 1 changed, 0 failed`. Run it from cron or a systemd timer to keep the copies current, or keep it running with `glazed orchestrate` ([docs/orchestrator.md](docs/orchestrator.md)), which runs workflows for each node on an interval and soon after a signal such as `glazed signal sw1`. The same workflows can run on AWS Step Functions with `glazed-aws` ([docs/aws-step-functions.md](docs/aws-step-functions.md)).
 
 ## Usage
 
 ```
 glazed run -c CONFIG [-w WORKFLOW] [--only NAME,...] [-j N]
 glazed orchestrate -c CONFIG [-j N]
-glazed signal -c CONFIG [-w WORKFLOW,...] [--source SOURCE] [--now] NAME...
+glazed signal -c CONFIG [-w WORKFLOW,...] [--source SOURCE] [--now] (NAME... | --all)
 glazed status -c CONFIG [-w WORKFLOW,...] [--only NAME,...] [--failing] [--json]
 glazed version
 ```
@@ -122,7 +122,7 @@ The exit status of `glazed run` is 0 when every node completed, and 1 when a nod
 
 ## Configuration
 
-Configuration and inventory files are ProtoJSON of the messages in [`proto/glazed/v1`](proto/glazed/v1), with proto (snake_case) field names. Unknown fields are rejected, every message is checked against the `buf.validate` rules in its schema (violations are reported with their field paths, such as `workflows["daily"].steps[0].fetch.storage`), and relative paths resolve from the current directory. Secrets (`glazed.v1.SecretRef`) are written as `{"value": "..."}`, `{"env": "NAME"}`, `{"file": "/path"}` or `{"plugin": {...}}` (see [Extending](#extending)), and are resolved only when used.
+Configuration and inventory files are ProtoJSON of the messages in [`proto/glazed/v1`](proto/glazed/v1), with proto (snake_case) field names. Unknown fields are rejected, every message is checked against the `buf.validate` rules in its schema (violations are reported with their field paths, such as `workflows["daily"].steps[0].fetch.storage`), and relative paths resolve from the current directory. Secrets (`glazed.v1.SecretRef`) are written as `{"value": "..."}`, `{"env": "NAME"}`, `{"file": "/path"}`, `{"ssm": {"name": "/glazed/password"}}` (an AWS Systems Manager parameter, with `glazed-aws`) or `{"plugin": {...}}` (see [Extending](#extending)), and are resolved only when used. An `ssm` value is fetched once and reused for `cache_seconds` (default 300).
 
 ### Inventory
 
@@ -166,7 +166,7 @@ In both, `defaults` fill the fields each node leaves unset, with `params` and `s
 {"memory": {}}
 ```
 
-For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed after each commit when set. For `github`, `api_url` points to GitHub Enterprise Server, and `author_name`/`author_email` override the token owner. For `s3`, the region defaults to the SDK's. `memory` content is gone when the process exits, so only steps of the same `glazed run` can read it; an orchestrator running steps as separate processes needs a persistent storage between them.
+For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed after each commit when set. For both `git` and `github`, `subdirectory` places files in a directory of the repository, such as `network/glazed`, instead of its root. For `github`, `api_url` points to GitHub Enterprise Server, and `author_name`/`author_email` override the token owner. For `s3`, the region defaults to the SDK's. `memory` content is gone when the process exits, so only steps of the same `glazed run` can read it; an orchestrator running steps as separate processes needs a persistent storage between them.
 
 ### Workflows
 
@@ -230,7 +230,7 @@ The config then requires the gem and names the settings type with `@type`:
 }
 ```
 
-Storages register with `Glazed::Storages.register` (a `Glazed::Storages::Base` wrapping its own location message in `glazed.v1.Pointer` with `pointer_to` and `location_of`), steps with `Glazed::Steps.register` (a `Glazed::Steps::NodeStep` or `BatchStep`), and secret sources with `Glazed::Secrets.register` (a `Glazed::Secrets::Base` returning the value). For changes too small for a gem, the `shell` and `batch_shell` steps run scripts instead.
+Storages register with `Glazed::Storages.register` (a `Glazed::Storages::Base` wrapping its own location message in `glazed.v1.Pointer` with `pointer_to` and `location_of`, built with `from_proto(settings, context:)` whose `context.secrets` reads the secrets its settings refer to), steps with `Glazed::Steps.register` (a `Glazed::Steps::NodeStep` or `BatchStep`), and secret sources with `Glazed::Secrets.register` (a `Glazed::Secrets::Base` returning the value). For changes too small for a gem, the `shell` and `batch_shell` steps run scripts instead.
 
 ## How it works
 
@@ -254,7 +254,7 @@ Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.Batch
 - Not production-tested yet. The `ios` and `junos` dialects are tested against device captures from Oxidized's test suite; the `wlc`, `nec_ix` and `awplus` fixtures are written from command references and need checking against real devices.
 - SSH host keys are verified with net-ssh's defaults and `~/.ssh/known_hosts` unless the node sets `transport_options.ssh.verify_host_key` or the known_hosts files.
 - A node removed from the inventory leaves its file in the storages.
-- Not yet available: opening pull requests automatically, the AWS Lambda and Step Functions coordinator, and receivers turning syslog messages or SNMP traps into signals.
+- Not yet available: opening pull requests automatically, and receivers turning syslog messages or SNMP traps into signals.
 
 ## Development
 

@@ -40,6 +40,18 @@ message NodeSchedule {
   google.protobuf.Timestamp scheduled_at = 13;
 }
 
+// The coordinator execution waiting to run nodes when they become due. Only
+// one waits at a time, so coordinators started by each signal end early
+// instead of all waiting.
+message Wakeup {
+  // Identifies the waiting execution.
+  string owner = 1 [(buf.validate.field).string.min_len = 1];
+  // When the execution wakes up to run due nodes.
+  google.protobuf.Timestamp wake_at = 2 [(buf.validate.field).required = true];
+  // When another execution may take over, as this one is presumed lost.
+  google.protobuf.Timestamp expires_at = 3 [(buf.validate.field).required = true];
+}
+
 // Where orchestration state is kept.
 message StateBackendConfig {
   // Kind of state backend.
