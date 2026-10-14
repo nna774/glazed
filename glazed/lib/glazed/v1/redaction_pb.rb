@@ -8,7 +8,7 @@ require 'buf/validate/validate_pb'
 require 'glazed/v1/secret_pb'
 
 
-descriptor_data = "\n\x19glazed/v1/redaction.proto\x12\tglazed.v1\x1a\x1b\x62uf/validate/validate.proto\x1a\x16glazed/v1/secret.proto\"\x8e\x02\n\tRedaction\x12\x37\n\x04mode\x18\x01 \x01(\x0e\x32\x19.glazed.v1.Redaction.ModeB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x04mode\x12/\n\x08hmac_key\x18\x02 \x01(\x0b\x32\x14.glazed.v1.SecretRefR\x07hmacKey\"<\n\x04Mode\x12\x14\n\x10MODE_UNSPECIFIED\x10\x00\x12\x0f\n\x0bMODE_REMOVE\x10\x01\x12\r\n\tMODE_HMAC\x10\x02:Y\xbaHV\x1aT\n\x12redaction.hmac_key\x12\x18MODE_HMAC needs hmac_key\x1a$this.mode != 2 || has(this.hmac_key)B\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
+descriptor_data = "\n\x19glazed/v1/redaction.proto\x12\tglazed.v1\x1a\x1b\x62uf/validate/validate.proto\x1a\x16glazed/v1/secret.proto\"\xe5\x01\n\tRedaction\x12\x37\n\x04mode\x18\x01 \x01(\x0e\x32\x19.glazed.v1.Redaction.ModeB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x04mode\x12/\n\x08hmac_key\x18\x02 \x01(\x0b\x32\x14.glazed.v1.SecretRefR\x07hmacKey\x12\x30\n\x07secrets\x18\x03 \x03(\x0b\x32\x16.glazed.v1.ExtraSecretR\x07secrets\"<\n\x04Mode\x12\x14\n\x10MODE_UNSPECIFIED\x10\x00\x12\x0f\n\x0bMODE_REMOVE\x10\x01\x12\r\n\tMODE_HMAC\x10\x02\"\xa3\x01\n\x0b\x45xtraSecret\x12.\n\x03ref\x18\x01 \x01(\x0b\x32\x14.glazed.v1.SecretRefB\x06\xbaH\x03\xc8\x01\x01R\x03ref\x12\x16\n\x06regexp\x18\x02 \x01(\x08R\x06regexp\x12\x1c\n\tdelimiter\x18\x03 \x01(\tR\tdelimiter\x12.\n\x04note\x18\x04 \x01(\tB\x1a\xbaH\x17r\x15\x32\x13^[A-Za-z0-9_.@/-]*$R\x04noteB\x14\xea\x02\x11Glazed::Proto::V1b\x06proto3"
 
 pool = ::Google::Protobuf::DescriptorPool.generated_pool
 pool.add_serialized_file(descriptor_data)
@@ -18,6 +18,7 @@ module Glazed
     module V1
       Redaction = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.Redaction").msgclass
       Redaction::Mode = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.Redaction.Mode").enummodule
+      ExtraSecret = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("glazed.v1.ExtraSecret").msgclass
     end
   end
 end

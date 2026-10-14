@@ -11,11 +11,6 @@ option ruby_package = "Glazed::Proto::V1";
 
 // How secrets are hidden in redacted configuration.
 message Redaction {
-  option (buf.validate.message).cel = {
-    id: "redaction.hmac_key"
-    message: "MODE_HMAC needs hmac_key"
-    expression: "this.mode != 2 || has(this.hmac_key)"
-  };
   // Replacement applied to each secret.
   enum Mode {
     // Treated as MODE_REMOVE.
@@ -28,6 +23,22 @@ message Redaction {
 
   // Replacement applied to each secret.
   Mode mode = 1 [(buf.validate.field).enum.defined_only = true];
-  // HMAC key in base64, required for MODE_HMAC.
+  // HMAC key in base64, required for MODE_HMAC once a step's settings are merged with Config.redaction.
   SecretRef hmac_key = 2;
+  // Secrets to hide in addition to those the dialect locates.
+  repeated ExtraSecret secrets = 3;
+}
+
+// Secret to hide wherever it appears in a configuration, regardless of dialect.
+message ExtraSecret {
+  // Value identifying the secrets: literal text, or regular expressions when regexp is set.
+  // Every occurrence in the configuration is hidden.
+  SecretRef ref = 1 [(buf.validate.field).required = true];
+  // Treats each value of ref as a regular expression (Ruby syntax) matched against the whole configuration,
+  // hiding every match, instead of as literal text.
+  bool regexp = 2;
+  // Separates several secrets within the value of ref, such as "," or "\n". The value is one secret when empty.
+  string delimiter = 3;
+  // Shown as note= in the replacement of every secret this entry hides, to tell where it was configured.
+  string note = 4 [(buf.validate.field).string.pattern = "^[A-Za-z0-9_.@/-]*$"];
 }
