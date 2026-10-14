@@ -18,7 +18,7 @@ If you need a web UI or a REST API, Oxidized is the better choice for now. Oxidi
 | Dialect | Devices | Transports |
 |---|---|---|
 | `ios` | Cisco IOS, IOS XE | SSH, Telnet |
-| `wlc` | Cisco Wireless LAN Controller (AireOS) | SSH, Telnet |
+| `aireos` | Cisco Wireless LAN Controller (AireOS) | SSH, Telnet |
 | `junos` | Juniper Junos OS | SSH (exec channel), Telnet |
 | `nec_ix` | NEC UNIVERGE IX | SSH, Telnet |
 | `awplus` | Allied Telesis AlliedWare Plus | SSH, Telnet |
@@ -251,7 +251,7 @@ Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.Batch
 
 ## Caveats
 
-- Not production-tested yet. The `ios` and `junos` dialects are tested against device captures from Oxidized's test suite; the `wlc`, `nec_ix` and `awplus` fixtures are written from command references and need checking against real devices.
+- Not production-tested yet. The `ios` and `junos` dialects are tested against device captures from Oxidized's test suite; the `aireos`, `nec_ix` and `awplus` fixtures are written from command references and need checking against real devices.
 - SSH host keys are verified with net-ssh's defaults and `~/.ssh/known_hosts` unless the node sets `transport_options.ssh.verify_host_key` or the known_hosts files.
 - A node removed from the inventory leaves its file in the storages.
 - Not yet available: opening pull requests automatically, and receivers turning syslog messages or SNMP traps into signals.

@@ -1,3 +1,13 @@
+## [Unreleased]
+
+### Breaking changes
+
+- The `wlc` dialect is renamed `aireos` (`Glazed::Dialects::Aireos`), as Catalyst 9800 controllers run IOS XE
+
+### Enhancements
+
+- `aireos` redacts the encrypted secrets AireOS prints in its configuration, along with mgmtuser, netuser, AP mgmtuser and SNMP passwords, and SNMP community names wherever they appear
+
 ## [0.2.0] - 2026-10-15
 
 ### Breaking changes

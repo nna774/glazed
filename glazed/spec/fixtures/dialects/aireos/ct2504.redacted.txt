@@ -1,0 +1,22 @@
+# Name:"Chassis"   , DESCR:"Cisco Wireless Controller"
+# PID:AIR-CT2504-K9, VID:V06, SN:PSZ12345678
+#
+# Primary Boot Image............................... 8.10.190.0 (default) (active)
+# Backup Boot Image................................ 8.5.182.0
+#
+config sysname wlc1
+config snmp community ipaddr 192.0.2.0 255.255.255.0 [~REDACTED~]
+config snmp community create [~REDACTED~]
+config snmp community mode enable [~REDACTED~]
+config snmp v3user create monitor ro hmacsha aescfb128 [~REDACTED~]
+config radius auth add 1 192.0.2.10 1812 ascii [~REDACTED~]
+config radius auth add encrypt 2 192.0.2.11 1812 password [~REDACTED~]
+config wlan create 1 corp corp
+config wlan security wpa akm psk set-key ascii [~REDACTED~] 1
+config wlan security wpa akm psk set-key hex encrypt [~REDACTED~] 2
+config wlan enable 1
+config flexconnect group default-flex-group radius ap server-key encrypt [~REDACTED~]
+config mgmtuser add encrypt admin [~REDACTED~] read-write
+config mgmtuser add operator [~REDACTED~] read-only
+config netuser add guest [~REDACTED~] wlan 1 userType guest lifetime 86400
+config ap mgmtuser add encrypt username apadmin password [~REDACTED~] all
