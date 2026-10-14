@@ -31,19 +31,12 @@ message Redaction {
 
 // Secret to hide wherever it appears in a configuration, regardless of dialect.
 message ExtraSecret {
-  option (buf.validate.message).cel = {
-    id: "extra_secret.delimiter"
-    message: "delimiter goes with ref"
-    expression: "this.delimiter == '' || has(this.ref)"
-  };
-  // What identifies the secret.
-  oneof source {
-    option (buf.validate.oneof).required = true;
-    // Every occurrence of the referenced value is hidden, after splitting it by delimiter when set.
-    SecretRef ref = 1;
-    // Regular expression (Ruby syntax) matched against the whole configuration. Every match is hidden.
-    string regexp = 2 [(buf.validate.field).string.min_len = 1];
-  }
+  // Value identifying the secrets: literal text, or regular expressions when regexp is set.
+  // Every occurrence in the configuration is hidden.
+  SecretRef ref = 1 [(buf.validate.field).required = true];
+  // Treats each value of ref as a regular expression (Ruby syntax) matched against the whole configuration,
+  // hiding every match, instead of as literal text.
+  bool regexp = 2;
   // Separates several secrets within the value of ref, such as "," or "\n". The value is one secret when empty.
   string delimiter = 3;
   // Shown as note= in the replacement of every secret this entry hides, to tell where it was configured.

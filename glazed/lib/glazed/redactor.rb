@@ -76,15 +76,17 @@ module Glazed
     private_class_method def self.extra_pattern(extra)
       whole_match = ->(match) { match.begin(0)...match.end(0) } #: Dialect::SensitivePattern::determiner
       note = extra.note.empty? ? nil : extra.note
-      if (ref = extra.ref)
-        value = Secret.new(ref).value
-        values = (extra.delimiter.empty? ? [value] : value.split(extra.delimiter)).reject(&:empty?)
-        return nil if values.empty?
+      ref = extra.ref or raise InvalidConfiguration, 'redaction secret has no ref'
+      value = Secret.new(ref).value
+      values = (extra.delimiter.empty? ? [value] : value.split(extra.delimiter)).reject(&:empty?)
+      return nil if values.empty?
 
-        Dialect::SensitivePattern.new(pattern: Regexp.union(values.sort_by { -it.size }), determiner: whole_match, note:)
+      pattern = if extra.regexp
+        Regexp.union(values.map { Regexp.new(it) })
       else
-        Dialect::SensitivePattern.new(pattern: Regexp.new(extra.regexp), determiner: whole_match, note:)
+        Regexp.union(values.sort_by { -it.size })
       end
+      Dialect::SensitivePattern.new(pattern:, determiner: whole_match, note:)
     rescue RegexpError => e
       raise InvalidConfiguration, "invalid regexp in redaction secrets: #{e.message}"
     end

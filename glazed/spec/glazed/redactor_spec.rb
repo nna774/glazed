@@ -88,7 +88,7 @@ RSpec.describe Glazed::Redactor do
       def redaction(**) = Glazed::Proto::V1::Redaction.new(**)
 
       it 'hides every match of an inline regexp' do
-        r = redaction(secrets: [{regexp: 'token-\d+'}])
+        r = redaction(secrets: [{ref: {value: 'token-\d+'}, regexp: true}])
         expect(described_class.from_proto(r, patterns: []).call("a token-1 b token-22\n")).to eq("a [~REDACTED~] b [~REDACTED~]\n")
       end
 
@@ -102,14 +102,22 @@ RSpec.describe Glazed::Redactor do
         expect(described_class.from_proto(r, patterns: []).call("abcdef xyz abc q\n")).to eq("[~REDACTED~] [~REDACTED~] [~REDACTED~] q\n")
       end
 
+      it 'reads delimited regexps from a secret' do
+        ENV['GLAZED_SPEC_REGEXPS'] = 'tok-\d+;key=\w+'
+        r = redaction(secrets: [{ref: {env: 'GLAZED_SPEC_REGEXPS'}, regexp: true, delimiter: ';'}])
+        expect(described_class.from_proto(r, patterns: []).call('tok-12 key=ab x')).to eq('[~REDACTED~] [~REDACTED~] x')
+      ensure
+        ENV.delete('GLAZED_SPEC_REGEXPS')
+      end
+
       it 'adds the note of each entry to its replacements' do
-        r = redaction(secrets: [{regexp: 'token-\d+', note: 'api-token'}, {ref: {value: 'a,b'}, delimiter: ',', note: 'shared'}, {regexp: 'plain'}])
+        r = redaction(secrets: [{ref: {value: 'token-\d+'}, regexp: true, note: 'api-token'}, {ref: {value: 'a,b'}, delimiter: ',', note: 'shared'}, {ref: {value: 'plain'}}])
         expect(described_class.from_proto(r, patterns: []).call('token-1 a b plain'))
           .to eq('[~REDACTED:note=api-token~] [~REDACTED:note=shared~] [~REDACTED:note=shared~] [~REDACTED~]')
       end
 
       it 'puts the note after the digest in hmac mode' do
-        r = redaction(mode: :MODE_HMAC, hmac_key: {value: ['k'].pack('m0')}, secrets: [{regexp: 'tok', note: 'n'}])
+        r = redaction(mode: :MODE_HMAC, hmac_key: {value: ['k'].pack('m0')}, secrets: [{ref: {value: 'tok'}, regexp: true, note: 'n'}])
         expect(described_class.from_proto(r, patterns: []).call('tok')).to match(/\A\[~REDACTED:dgst=[\w-]{11}:note=n~\]\z/)
       end
 
@@ -119,7 +127,7 @@ RSpec.describe Glazed::Redactor do
       end
 
       it 'reports an invalid regexp' do
-        r = redaction(secrets: [{regexp: '('}])
+        r = redaction(secrets: [{ref: {value: '('}, regexp: true}])
         expect { described_class.from_proto(r, patterns: []) }.to raise_error(described_class::InvalidConfiguration, /regexp/)
       end
 
@@ -129,8 +137,8 @@ RSpec.describe Glazed::Redactor do
       end
 
       it 'combines global and per-step secrets and falls back to the global mode and key' do
-        global = redaction(mode: :MODE_HMAC, hmac_key: {value: ['k'].pack('m0')}, secrets: [{regexp: 'aaa'}])
-        step = redaction(secrets: [{regexp: 'bbb'}])
+        global = redaction(mode: :MODE_HMAC, hmac_key: {value: ['k'].pack('m0')}, secrets: [{ref: {value: 'aaa'}, regexp: true}])
+        step = redaction(secrets: [{ref: {value: 'bbb'}, regexp: true}])
         redactor = described_class.from_proto(step, patterns: [], global:)
         expect(redactor.mode).to eq(:hmac)
         expect(redactor.call('aaa bbb ccc')).to match(/\A\[~REDACTED:dgst=[\w-]{11}~\] \[~REDACTED:dgst=[\w-]{11}~\] ccc\z/)

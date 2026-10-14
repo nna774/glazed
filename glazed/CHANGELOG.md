@@ -2,7 +2,7 @@
 
 ### Enhancements
 
-- Redaction hides additional secrets given as inline regexps or secret references, optionally split by a delimiter, in a `redact` step or in the top-level `redaction` shared by all of them
+- Redaction hides additional secrets given as secret references, as literal text or regular expressions and optionally split by a delimiter, in a `redact` step or in the top-level `redaction` shared by all of them
 
 ## [0.1.0] - 2026-10-14
 

@@ -41,7 +41,7 @@ RSpec.describe Glazed::Steps::Redact do
   end
 
   it 'applies the redaction shared through the context' do
-    shared = Glazed::Proto::V1::Redaction.new(secrets: [{regexp: 'vault'}])
+    shared = Glazed::Proto::V1::Redaction.new(secrets: [{ref: {value: 'vault'}, regexp: true}])
     shared_context = Glazed::StepContext.new(storages: {'vault' => raw, 'staging' => Glazed::Storages::Git.new(path: File.join(@dir, 'staging'))}, redaction: shared)
     shared_step = described_class.from_proto('redact', settings, context: shared_context)
     pointer = raw.write(key: 'rt1', content: "password hunter2\nnote vault\n", message: 'raw').pointer
