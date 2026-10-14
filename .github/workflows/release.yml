@@ -64,10 +64,8 @@ jobs:
             const { VERSION, GEM_DIR } = process.env;
             const { owner, repo } = context.repo;
 
-            // Generate notes first so GitHub computes the "Full Changelog" compare link.
-            const { data: release } = await github.rest.repos.createRelease({
-              owner, repo, tag_name: tag, name: tag, draft: true, generate_notes: true,
-            });
+            // Generated notes carry the "Full Changelog" compare link.
+            const { data: notes } = await github.rest.repos.generateReleaseNotes({ owner, repo, tag_name: tag });
 
             // Extract this version's section from the gem CHANGELOG.md.
             const lines = fs.readFileSync(`${GEM_DIR}/CHANGELOG.md`, 'utf8').split('\n');
@@ -77,11 +75,11 @@ jobs:
             const end = rest.findIndex((l) => l.startsWith('## ['));
             const section = (end === -1 ? rest : rest.slice(0, end)).join('\n').trim();
 
-            // Keep the auto-generated "Full Changelog" link.
-            const fullChangelog = (release.body || '').split('\n').find((l) => l.includes('Full Changelog'));
+            const fullChangelog = notes.body.split('\n').find((l) => l.includes('Full Changelog'));
             const body = fullChangelog ? `${section}\n\n${fullChangelog}` : section;
 
-            await github.rest.repos.updateRelease({ owner, repo, release_id: release.id, body });
+            // Created in one call, as updating a draft without tag_name detaches it from its tag.
+            await github.rest.repos.createRelease({ owner, repo, tag_name: tag, name: tag, draft: true, body });
       - name: Publish to RubyGems
         uses: rubygems/release-gem@7f9650160c1a4e7989fdc9855807bdbd421d8b6b # v1.4.1
         with:
@@ -131,10 +129,10 @@ jobs:
             const { owner, repo } = context.repo;
             const image = `ghcr.io/${owner.toLowerCase()}/glazed-lambda:${VERSION}`;
 
-            // Generate notes first so GitHub computes the "Full Changelog" compare link.
-            const { data: release } = await github.rest.repos.createRelease({
-              owner, repo, tag_name: process.env.GITHUB_REF_NAME, name: `Lambda image ${VERSION}`,
-              draft: true, generate_notes: true,
+            const tag = process.env.GITHUB_REF_NAME;
+            const { data: notes } = await github.rest.repos.generateReleaseNotes({ owner, repo, tag_name: tag });
+            const body = `Container image for AWS Lambda: \`${image}\`\n\n${notes.body}`;
+            // Created in one call, as updating a draft without tag_name detaches it from its tag.
+            await github.rest.repos.createRelease({
+              owner, repo, tag_name: tag, name: `Lambda image ${VERSION}`, draft: true, body,
             });
-            const body = `Container image for AWS Lambda: \`${image}\`\n\n${release.body || ''}`;
-            await github.rest.repos.updateRelease({ owner, repo, release_id: release.id, body });
