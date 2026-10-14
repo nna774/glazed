@@ -106,7 +106,7 @@ Changing workflows or their steps also needs the state machine definition genera
 
 IAM permissions:
 
-- **The function:** S3 read and write for the state and the storages, `s3:GetObject` on the config object, `ssm:GetParameter` on the secret parameters, and `kms:Decrypt` on the key encrypting them when it is not the AWS managed key.
+- **The function:** S3 read and write for the state and the storages (`s3:ListBucket`, `s3:GetObject`, `s3:PutObject`, and `s3:GetObjectVersion` on a versioned bucket, where steps read the version an earlier step wrote), `s3:GetObject` on the config object, `ssm:GetParameter` on the secret parameters, and `kms:Decrypt` on the key encrypting them when it is not the AWS managed key.
 - **The state machine role:** `lambda:InvokeFunction` on the function.
 - **The roles of EventBridge rules, Pipes and Scheduler schedules:** `states:StartExecution` on the state machine.
 
