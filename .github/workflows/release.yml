@@ -66,7 +66,7 @@ jobs:
 
             // Generate notes first so GitHub computes the "Full Changelog" compare link.
             const { data: release } = await github.rest.repos.createRelease({
-              owner, repo, tag_name: tag, draft: true, generate_notes: true,
+              owner, repo, tag_name: tag, name: tag, draft: true, generate_notes: true,
             });
 
             // Extract this version's section from the gem CHANGELOG.md.
