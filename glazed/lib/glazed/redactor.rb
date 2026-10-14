@@ -15,7 +15,8 @@ module Glazed
   # Only the secret within each match is replaced, by +[~REDACTED~]+ in :remove
   # mode or +[~REDACTED:dgst=...~]+ in :hmac mode. The digest is a truncated
   # HMAC-SHA256 of the secret in unpadded base64url, so a changed secret shows
-  # up in diffs without being revealed.
+  # up in diffs without being revealed. A pattern with a note adds +:note=...+
+  # before the closing +~]+.
   #
   # @example
   #   Glazed::Redactor.new(patterns: Glazed::Dialects::Ios.sensitive_patterns, mode: :remove).call(config)
@@ -74,14 +75,15 @@ module Glazed
     #: (Proto::V1::ExtraSecret extra) -> Dialect::SensitivePattern?
     private_class_method def self.extra_pattern(extra)
       whole_match = ->(match) { match.begin(0)...match.end(0) } #: Dialect::SensitivePattern::determiner
+      note = extra.note.empty? ? nil : extra.note
       if (ref = extra.ref)
         value = Secret.new(ref).value
         values = (extra.delimiter.empty? ? [value] : value.split(extra.delimiter)).reject(&:empty?)
         return nil if values.empty?
 
-        Dialect::SensitivePattern.new(pattern: Regexp.union(values.sort_by { -it.size }), determiner: whole_match)
+        Dialect::SensitivePattern.new(pattern: Regexp.union(values.sort_by { -it.size }), determiner: whole_match, note:)
       else
-        Dialect::SensitivePattern.new(pattern: Regexp.new(extra.regexp), determiner: whole_match)
+        Dialect::SensitivePattern.new(pattern: Regexp.new(extra.regexp), determiner: whole_match, note:)
       end
     rescue RegexpError => e
       raise InvalidConfiguration, "invalid regexp in redaction secrets: #{e.message}"
@@ -110,31 +112,33 @@ module Glazed
     #: (String text) -> String
     def call(text)
       result = text.dup
-      secret_ranges(text).reverse_each do |start, finish|
-        result[start...finish] = replacement(text[start...finish] || '')
+      secret_ranges(text).reverse_each do |start, finish, note|
+        result[start...finish] = replacement(text[start...finish] || '', note)
       end
       result
     end
 
     # @param text [String] configuration text
-    # @return [Array<Array(Integer, Integer)>] non-overlapping secret start and end offsets, in order
-    #: (String text) -> Array[[Integer, Integer]]
+    # @return [Array<Array(Integer, Integer, String?)>] non-overlapping secret start and end offsets, each with the
+    #   note of the pattern that located it, in order
+    #: (String text) -> Array[[Integer, Integer, String?]]
     private def secret_ranges(text)
       ranges = @patterns.flat_map do |sensitive|
         matches(sensitive.pattern, text).filter_map do |match|
-          case (secret = sensitive.determiner.call(match))
+          range = case (secret = sensitive.determiner.call(match))
           when Range
             start = secret.begin
             finish = secret.exclude_end? ? secret.end : secret.end + 1
             [start, finish] if finish > start
           when String then locate(match, secret) unless secret.empty?
           end
+          [range[0], range[1], sensitive.note] if range
         end
       end
-      kept = [] #: Array[[Integer, Integer]]
-      ranges.sort_by { |start, finish| [start, -finish] }.each do |start, finish|
+      kept = [] #: Array[[Integer, Integer, String?]]
+      ranges.sort_by { |start, finish,| [start, -finish] }.each do |range|
         last = kept.last
-        kept << [start, finish] if last.nil? || start >= last[1]
+        kept << range if last.nil? || range[0] >= last[1]
       end
       kept
     end
@@ -172,13 +176,17 @@ module Glazed
     end
 
     # @param secret [String] secret to hide
+    # @param note [String, nil] note of the pattern that located the secret
     # @return [String] its replacement
-    #: (String secret) -> String
-    private def replacement(secret)
-      return REMOVED unless @mode == :hmac
-
-      digest = OpenSSL::HMAC.digest('SHA256', @key.to_s, secret).byteslice(0, HMAC_BYTES)
-      "[~REDACTED:dgst=#{[digest].pack('m0').tr('+/', '-_').delete('=')}~]"
+    #: (String secret, String? note) -> String
+    private def replacement(secret, note)
+      fields = [] #: Array[String]
+      if @mode == :hmac
+        digest = OpenSSL::HMAC.digest('SHA256', @key.to_s, secret).byteslice(0, HMAC_BYTES)
+        fields << "dgst=#{[digest].pack('m0').tr('+/', '-_').delete('=')}"
+      end
+      fields << "note=#{note}" if note
+      fields.empty? ? REMOVED : "[~REDACTED:#{fields.join(':')}~]"
     end
   end
 end

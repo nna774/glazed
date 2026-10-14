@@ -46,4 +46,6 @@ message ExtraSecret {
   }
   // Separates several secrets within the value of ref, such as "," or "\n". The value is one secret when empty.
   string delimiter = 3;
+  // Shown as note= in the replacement of every secret this entry hides, to tell where it was configured.
+  string note = 4 [(buf.validate.field).string.pattern = "^[A-Za-z0-9_.@/-]*$"];
 }

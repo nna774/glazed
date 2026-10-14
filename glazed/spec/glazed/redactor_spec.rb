@@ -102,6 +102,17 @@ RSpec.describe Glazed::Redactor do
         expect(described_class.from_proto(r, patterns: []).call("abcdef xyz abc q\n")).to eq("[~REDACTED~] [~REDACTED~] [~REDACTED~] q\n")
       end
 
+      it 'adds the note of each entry to its replacements' do
+        r = redaction(secrets: [{regexp: 'token-\d+', note: 'api-token'}, {ref: {value: 'a,b'}, delimiter: ',', note: 'shared'}, {regexp: 'plain'}])
+        expect(described_class.from_proto(r, patterns: []).call('token-1 a b plain'))
+          .to eq('[~REDACTED:note=api-token~] [~REDACTED:note=shared~] [~REDACTED:note=shared~] [~REDACTED~]')
+      end
+
+      it 'puts the note after the digest in hmac mode' do
+        r = redaction(mode: :MODE_HMAC, hmac_key: {value: ['k'].pack('m0')}, secrets: [{regexp: 'tok', note: 'n'}])
+        expect(described_class.from_proto(r, patterns: []).call('tok')).to match(/\A\[~REDACTED:dgst=[\w-]{11}:note=n~\]\z/)
+      end
+
       it 'hides nothing for an empty referenced value' do
         r = redaction(secrets: [{ref: {value: ''}}])
         expect(described_class.from_proto(r, patterns: []).call("text\n")).to eq("text\n")

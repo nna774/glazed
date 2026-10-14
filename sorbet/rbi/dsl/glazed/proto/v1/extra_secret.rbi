@@ -9,14 +9,18 @@ class Glazed::Proto::V1::ExtraSecret < Google::Protobuf::AbstractMessage
   sig do
     params(
       delimiter: T.nilable(String),
+      note: T.nilable(String),
       ref: T.nilable(Glazed::Proto::V1::SecretRef),
       regexp: T.nilable(String)
     ).void
   end
-  def initialize(delimiter: nil, ref: nil, regexp: nil); end
+  def initialize(delimiter: nil, note: nil, ref: nil, regexp: nil); end
 
   sig { void }
   def clear_delimiter; end
+
+  sig { void }
+  def clear_note; end
 
   sig { void }
   def clear_ref; end
@@ -35,6 +39,12 @@ class Glazed::Proto::V1::ExtraSecret < Google::Protobuf::AbstractMessage
 
   sig { returns(Object) }
   def has_regexp?; end
+
+  sig { returns(String) }
+  def note; end
+
+  sig { params(value: String).void }
+  def note=(value); end
 
   sig { returns(T.nilable(Glazed::Proto::V1::SecretRef)) }
   def ref; end
