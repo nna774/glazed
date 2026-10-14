@@ -79,19 +79,26 @@ message PublishStep {
   string output = 3;
 }
 
-// Per node: runs a command with /bin/sh -c. The input artifact's content is on
-// stdin and stdout becomes the output artifact; both are optional. GLAZED_STEP,
-// GLAZED_NODE_NAME, GLAZED_NODE_GROUP, GLAZED_NODE_DIALECT, GLAZED_NODE_HOST and
-// GLAZED_NODE (the node as ProtoJSON, secrets unresolved) are set. A non-zero
-// exit fails the node.
+// Per node: runs a command, with /bin/sh -c for run. The input artifact's
+// content is on stdin and stdout becomes the output artifact; both are
+// optional. GLAZED_STEP, GLAZED_NODE_NAME, GLAZED_NODE_GROUP,
+// GLAZED_NODE_DIALECT, GLAZED_NODE_HOST and GLAZED_NODE (the node as
+// ProtoJSON, secrets unresolved) are set. A non-zero exit fails the node.
 message ShellStep {
   option (buf.validate.message).cel = {
     id: "shell_step.output_storage"
     message: "output and storage go together"
     expression: "(this.output == '') == (this.storage == '')"
   };
+  option (buf.validate.message).oneof = {
+    fields: [
+      "run",
+      "command"
+    ]
+    required: true
+  };
   // Command line, run by /bin/sh -c.
-  string run = 1 [(buf.validate.field).string.min_len = 1];
+  string run = 1;
   // Name of the artifact whose content is written to stdin. stdin is empty when unset.
   string input = 2;
   // Name of the artifact to produce from stdout. stdout is discarded when unset.
@@ -100,14 +107,25 @@ message ShellStep {
   string storage = 4;
   // Seconds before the command is killed. 300 is used when 0.
   uint32 timeout_seconds = 5;
+  // Program and its arguments, executed without a shell.
+  repeated string command = 6 [(buf.validate.field).repeated.items.string.min_len = 1];
 }
 
-// Batch: runs a command with /bin/sh -c once, with the BatchState of every
-// node that got this far as ProtoJSON on stdin and GLAZED_STEP set. A non-zero
-// exit fails the run.
+// Batch: runs a command once, with /bin/sh -c for run, with the BatchState of
+// every node that got this far as ProtoJSON on stdin and GLAZED_STEP set. A
+// non-zero exit fails the run.
 message BatchShellStep {
+  option (buf.validate.message).oneof = {
+    fields: [
+      "run",
+      "command"
+    ]
+    required: true
+  };
   // Command line, run by /bin/sh -c.
-  string run = 1 [(buf.validate.field).string.min_len = 1];
+  string run = 1;
   // Seconds before the command is killed. 300 is used when 0.
   uint32 timeout_seconds = 2;
+  // Program and its arguments, executed without a shell.
+  repeated string command = 3 [(buf.validate.field).repeated.items.string.min_len = 1];
 }

@@ -53,8 +53,17 @@ RSpec.describe Glazed::Steps::Shell do
     expect { step(run: 'exit 1').call(Glazed::Proto::V1::NodeState.new(node:)) }.to raise_error(Glazed::ShellCommand::Failed)
   end
 
-  it 'requires run, and output together with storage' do
-    expect { Glazed::Steps.build(Glazed::Proto::V1::Step.new(name: 'x', shell: {input: 'raw'}), context:) }.to raise_error(Glazed::InvalidMessage, /shell.run/)
+  it 'runs a program with its arguments' do
+    stdout = File.join(@dir, 'stdout')
+    step(command: ['tee', stdout], input: 'raw').call(state_with('hostname rt1'))
+    expect(File.read(stdout)).to eq('hostname rt1')
+  end
+
+  it 'requires one of run and command, and output together with storage' do
+    expect { Glazed::Steps.build(Glazed::Proto::V1::Step.new(name: 'x', shell: {input: 'raw'}), context:) }
+      .to raise_error(Glazed::InvalidMessage, /one of run, command must be set/)
+    expect { Glazed::Steps.build(Glazed::Proto::V1::Step.new(name: 'x', shell: {run: 'true', command: ['true']}), context:) }
+      .to raise_error(Glazed::InvalidMessage, /only one of run, command can be set/)
     expect { Glazed::Steps.build(Glazed::Proto::V1::Step.new(name: 'x', shell: {run: 'true', output: 'x'}), context:) }
       .to raise_error(Glazed::InvalidMessage, /output and storage go together/)
   end

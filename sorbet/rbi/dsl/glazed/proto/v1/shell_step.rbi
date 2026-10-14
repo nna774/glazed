@@ -8,6 +8,7 @@
 class Glazed::Proto::V1::ShellStep < Google::Protobuf::AbstractMessage
   sig do
     params(
+      command: T.nilable(T::Array[String]),
       input: T.nilable(String),
       output: T.nilable(String),
       run: T.nilable(String),
@@ -15,7 +16,10 @@ class Glazed::Proto::V1::ShellStep < Google::Protobuf::AbstractMessage
       timeout_seconds: T.nilable(Integer)
     ).void
   end
-  def initialize(input: nil, output: nil, run: nil, storage: nil, timeout_seconds: nil); end
+  def initialize(command: T.unsafe(nil), input: nil, output: nil, run: nil, storage: nil, timeout_seconds: nil); end
+
+  sig { void }
+  def clear_command; end
 
   sig { void }
   def clear_input; end
@@ -31,6 +35,12 @@ class Glazed::Proto::V1::ShellStep < Google::Protobuf::AbstractMessage
 
   sig { void }
   def clear_timeout_seconds; end
+
+  sig { returns(Google::Protobuf::RepeatedField[String]) }
+  def command; end
+
+  sig { params(value: Google::Protobuf::RepeatedField[String]).void }
+  def command=(value); end
 
   sig { returns(String) }
   def input; end

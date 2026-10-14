@@ -13,6 +13,7 @@
 - `Glazed::Coordinator` and the `glazed.v1.CoordinatorTask` protocol let an external coordinator, such as AWS Step Functions with glazed-aws, drive the orchestrated workflows one step at a time
 - `SecretRef` gains `ssm`, an AWS Systems Manager parameter read by glazed-aws
 - `SecretRef` gains `shell`, a value printed by a command run with `/bin/sh -c`
+- `shell` and `batch_shell` steps and `shell` secrets take `command`, a program and its arguments executed without a shell, in place of `run`
 - `sqlite` state backend: schema version 2 keeps the waiting coordinator execution. Version 1 databases are upgraded on first use, after which glazed 0.1.0 refuses them
 
 ## [0.1.0] - 2026-10-14

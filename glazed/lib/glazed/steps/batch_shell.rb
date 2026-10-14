@@ -11,9 +11,9 @@ require 'glazed/steps'
 
 module Glazed
   module Steps
-    # Batch: runs a command with /bin/sh -c once, with the
-    # {Proto::V1::BatchState} of every node that got this far as ProtoJSON on
-    # stdin, for hooks such as notifications.
+    # Batch: runs a command line with /bin/sh -c, or a program with its
+    # arguments, once with the {Proto::V1::BatchState} of every node that got
+    # this far as ProtoJSON on stdin, for hooks such as notifications.
     #
     # @example Step definition
     #   {"name": "notify", "batch_shell": {"run": "bin/notify-changes"}}
@@ -22,12 +22,12 @@ module Glazed
       DEFAULT_TIMEOUT = 300 #: Integer
 
       # @param name [String] step name
-      # @param run [String] command line
+      # @param run [String, Array<String>] command line for /bin/sh -c, or program and its arguments
       # @param timeout [Numeric] seconds before the command is killed
-      #: (name: String, run: String, ?timeout: Numeric) -> void
+      #: (name: String, run: String | Array[String], ?timeout: Numeric) -> void
       def initialize(name:, run:, timeout: DEFAULT_TIMEOUT)
         super(name:)
-        @run = run #: String
+        @run = run #: String | Array[String]
         @timeout = timeout #: Numeric
       end
 
@@ -40,12 +40,12 @@ module Glazed
       #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> BatchShell
       def self.from_proto(name, settings, context:)
         shell = Must.be_a(settings, Proto::V1::BatchShellStep)
-        new(name:, run: shell.run, timeout: shell.timeout_seconds.zero? ? DEFAULT_TIMEOUT : shell.timeout_seconds)
+        new(name:, run: ShellCommand.run_of(shell.run, shell.command), timeout: shell.timeout_seconds.zero? ? DEFAULT_TIMEOUT : shell.timeout_seconds)
       end
 
       # @param batch [Proto::V1::BatchState] node states
       # @return [Proto::V1::BatchState] the same states
-      # @raise [ShellCommand::Failed] when the command exits non-zero
+      # @raise [ShellCommand::Failed] when the command cannot start or exits non-zero
       # @raise [TimeoutError] when the command does not finish in time
       #: (Proto::V1::BatchState batch) -> Proto::V1::BatchState
       def call(batch)

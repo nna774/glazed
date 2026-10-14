@@ -13,6 +13,10 @@ RSpec.describe Glazed::Secrets::Shell do
     expect(secret(run: 'echo s3cret').value).to eq('s3cret')
   end
 
+  it 'reads what a program prints when run with its arguments' do
+    expect(secret(command: ['printf', '%s\n', 's3cret; x']).value).to eq('s3cret; x')
+  end
+
   it 'runs the command each time the value is read' do
     Dir.mktmpdir do |dir|
       counter = File.join(dir, 'count')
@@ -24,6 +28,10 @@ RSpec.describe Glazed::Secrets::Shell do
   it 'raises Unavailable when the command fails' do
     expect { secret(run: 'echo locked >&2; exit 1').value }
       .to raise_error(Glazed::Secret::Unavailable, /exited with 1: locked/)
+  end
+
+  it 'raises Unavailable when the program cannot be executed' do
+    expect { secret(command: ['/nonexistent/glazed']).value }.to raise_error(Glazed::Secret::Unavailable, /could not start/)
   end
 
   it 'raises Unavailable when the command times out' do

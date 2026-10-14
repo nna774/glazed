@@ -25,6 +25,14 @@ RSpec.describe Glazed::Steps::BatchShell do
     end
   end
 
+  it 'runs a program with its arguments' do
+    Dir.mktmpdir do |dir|
+      received = File.join(dir, 'stdin')
+      step(command: ['tee', received]).call(batch)
+      expect(Glazed::ProtoJson.load(Glazed::Proto::V1::BatchState, File.read(received))).to eq(batch)
+    end
+  end
+
   it 'fails the run when the command fails' do
     expect { step(run: 'exit 2').call(batch) }.to raise_error(Glazed::ShellCommand::Failed, /exited with 2/)
   end

@@ -6,14 +6,29 @@
 
 
 class Glazed::Proto::V1::ShellSecret < Google::Protobuf::AbstractMessage
-  sig { params(run: T.nilable(String), timeout_seconds: T.nilable(Integer)).void }
-  def initialize(run: nil, timeout_seconds: nil); end
+  sig do
+    params(
+      command: T.nilable(T::Array[String]),
+      run: T.nilable(String),
+      timeout_seconds: T.nilable(Integer)
+    ).void
+  end
+  def initialize(command: T.unsafe(nil), run: nil, timeout_seconds: nil); end
+
+  sig { void }
+  def clear_command; end
 
   sig { void }
   def clear_run; end
 
   sig { void }
   def clear_timeout_seconds; end
+
+  sig { returns(Google::Protobuf::RepeatedField[String]) }
+  def command; end
+
+  sig { params(value: Google::Protobuf::RepeatedField[String]).void }
+  def command=(value); end
 
   sig { returns(String) }
   def run; end

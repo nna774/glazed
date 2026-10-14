@@ -20,6 +20,18 @@ RSpec.describe Glazed::ShellCommand do
     expect { run('echo broken >&2; exit 3') }.to raise_error(described_class::Failed, /exited with 3: broken/)
   end
 
+  it 'runs a program with its arguments without a shell' do
+    expect(run(['printf', '%s|%s', '$HOME', 'a b; echo c'])).to eq('$HOME|a b; echo c')
+  end
+
+  it 'runs a program given alone without a shell' do
+    expect(run(['pwd'])).to eq("#{Dir.pwd}\n")
+  end
+
+  it 'raises Failed when the program cannot be executed' do
+    expect { run(['/nonexistent/glazed']) }.to raise_error(described_class::Failed, /could not start/)
+  end
+
   it 'tolerates a command that does not read stdin' do
     expect(run('true', stdin: 'x' * 1_000_000)).to eq('')
   end

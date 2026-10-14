@@ -12,28 +12,31 @@ require 'glazed/storages'
 
 module Glazed
   module Steps
-    # Per node: runs a command with /bin/sh -c. The input artifact's content is
-    # on stdin and stdout becomes the output artifact; both are optional.
+    # Per node: runs a command line with /bin/sh -c, or a program with its
+    # arguments. The input artifact's content is on stdin and stdout becomes
+    # the output artifact; both are optional.
     #
     # @example Step definition
     #   {"name": "normalize", "shell": {"run": "sed -e '/^ntp clock-period/d'",
     #    "input": "raw", "output": "normalized", "storage": "staging"}}
+    # @example Step definition without a shell
+    #   {"name": "lint", "shell": {"command": ["bin/lint-config", "--strict"], "input": "raw"}}
     class Shell < NodeStep
       # Seconds a command may run when the definition sets none.
       DEFAULT_TIMEOUT = 300 #: Integer
 
       # @param name [String] step name
-      # @param run [String] command line
+      # @param run [String, Array<String>] command line for /bin/sh -c, or program and its arguments
       # @param input [String, nil] artifact written to stdin
       # @param output [String, nil] artifact produced from stdout
       # @param storage_name [String, nil] storage for the output, by name
       # @param context [StepContext] named storages
       # @param timeout [Numeric] seconds before the command is killed
       # @raise [StepContext::UnknownStorage] when the storage is not configured
-      #: (name: String, run: String, input: String?, output: String?, storage_name: String?, context: StepContext, ?timeout: Numeric) -> void
+      #: (name: String, run: String | Array[String], input: String?, output: String?, storage_name: String?, context: StepContext, ?timeout: Numeric) -> void
       def initialize(name:, run:, input:, output:, storage_name:, context:, timeout: DEFAULT_TIMEOUT)
         super(name:)
-        @run = run #: String
+        @run = run #: String | Array[String]
         @input = input #: String?
         @output = output #: String?
         @storage_name = storage_name #: String?
@@ -52,7 +55,7 @@ module Glazed
       def self.from_proto(name, settings, context:)
         shell = Must.be_a(settings, Proto::V1::ShellStep)
         new(
-          name:, run: shell.run, context:,
+          name:, run: ShellCommand.run_of(shell.run, shell.command), context:,
           input: shell.input.empty? ? nil : shell.input,
           output: shell.output.empty? ? nil : shell.output,
           storage_name: shell.storage.empty? ? nil : shell.storage,
@@ -70,7 +73,7 @@ module Glazed
 
       # @param state [Proto::V1::NodeState] the node and its artifacts
       # @return [Proto::V1::NodeState] the state, with the output artifact when configured
-      # @raise [ShellCommand::Failed] when the command exits non-zero
+      # @raise [ShellCommand::Failed] when the command cannot start or exits non-zero
       # @raise [TimeoutError] when the command does not finish in time
       # @raise [MissingArtifact] when the input artifact is absent
       #: (Proto::V1::NodeState state) -> Proto::V1::NodeState

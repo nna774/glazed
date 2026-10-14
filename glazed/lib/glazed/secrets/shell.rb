@@ -12,21 +12,23 @@ require 'glazed/shell_command'
 
 module Glazed
   module Secrets
-    # Secret printed by a command, such as a password manager's CLI, run each
+    # Secret printed by a command line run with /bin/sh -c, or by a program
+    # run with its arguments, such as a password manager's CLI. It runs each
     # time the value is read.
     #
     # @example
     #   Glazed::Secrets::Shell.new(run: 'pass show network/enable').value
+    #   Glazed::Secrets::Shell.new(run: %w[op read op://network/enable/password]).value
     class Shell < Base
       # Seconds before the command is killed when the settings set none.
       DEFAULT_TIMEOUT = 30 #: Integer
 
-      # @param run [String] command line, run by /bin/sh -c
+      # @param run [String, Array<String>] command line for /bin/sh -c, or program and its arguments
       # @param timeout [Numeric] seconds before the command is killed
-      #: (run: String, ?timeout: Numeric) -> void
+      #: (run: String | Array[String], ?timeout: Numeric) -> void
       def initialize(run:, timeout: DEFAULT_TIMEOUT)
         super()
-        @run = run #: String
+        @run = run #: String | Array[String]
         @timeout = timeout #: Numeric
       end
 
@@ -38,11 +40,11 @@ module Glazed
       #: (Google::Protobuf::MessageExts settings) -> Shell
       def self.from_proto(settings)
         shell = Must.be_a(settings, Proto::V1::ShellSecret)
-        new(run: shell.run, timeout: shell.timeout_seconds.zero? ? DEFAULT_TIMEOUT : shell.timeout_seconds)
+        new(run: ShellCommand.run_of(shell.run, shell.command), timeout: shell.timeout_seconds.zero? ? DEFAULT_TIMEOUT : shell.timeout_seconds)
       end
 
-      # @return [String] command line
-      #: String
+      # @return [String, Array<String>] command line, or program and its arguments
+      #: String | Array[String]
       attr_reader :run
 
       # @return [Numeric] seconds before the command is killed
@@ -52,7 +54,7 @@ module Glazed
       # Runs the command and reads the value it prints.
       #
       # @return [String] stdout without one trailing newline
-      # @raise [Secret::Unavailable] when the command exits non-zero or does not finish in time
+      # @raise [Secret::Unavailable] when the command cannot start, exits non-zero or does not finish in time
       #: () -> String
       def value
         ShellCommand.new(run:, env: {}, stdin: '', timeout:).call.delete_suffix("\n")
