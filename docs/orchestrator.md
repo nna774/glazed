@@ -25,7 +25,7 @@ Add `orchestrator` to the config (`glazed.v1.Orchestrator` in [`proto/glazed/v1/
       {"name": "publish", "publish": {"input": "raw", "storage": "team"}}
     ]},
     "audit": {"steps": [
-      {"name": "check", "batch_shell": {"run": "/usr/local/bin/audit-configs"}}
+      {"name": "check", "batch_command": {"run": "/usr/local/bin/audit-configs"}}
     ]}
   },
   "orchestrator": {

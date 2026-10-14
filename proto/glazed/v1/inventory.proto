@@ -157,13 +157,22 @@ message InventorySource {
 }
 
 // Command printing ProtoJSON of InventoryFile on stdout, for inventory kept
-// in another system. It runs with /bin/sh -c and empty stdin, and a non-zero
-// exit fails the run.
+// in another system. It runs with empty stdin, and a non-zero exit fails the
+// run.
 message CommandInventory {
+  option (buf.validate.message).oneof = {
+    fields: [
+      "run",
+      "exec"
+    ]
+    required: true
+  };
   // Command line, run by /bin/sh -c.
-  string run = 1 [(buf.validate.field).string.min_len = 1];
+  string run = 1;
   // Seconds before the command is killed. 300 is used when 0.
   uint32 timeout_seconds = 2;
+  // Program and its arguments, executed without a shell.
+  repeated string exec = 3 [(buf.validate.field).repeated.items.string.min_len = 1];
 }
 
 // ProtoJSON files of InventoryFile.

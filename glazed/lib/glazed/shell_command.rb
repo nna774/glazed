@@ -22,14 +22,14 @@ module Glazed
     # Seconds between SIGTERM and SIGKILL when the command overruns.
     KILL_GRACE = 5 #: Integer
 
-    # Picks what to run from settings holding a `run` command line and a
-    # `command` argument list, of which one is set.
+    # Picks what to run from settings holding a `run` command line and an
+    # `exec` argument list, of which one is set.
     #
     # @param run [String] command line for /bin/sh -c
-    # @param command [Enumerable<String>] program and its arguments
-    # @return [String, Array<String>] command, when set, or the command line
-    #: (String run, Enumerable[String] command) -> (String | Array[String])
-    def self.run_of(run, command) = command.none? ? run : command.to_a
+    # @param exec [Enumerable<String>] program and its arguments
+    # @return [String, Array<String>] exec, when set, or the command line
+    #: (String run, Enumerable[String] exec) -> (String | Array[String])
+    def self.run_of(run, exec) = exec.none? ? run : exec.to_a
 
     # @param run [String, Array<String>] command line for /bin/sh -c, or program and its arguments
     # @param env [Hash{String => String}] environment added to the inherited one

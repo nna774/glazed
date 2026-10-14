@@ -12,7 +12,7 @@ require 'glazed/plugin_registry'
 module Glazed
   # Secret sources other than a value, an environment variable or a file:
   # those built for a message field of {Proto::V1::SecretRef}, such as
-  # `shell` or glazed-aws's `ssm`, and plugins used by `plugin` references.
+  # `command` or glazed-aws's `ssm`, and plugins used by `plugin` references.
   module Secrets
     # A plugin source of one secret value, built from its settings message.
     class Base

@@ -21,12 +21,12 @@ module Glazed
       # Seconds before the command is killed when the settings set none.
       DEFAULT_TIMEOUT = 300 #: Integer
 
-      # @param run [String] command line, run by /bin/sh -c
+      # @param run [String, Array<String>] command line for /bin/sh -c, or program and its arguments
       # @param timeout [Numeric] seconds before the command is killed
-      #: (run: String, ?timeout: Numeric) -> void
+      #: (run: String | Array[String], ?timeout: Numeric) -> void
       def initialize(run:, timeout: DEFAULT_TIMEOUT)
         super()
-        @run = run #: String
+        @run = run #: String | Array[String]
         @timeout = timeout #: Numeric
       end
 
@@ -38,11 +38,11 @@ module Glazed
       #: (Google::Protobuf::MessageExts settings) -> Command
       def self.from_proto(settings)
         command = Must.be_a(settings, Proto::V1::CommandInventory)
-        new(run: command.run, timeout: command.timeout_seconds.zero? ? DEFAULT_TIMEOUT : command.timeout_seconds)
+        new(run: ShellCommand.run_of(command.run, command.exec), timeout: command.timeout_seconds.zero? ? DEFAULT_TIMEOUT : command.timeout_seconds)
       end
 
-      # @return [String] command line
-      #: String
+      # @return [String, Array<String>] command line, or program and its arguments
+      #: String | Array[String]
       attr_reader :run
 
       # @return [Numeric] seconds before the command is killed
@@ -59,9 +59,12 @@ module Glazed
       #: () -> Array[Proto::V1::Node]
       def nodes = nodes_from_json(ShellCommand.new(run:, env: {}, stdin: '', timeout:).call, origin: description)
 
-      # @return [String] the command line
+      # @return [String] the command line, or the program and its arguments
       #: () -> String
-      def description = "command #{run}"
+      def description
+        run = self.run
+        "command #{run.is_a?(String) ? run : run.join(' ')}"
+      end
     end
   end
 end

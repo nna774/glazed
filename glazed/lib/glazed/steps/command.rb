@@ -17,11 +17,11 @@ module Glazed
     # the output artifact; both are optional.
     #
     # @example Step definition
-    #   {"name": "normalize", "shell": {"run": "sed -e '/^ntp clock-period/d'",
+    #   {"name": "normalize", "command": {"run": "sed -e '/^ntp clock-period/d'",
     #    "input": "raw", "output": "normalized", "storage": "staging"}}
     # @example Step definition without a shell
-    #   {"name": "lint", "shell": {"command": ["bin/lint-config", "--strict"], "input": "raw"}}
-    class Shell < NodeStep
+    #   {"name": "lint", "command": {"exec": ["bin/lint-config", "--strict"], "input": "raw"}}
+    class Command < NodeStep
       # Seconds a command may run when the definition sets none.
       DEFAULT_TIMEOUT = 300 #: Integer
 
@@ -45,21 +45,21 @@ module Glazed
         @timeout = timeout #: Numeric
       end
 
-      # Builds the step from {Proto::V1::ShellStep}.
+      # Builds the step from {Proto::V1::CommandStep}.
       #
       # @param name [String] step name
-      # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::ShellStep}
+      # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::CommandStep}
       # @param context [StepContext] named storages
-      # @return [Shell] the step
-      #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Shell
+      # @return [Command] the step
+      #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Command
       def self.from_proto(name, settings, context:)
-        shell = Must.be_a(settings, Proto::V1::ShellStep)
+        command = Must.be_a(settings, Proto::V1::CommandStep)
         new(
-          name:, run: ShellCommand.run_of(shell.run, shell.command), context:,
-          input: shell.input.empty? ? nil : shell.input,
-          output: shell.output.empty? ? nil : shell.output,
-          storage_name: shell.storage.empty? ? nil : shell.storage,
-          timeout: shell.timeout_seconds.zero? ? DEFAULT_TIMEOUT : shell.timeout_seconds,
+          name:, run: ShellCommand.run_of(command.run, command.exec), context:,
+          input: command.input.empty? ? nil : command.input,
+          output: command.output.empty? ? nil : command.output,
+          storage_name: command.storage.empty? ? nil : command.storage,
+          timeout: command.timeout_seconds.zero? ? DEFAULT_TIMEOUT : command.timeout_seconds,
         )
       end
 

@@ -24,8 +24,8 @@ RSpec.describe Glazed::Aws::Lambda do
         inventory: [{inline: {defaults: {dialect: 'ios'}, nodes: [{name: 'rt1'}, {name: 'sw1'}]}}],
         storages: {'raw' => {filesystem: {path: File.join(@dir, 'raw')}}},
         workflows: {'backup' => {steps: [
-          {name: 'fetch', shell: {run: 'echo "config of $GLAZED_NODE_NAME"', output: 'raw', storage: 'raw'}},
-          {name: 'publish', batch_shell: {run: "cat >> #{File.join(@dir, 'published')}"}},
+          {name: 'fetch', command: {run: 'echo "config of $GLAZED_NODE_NAME"', output: 'raw', storage: 'raw'}},
+          {name: 'publish', batch_command: {run: "cat >> #{File.join(@dir, 'published')}"}},
         ]}},
         orchestrator: {
           state: {sqlite: {path: File.join(@dir, 'state.sqlite3')}},

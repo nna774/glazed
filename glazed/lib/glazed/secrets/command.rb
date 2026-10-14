@@ -17,9 +17,9 @@ module Glazed
     # time the value is read.
     #
     # @example
-    #   Glazed::Secrets::Shell.new(run: 'pass show network/enable').value
-    #   Glazed::Secrets::Shell.new(run: %w[op read op://network/enable/password]).value
-    class Shell < Base
+    #   Glazed::Secrets::Command.new(run: 'pass show network/enable').value
+    #   Glazed::Secrets::Command.new(run: %w[op read op://network/enable/password]).value
+    class Command < Base
       # Seconds before the command is killed when the settings set none.
       DEFAULT_TIMEOUT = 30 #: Integer
 
@@ -32,15 +32,15 @@ module Glazed
         @timeout = timeout #: Numeric
       end
 
-      # Builds a source from {Proto::V1::ShellSecret}.
+      # Builds a source from {Proto::V1::CommandSecret}.
       #
-      # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::ShellSecret}
-      # @return [Shell] the source
+      # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::CommandSecret}
+      # @return [Command] the source
       # @raise [Must::Violation] when settings is another message
-      #: (Google::Protobuf::MessageExts settings) -> Shell
+      #: (Google::Protobuf::MessageExts settings) -> Command
       def self.from_proto(settings)
-        shell = Must.be_a(settings, Proto::V1::ShellSecret)
-        new(run: ShellCommand.run_of(shell.run, shell.command), timeout: shell.timeout_seconds.zero? ? DEFAULT_TIMEOUT : shell.timeout_seconds)
+        command = Must.be_a(settings, Proto::V1::CommandSecret)
+        new(run: ShellCommand.run_of(command.run, command.exec), timeout: command.timeout_seconds.zero? ? DEFAULT_TIMEOUT : command.timeout_seconds)
       end
 
       # @return [String, Array<String>] command line, or program and its arguments

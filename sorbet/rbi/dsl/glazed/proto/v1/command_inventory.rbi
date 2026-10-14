@@ -6,14 +6,23 @@
 
 
 class Glazed::Proto::V1::CommandInventory < Google::Protobuf::AbstractMessage
-  sig { params(run: T.nilable(String), timeout_seconds: T.nilable(Integer)).void }
-  def initialize(run: nil, timeout_seconds: nil); end
+  sig { params(exec: T.nilable(T::Array[String]), run: T.nilable(String), timeout_seconds: T.nilable(Integer)).void }
+  def initialize(exec: T.unsafe(nil), run: nil, timeout_seconds: nil); end
+
+  sig { void }
+  def clear_exec; end
 
   sig { void }
   def clear_run; end
 
   sig { void }
   def clear_timeout_seconds; end
+
+  sig { returns(Google::Protobuf::RepeatedField[String]) }
+  def exec; end
+
+  sig { params(value: Google::Protobuf::RepeatedField[String]).void }
+  def exec=(value); end
 
   sig { returns(String) }
   def run; end

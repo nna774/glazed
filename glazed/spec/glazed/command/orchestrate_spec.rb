@@ -39,7 +39,7 @@ RSpec.describe 'glazed orchestrate and glazed signal' do
             {name: 'fetch', fetch: {output: 'raw', storage: 'raw', timeout_seconds: 2}},
             {name: 'publish', publish: {input: 'raw', storage: 'latest'}},
           ]},
-          audit: {steps: [{name: 'count', batch_shell: {run: 'cat > /dev/null'}}]},
+          audit: {steps: [{name: 'count', batch_command: {run: 'cat > /dev/null'}}]},
         },
         orchestrator:,
       ))

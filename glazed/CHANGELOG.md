@@ -4,6 +4,7 @@
 
 - Secrets are read through a `Glazed::SecretsResolver`, which `StepContext` holds and passes to the collector, dialect runs, the redactor and storages. `Glazed::Secret.new` takes the resolver, and `Secret.maybe` is replaced by `SecretsResolver#maybe`
 - Storages are built with `from_proto(settings, context:)`, where a `Glazed::StorageContext` carries the secrets resolver; plugin storages must accept it
+- The `shell` and `batch_shell` steps are renamed `command` and `batch_command` (`glazed.v1.CommandStep` and `BatchCommandStep`), as they also run programs without a shell
 
 ### Enhancements
 
@@ -12,8 +13,8 @@
 - `glazed signal --all`, and `all_nodes` and `workflows` on `glazed.v1.Signal`, signal every node of chosen workflows, for scheduled runs
 - `Glazed::Coordinator` and the `glazed.v1.CoordinatorTask` protocol let an external coordinator, such as AWS Step Functions with glazed-aws, drive the orchestrated workflows one step at a time
 - `SecretRef` gains `ssm`, an AWS Systems Manager parameter read by glazed-aws
-- `SecretRef` gains `shell`, a value printed by a command run with `/bin/sh -c`
-- `shell` and `batch_shell` steps and `shell` secrets take `command`, a program and its arguments executed without a shell, in place of `run`
+- `SecretRef` gains `command`, a value printed by a command
+- `command` and `batch_command` steps, `command` secrets and the `command` inventory take `exec`, a program and its arguments executed without a shell, in place of `run`
 - `sqlite` state backend: schema version 2 keeps the waiting coordinator execution. Version 1 databases are upgraded on first use, after which glazed 0.1.0 refuses them
 
 ## [0.1.0] - 2026-10-14

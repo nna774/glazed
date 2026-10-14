@@ -8,15 +8,18 @@
 class Glazed::Proto::V1::SecretRef < Google::Protobuf::AbstractMessage
   sig do
     params(
+      command: T.nilable(Glazed::Proto::V1::CommandSecret),
       env: T.nilable(String),
       file: T.nilable(String),
       plugin: T.nilable(Google::Protobuf::Any),
-      shell: T.nilable(Glazed::Proto::V1::ShellSecret),
       ssm: T.nilable(Glazed::Proto::V1::SsmParameter),
       value: T.nilable(String)
     ).void
   end
-  def initialize(env: nil, file: nil, plugin: nil, shell: nil, ssm: nil, value: nil); end
+  def initialize(command: nil, env: nil, file: nil, plugin: nil, ssm: nil, value: nil); end
+
+  sig { void }
+  def clear_command; end
 
   sig { void }
   def clear_env; end
@@ -28,13 +31,16 @@ class Glazed::Proto::V1::SecretRef < Google::Protobuf::AbstractMessage
   def clear_plugin; end
 
   sig { void }
-  def clear_shell; end
-
-  sig { void }
   def clear_ssm; end
 
   sig { void }
   def clear_value; end
+
+  sig { returns(T.nilable(Glazed::Proto::V1::CommandSecret)) }
+  def command; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::CommandSecret)).void }
+  def command=(value); end
 
   sig { returns(String) }
   def env; end
@@ -49,6 +55,9 @@ class Glazed::Proto::V1::SecretRef < Google::Protobuf::AbstractMessage
   def file=(value); end
 
   sig { returns(Object) }
+  def has_command?; end
+
+  sig { returns(Object) }
   def has_env?; end
 
   sig { returns(Object) }
@@ -56,9 +65,6 @@ class Glazed::Proto::V1::SecretRef < Google::Protobuf::AbstractMessage
 
   sig { returns(Object) }
   def has_plugin?; end
-
-  sig { returns(Object) }
-  def has_shell?; end
 
   sig { returns(Object) }
   def has_ssm?; end
@@ -71,12 +77,6 @@ class Glazed::Proto::V1::SecretRef < Google::Protobuf::AbstractMessage
 
   sig { params(value: T.nilable(Google::Protobuf::Any)).void }
   def plugin=(value); end
-
-  sig { returns(T.nilable(Glazed::Proto::V1::ShellSecret)) }
-  def shell; end
-
-  sig { params(value: T.nilable(Glazed::Proto::V1::ShellSecret)).void }
-  def shell=(value); end
 
   sig { returns(T.nilable(Symbol)) }
   def source; end

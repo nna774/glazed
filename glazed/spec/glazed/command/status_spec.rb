@@ -23,7 +23,7 @@ RSpec.describe 'glazed status' do
     File.join(@dir, 'glazed.json').tap do |file|
       File.write(file, JSON.generate(
         inventory: [{inline: {nodes: []}}],
-        workflows: {backup: {steps: [{name: 'x', batch_shell: {run: 'true'}}]}, audit: {steps: [{name: 'x', batch_shell: {run: 'true'}}]}},
+        workflows: {backup: {steps: [{name: 'x', batch_command: {run: 'true'}}]}, audit: {steps: [{name: 'x', batch_command: {run: 'true'}}]}},
         orchestrator: {state: {sqlite: {path: File.join(@dir, 'state.sqlite3')}}, workflows: {backup: {}, audit: {}}, poll_seconds: 30},
       ))
     end

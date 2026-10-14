@@ -8,28 +8,31 @@
 class Glazed::Proto::V1::Step < Google::Protobuf::AbstractMessage
   sig do
     params(
-      batch_shell: T.nilable(Glazed::Proto::V1::BatchShellStep),
+      batch_command: T.nilable(Glazed::Proto::V1::BatchCommandStep),
+      command: T.nilable(Glazed::Proto::V1::CommandStep),
       fetch: T.nilable(Glazed::Proto::V1::FetchStep),
       name: T.nilable(String),
       plugin: T.nilable(Google::Protobuf::Any),
       publish: T.nilable(Glazed::Proto::V1::PublishStep),
-      redact: T.nilable(Glazed::Proto::V1::RedactStep),
-      shell: T.nilable(Glazed::Proto::V1::ShellStep)
+      redact: T.nilable(Glazed::Proto::V1::RedactStep)
     ).void
   end
-  def initialize(batch_shell: nil, fetch: nil, name: nil, plugin: nil, publish: nil, redact: nil, shell: nil); end
+  def initialize(batch_command: nil, command: nil, fetch: nil, name: nil, plugin: nil, publish: nil, redact: nil); end
 
   sig { returns(T.nilable(Symbol)) }
   def action; end
 
-  sig { returns(T.nilable(Glazed::Proto::V1::BatchShellStep)) }
-  def batch_shell; end
+  sig { returns(T.nilable(Glazed::Proto::V1::BatchCommandStep)) }
+  def batch_command; end
 
-  sig { params(value: T.nilable(Glazed::Proto::V1::BatchShellStep)).void }
-  def batch_shell=(value); end
+  sig { params(value: T.nilable(Glazed::Proto::V1::BatchCommandStep)).void }
+  def batch_command=(value); end
 
   sig { void }
-  def clear_batch_shell; end
+  def clear_batch_command; end
+
+  sig { void }
+  def clear_command; end
 
   sig { void }
   def clear_fetch; end
@@ -46,8 +49,11 @@ class Glazed::Proto::V1::Step < Google::Protobuf::AbstractMessage
   sig { void }
   def clear_redact; end
 
-  sig { void }
-  def clear_shell; end
+  sig { returns(T.nilable(Glazed::Proto::V1::CommandStep)) }
+  def command; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::CommandStep)).void }
+  def command=(value); end
 
   sig { returns(T.nilable(Glazed::Proto::V1::FetchStep)) }
   def fetch; end
@@ -56,7 +62,10 @@ class Glazed::Proto::V1::Step < Google::Protobuf::AbstractMessage
   def fetch=(value); end
 
   sig { returns(Object) }
-  def has_batch_shell?; end
+  def has_batch_command?; end
+
+  sig { returns(Object) }
+  def has_command?; end
 
   sig { returns(Object) }
   def has_fetch?; end
@@ -69,9 +78,6 @@ class Glazed::Proto::V1::Step < Google::Protobuf::AbstractMessage
 
   sig { returns(Object) }
   def has_redact?; end
-
-  sig { returns(Object) }
-  def has_shell?; end
 
   sig { returns(String) }
   def name; end
@@ -96,10 +102,4 @@ class Glazed::Proto::V1::Step < Google::Protobuf::AbstractMessage
 
   sig { params(value: T.nilable(Glazed::Proto::V1::RedactStep)).void }
   def redact=(value); end
-
-  sig { returns(T.nilable(Glazed::Proto::V1::ShellStep)) }
-  def shell; end
-
-  sig { params(value: T.nilable(Glazed::Proto::V1::ShellStep)).void }
-  def shell=(value); end
 end

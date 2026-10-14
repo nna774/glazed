@@ -4,17 +4,17 @@
 
 require 'tmpdir'
 require 'glazed/secrets_resolver'
-require 'glazed/secrets/shell'
+require 'glazed/secrets/command'
 
-RSpec.describe Glazed::Secrets::Shell do
-  def secret(**settings) = Glazed::SecretsResolver.new.secret(Glazed::Proto::V1::SecretRef.new(shell: settings))
+RSpec.describe Glazed::Secrets::Command do
+  def secret(**settings) = Glazed::SecretsResolver.new.secret(Glazed::Proto::V1::SecretRef.new(command: settings))
 
   it 'reads what the command prints without its trailing newline' do
     expect(secret(run: 'echo s3cret').value).to eq('s3cret')
   end
 
   it 'reads what a program prints when run with its arguments' do
-    expect(secret(command: ['printf', '%s\n', 's3cret; x']).value).to eq('s3cret; x')
+    expect(secret(exec: ['printf', '%s\n', 's3cret; x']).value).to eq('s3cret; x')
   end
 
   it 'runs the command each time the value is read' do
@@ -31,7 +31,7 @@ RSpec.describe Glazed::Secrets::Shell do
   end
 
   it 'raises Unavailable when the program cannot be executed' do
-    expect { secret(command: ['/nonexistent/glazed']).value }.to raise_error(Glazed::Secret::Unavailable, /could not start/)
+    expect { secret(exec: ['/nonexistent/glazed']).value }.to raise_error(Glazed::Secret::Unavailable, /could not start/)
   end
 
   it 'raises Unavailable when the command times out' do
@@ -39,7 +39,7 @@ RSpec.describe Glazed::Secrets::Shell do
   end
 
   it 'uses the default timeout when the settings set none' do
-    expect(described_class.from_proto(Glazed::Proto::V1::ShellSecret.new(run: 'true')).timeout)
+    expect(described_class.from_proto(Glazed::Proto::V1::CommandSecret.new(run: 'true')).timeout)
       .to eq(described_class::DEFAULT_TIMEOUT)
   end
 end

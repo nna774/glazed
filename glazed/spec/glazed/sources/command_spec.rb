@@ -14,6 +14,10 @@ RSpec.describe Glazed::Sources::Command do
     expect(nodes(run: "printf '%s' '#{document}'").map { [it.name, it.dialect] }).to eq([%w[rt1 ios], %w[sw1 junos]])
   end
 
+  it 'reads the inventory file a program prints when run with its arguments' do
+    expect(nodes(exec: ['printf', '%s', '{"nodes": [{"name": "rt1", "dialect": "ios"}]}']).map(&:name)).to eq(%w[rt1])
+  end
+
   it 'fails when the command fails' do
     expect { nodes(run: 'echo broken >&2; exit 3') }.to raise_error(Glazed::ShellCommand::Failed, /exited with 3: broken/)
   end

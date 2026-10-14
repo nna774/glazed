@@ -16,8 +16,8 @@ module Glazed
     # this far as ProtoJSON on stdin, for hooks such as notifications.
     #
     # @example Step definition
-    #   {"name": "notify", "batch_shell": {"run": "bin/notify-changes"}}
-    class BatchShell < BatchStep
+    #   {"name": "notify", "batch_command": {"run": "bin/notify-changes"}}
+    class BatchCommand < BatchStep
       # Seconds a command may run when the definition sets none.
       DEFAULT_TIMEOUT = 300 #: Integer
 
@@ -31,16 +31,16 @@ module Glazed
         @timeout = timeout #: Numeric
       end
 
-      # Builds the step from {Proto::V1::BatchShellStep}.
+      # Builds the step from {Proto::V1::BatchCommandStep}.
       #
       # @param name [String] step name
-      # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::BatchShellStep}
+      # @param settings [Google::Protobuf::MessageExts] a {Proto::V1::BatchCommandStep}
       # @param context [StepContext] named storages, unused
-      # @return [BatchShell] the step
-      #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> BatchShell
+      # @return [BatchCommand] the step
+      #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> BatchCommand
       def self.from_proto(name, settings, context:)
-        shell = Must.be_a(settings, Proto::V1::BatchShellStep)
-        new(name:, run: ShellCommand.run_of(shell.run, shell.command), timeout: shell.timeout_seconds.zero? ? DEFAULT_TIMEOUT : shell.timeout_seconds)
+        command = Must.be_a(settings, Proto::V1::BatchCommandStep)
+        new(name:, run: ShellCommand.run_of(command.run, command.exec), timeout: command.timeout_seconds.zero? ? DEFAULT_TIMEOUT : command.timeout_seconds)
       end
 
       # @param batch [Proto::V1::BatchState] node states

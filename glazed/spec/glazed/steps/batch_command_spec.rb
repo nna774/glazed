@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 require 'tmpdir'
-require 'glazed/steps/batch_shell'
+require 'glazed/steps/batch_command'
 
-RSpec.describe Glazed::Steps::BatchShell do
+RSpec.describe Glazed::Steps::BatchCommand do
   let(:context) { Glazed::StepContext.new(storages: {}) }
   let(:batch) do
     Glazed::Proto::V1::BatchState.new(nodes: [
@@ -14,7 +14,7 @@ RSpec.describe Glazed::Steps::BatchShell do
     ])
   end
 
-  def step(**settings) = described_class.from_proto('notify', Glazed::Proto::V1::BatchShellStep.new(**settings), context:)
+  def step(**settings) = described_class.from_proto('notify', Glazed::Proto::V1::BatchCommandStep.new(**settings), context:)
 
   it 'passes the batch state as ProtoJSON on stdin and returns it unchanged' do
     Dir.mktmpdir do |dir|
@@ -28,7 +28,7 @@ RSpec.describe Glazed::Steps::BatchShell do
   it 'runs a program with its arguments' do
     Dir.mktmpdir do |dir|
       received = File.join(dir, 'stdin')
-      step(command: ['tee', received]).call(batch)
+      step(exec: ['tee', received]).call(batch)
       expect(Glazed::ProtoJson.load(Glazed::Proto::V1::BatchState, File.read(received))).to eq(batch)
     end
   end
@@ -38,6 +38,6 @@ RSpec.describe Glazed::Steps::BatchShell do
   end
 
   it 'requires run' do
-    expect { Glazed::Steps.build(Glazed::Proto::V1::Step.new(name: 'x', batch_shell: {}), context:) }.to raise_error(Glazed::InvalidMessage, /run/)
+    expect { Glazed::Steps.build(Glazed::Proto::V1::Step.new(name: 'x', batch_command: {}), context:) }.to raise_error(Glazed::InvalidMessage, /run/)
   end
 end

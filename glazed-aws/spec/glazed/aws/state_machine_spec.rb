@@ -24,9 +24,9 @@ RSpec.describe Glazed::Aws::StateMachine do
         {name: 'fetch', fetch: {output: 'raw', storage: 'raw'}},
         {name: 'redact', redact: {input: 'raw', output: 'redacted', storage: 'team'}},
         {name: 'publish', publish: {input: 'redacted', storage: 'team'}},
-        {name: 'notify', shell: {run: 'true'}},
+        {name: 'notify', command: {run: 'true'}},
       ]},
-      'audit' => {steps: [{name: 'check', batch_shell: {run: 'true'}}]},
+      'audit' => {steps: [{name: 'check', batch_command: {run: 'true'}}]},
     }
   end
   let(:document) do
