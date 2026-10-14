@@ -126,6 +126,31 @@ This prints the Amazon States Language definition of a Standard state machine fo
 | `--grace-seconds N` | longest `lease_seconds` | Seconds after a waiter's wake time until another execution may take over |
 | `--max-cycles N` | 20 | Cycles after which an execution ends |
 
+The deployed function also generates it, from the config it runs with. Invoke it with the event `{"state_machine": {}}`. It returns `{"definition": "<definition as JSON>", "warnings": [...]}`. The definition invokes the ARN the function was invoked with, qualifier included. The event takes the options above as `function_arn`, `max_concurrency`, `grace_seconds` and `max_cycles`.
+
+With Terraform, publish a version of the function and invoke that version, so the definition is generated again whenever the config or the image changes, and executions run the version that generated it:
+
+```hcl
+resource "aws_lambda_function" "glazed" {
+  # ...
+  publish = true
+}
+
+resource "aws_lambda_invocation" "glazed_state_machine" {
+  function_name = aws_lambda_function.glazed.function_name
+  qualifier     = aws_lambda_function.glazed.version
+  input         = jsonencode({ state_machine = {} })
+}
+
+resource "aws_sfn_state_machine" "glazed" {
+  name       = "glazed"
+  role_arn   = aws_iam_role.glazed_states.arn
+  definition = jsondecode(aws_lambda_invocation.glazed_state_machine.result).definition
+}
+```
+
+The state machine role then needs `lambda:InvokeFunction` on the function's versions, `arn:aws:lambda:REGION:ACCOUNT:function:glazed:*`.
+
 ### Triggers
 
 An EventBridge rule passing signals from your own events:

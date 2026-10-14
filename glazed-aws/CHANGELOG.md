@@ -2,6 +2,7 @@
 
 ### Enhancements
 
+- The Lambda function returns the state machine definition for the event `{"state_machine": {}}`, so Terraform can generate it with `aws_lambda_invocation`
 - `ssm` secret source: `{"ssm": {"name": ...}}` reads an AWS Systems Manager Parameter Store parameter, decrypted, and reuses it for `cache_seconds`
 - The Lambda function reads its config from S3 with `GLAZED_CONFIG_S3_BUCKET`, `GLAZED_CONFIG_S3_KEY` and `GLAZED_CONFIG_S3_DIGEST`, checking the object's SHA-256
 - Run the orchestrated workflows on AWS Step Functions: a Lambda function performing each task (`Glazed::Aws::Lambda`), and `glazed-aws state-machine` printing the state machine definition. Signals come from EventBridge rules, Pipes and Scheduler, and debounce waits in the state machine ([docs/aws-step-functions.md](../docs/aws-step-functions.md))

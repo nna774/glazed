@@ -64,6 +64,33 @@ RSpec.describe Glazed::Aws::Lambda do
     expect { invoke('task' => {'prepare' => {}}) }.not_to raise_error
   end
 
+  describe 'state_machine' do
+    let(:arn) { 'arn:aws:lambda:ap-northeast-1:123456789012:function:glazed:7' }
+
+    def generate(request, invoked_function_arn: arn)
+      described_class.handle({'state_machine' => request}, environment: {'GLAZED_CONFIG_FILE' => config}, invoked_function_arn:, listener: ->(event) { events << event })
+    end
+
+    it 'returns the definition invoking the invoked ARN' do
+      result = generate({})
+      definition = JSON.parse(result.fetch('definition'))
+      expect(definition).to eq(Glazed::Aws::StateMachine.new(config: Glazed::Config.load(config), function_arn: arn).to_h)
+      expect(result.fetch('warnings')).to eq(['storage raw is a local directory; every Lambda instance has its own'])
+    end
+
+    it 'takes the options of glazed-aws state-machine' do
+      result = generate({'function_arn' => 'arn:aws:lambda:ap-northeast-1:123456789012:function:other', 'max_concurrency' => 2, 'max_cycles' => '5'}, invoked_function_arn: nil)
+      expected = Glazed::Aws::StateMachine.new(
+        config: Glazed::Config.load(config), function_arn: 'arn:aws:lambda:ap-northeast-1:123456789012:function:other', max_concurrency: 2, max_cycles: 5,
+      )
+      expect(JSON.parse(result.fetch('definition'))).to eq(expected.to_h)
+    end
+
+    it 'requires a function ARN outside Lambda' do
+      expect { generate(nil, invoked_function_arn: nil) }.to raise_error(Glazed::Error, /function_arn is required/)
+    end
+  end
+
   it 'requires the config file to be named' do
     expect { described_class.handle({'task' => {'prepare' => {}}}, environment: {}) }.to raise_error(Glazed::Error, /GLAZED_CONFIG_S3_BUCKET or GLAZED_CONFIG_FILE is required/)
   end
