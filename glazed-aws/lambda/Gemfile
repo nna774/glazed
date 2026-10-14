@@ -11,3 +11,7 @@ root = File.join('..', '..')
 gem 'glazed', path: File.join(root, 'glazed')
 gem 'glazed-aws', path: File.join(root, 'glazed-aws')
 gem 'glazed-oxidized', path: File.join(root, 'glazed-oxidized')
+# net-ssh: ed25519 keys and curve25519 key exchange
+gem 'bcrypt_pbkdf'
+gem 'ed25519'
+gem 'x25519'
