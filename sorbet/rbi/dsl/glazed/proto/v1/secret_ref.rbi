@@ -11,11 +11,12 @@ class Glazed::Proto::V1::SecretRef < Google::Protobuf::AbstractMessage
       env: T.nilable(String),
       file: T.nilable(String),
       plugin: T.nilable(Google::Protobuf::Any),
+      shell: T.nilable(Glazed::Proto::V1::ShellSecret),
       ssm: T.nilable(Glazed::Proto::V1::SsmParameter),
       value: T.nilable(String)
     ).void
   end
-  def initialize(env: nil, file: nil, plugin: nil, ssm: nil, value: nil); end
+  def initialize(env: nil, file: nil, plugin: nil, shell: nil, ssm: nil, value: nil); end
 
   sig { void }
   def clear_env; end
@@ -25,6 +26,9 @@ class Glazed::Proto::V1::SecretRef < Google::Protobuf::AbstractMessage
 
   sig { void }
   def clear_plugin; end
+
+  sig { void }
+  def clear_shell; end
 
   sig { void }
   def clear_ssm; end
@@ -54,6 +58,9 @@ class Glazed::Proto::V1::SecretRef < Google::Protobuf::AbstractMessage
   def has_plugin?; end
 
   sig { returns(Object) }
+  def has_shell?; end
+
+  sig { returns(Object) }
   def has_ssm?; end
 
   sig { returns(Object) }
@@ -64,6 +71,12 @@ class Glazed::Proto::V1::SecretRef < Google::Protobuf::AbstractMessage
 
   sig { params(value: T.nilable(Google::Protobuf::Any)).void }
   def plugin=(value); end
+
+  sig { returns(T.nilable(Glazed::Proto::V1::ShellSecret)) }
+  def shell; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::ShellSecret)).void }
+  def shell=(value); end
 
   sig { returns(T.nilable(Symbol)) }
   def source; end
