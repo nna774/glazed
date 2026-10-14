@@ -7,6 +7,7 @@ package glazed.v1;
 import "buf/validate/validate.proto";
 import "glazed/v1/inventory.proto";
 import "glazed/v1/orchestrator.proto";
+import "glazed/v1/redaction.proto";
 import "glazed/v1/storage.proto";
 import "glazed/v1/workflow.proto";
 
@@ -27,4 +28,7 @@ message Config {
   repeated string requires = 5 [(buf.validate.field).repeated.items.string.min_len = 1];
   // Settings of `glazed orchestrate`.
   Orchestrator orchestrator = 6;
+  // Redaction settings shared by every redact step. A step's mode and hmac_key
+  // take precedence when set, and secrets of both apply.
+  Redaction redaction = 7;
 }

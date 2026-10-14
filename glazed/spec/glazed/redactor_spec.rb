@@ -83,5 +83,52 @@ RSpec.describe Glazed::Redactor do
       redaction = Glazed::Proto::V1::Redaction.new(mode: :MODE_HMAC, hmac_key: {value: 'not base64!'})
       expect { described_class.from_proto(redaction, patterns:) }.to raise_error(described_class::InvalidConfiguration, /base64/)
     end
+
+    describe 'extra secrets' do
+      def redaction(**) = Glazed::Proto::V1::Redaction.new(**)
+
+      it 'hides every match of an inline regexp' do
+        r = redaction(secrets: [{regexp: 'token-\d+'}])
+        expect(described_class.from_proto(r, patterns: []).call("a token-1 b token-22\n")).to eq("a [~REDACTED~] b [~REDACTED~]\n")
+      end
+
+      it 'hides every occurrence of a referenced value' do
+        r = redaction(secrets: [{ref: {value: 'hunter2'}}])
+        expect(described_class.from_proto(r, patterns: []).call("pw hunter2 and hunter2\n")).to eq("pw [~REDACTED~] and [~REDACTED~]\n")
+      end
+
+      it 'splits a referenced value by delimiter, preferring the longest overlap' do
+        r = redaction(secrets: [{ref: {value: 'abc,abcdef,,xyz'}, delimiter: ','}])
+        expect(described_class.from_proto(r, patterns: []).call("abcdef xyz abc q\n")).to eq("[~REDACTED~] [~REDACTED~] [~REDACTED~] q\n")
+      end
+
+      it 'hides nothing for an empty referenced value' do
+        r = redaction(secrets: [{ref: {value: ''}}])
+        expect(described_class.from_proto(r, patterns: []).call("text\n")).to eq("text\n")
+      end
+
+      it 'reports an invalid regexp' do
+        r = redaction(secrets: [{regexp: '('}])
+        expect { described_class.from_proto(r, patterns: []) }.to raise_error(described_class::InvalidConfiguration, /regexp/)
+      end
+
+      it 'raises when the referenced secret is unavailable' do
+        r = redaction(secrets: [{ref: {env: 'GLAZED_SPEC_MISSING_SECRET'}}])
+        expect { described_class.from_proto(r, patterns: []) }.to raise_error(Glazed::Secret::Unavailable)
+      end
+
+      it 'combines global and per-step secrets and falls back to the global mode and key' do
+        global = redaction(mode: :MODE_HMAC, hmac_key: {value: ['k'].pack('m0')}, secrets: [{regexp: 'aaa'}])
+        step = redaction(secrets: [{regexp: 'bbb'}])
+        redactor = described_class.from_proto(step, patterns: [], global:)
+        expect(redactor.mode).to eq(:hmac)
+        expect(redactor.call('aaa bbb ccc')).to match(/\A\[~REDACTED:dgst=[\w-]{11}~\] \[~REDACTED:dgst=[\w-]{11}~\] ccc\z/)
+      end
+
+      it 'prefers the step mode over the global mode' do
+        global = redaction(mode: :MODE_HMAC, hmac_key: {value: ['k'].pack('m0')})
+        expect(described_class.from_proto(redaction(mode: :MODE_REMOVE), patterns: [], global:).mode).to eq(:remove)
+      end
+    end
   end
 end

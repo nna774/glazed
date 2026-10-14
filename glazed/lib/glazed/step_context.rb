@@ -14,26 +14,33 @@ module Glazed
     # Raised when a step names a storage that is not configured.
     class UnknownStorage < Glazed::Error; end
 
+    # @return [Proto::V1::Redaction, nil] redaction settings shared by redact steps
+    #: Proto::V1::Redaction?
+    attr_reader :redaction
+
     # @param storages [Hash{String => Storages::Base}] storages by name
+    # @param redaction [Proto::V1::Redaction, nil] redaction settings shared by redact steps
     # @param listener [Proc] receives progress events from steps, possibly from several threads at once
-    #: (storages: Hash[String, Storages::Base], ?listener: Runner::listener) -> void
-    def initialize(storages:, listener: ->(_event) {})
+    #: (storages: Hash[String, Storages::Base], ?redaction: Proto::V1::Redaction?, ?listener: Runner::listener) -> void
+    def initialize(storages:, redaction: nil, listener: ->(_event) {})
       @storages = storages #: Hash[String, Storages::Base]
+      @redaction = redaction #: Proto::V1::Redaction?
       @listener = listener #: Runner::listener
     end
 
     # Builds every configured storage.
     #
     # @param storages [Google::Protobuf::Map] storage configs by name, from {Proto::V1::Config#storages}
+    # @param redaction [Proto::V1::Redaction, nil] redaction settings shared by redact steps, from {Proto::V1::Config#redaction}
     # @param listener [Proc] receives progress events from steps, possibly from several threads at once
     # @return [StepContext] the context
     # @raise [Storages::MissingBackend] when a storage config sets no backend
-    #: (Google::Protobuf::Map[String, Proto::V1::StorageConfig] storages, ?listener: Runner::listener) -> StepContext
-    def self.from_proto(storages, listener: ->(_event) {})
+    #: (Google::Protobuf::Map[String, Proto::V1::StorageConfig] storages, ?redaction: Proto::V1::Redaction?, ?listener: Runner::listener) -> StepContext
+    def self.from_proto(storages, redaction: nil, listener: ->(_event) {})
       # Map#to_h would turn the messages into hashes.
       built = {} #: Hash[String, Storages::Base]
       storages.each { |name, config| built[name] = Storages.build(config) }
-      new(storages: built, listener:)
+      new(storages: built, redaction:, listener:)
     end
 
     # Reports progress of a step.

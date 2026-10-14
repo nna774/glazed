@@ -38,7 +38,7 @@ module Glazed
         settings = load_config(config)
         orchestration = orchestrator_settings(settings, config)
         listener = json_listener
-        context = StepContext.from_proto(settings.storages, listener:)
+        context = StepContext.from_proto(settings.storages, redaction: settings.redaction, listener:)
         workflows = orchestration.workflows.keys.to_h { [it, Workflow.from_proto(select_workflow(settings, it), context:)] }
         backend = state_backend(orchestration, context)
         orchestrator = Orchestrator.new(

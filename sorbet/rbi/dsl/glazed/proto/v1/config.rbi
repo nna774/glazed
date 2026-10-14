@@ -11,12 +11,13 @@ class Glazed::Proto::V1::Config < Google::Protobuf::AbstractMessage
       inventory: T.nilable(T::Array[Glazed::Proto::V1::InventorySource]),
       jobs: T.nilable(Integer),
       orchestrator: T.nilable(Glazed::Proto::V1::Orchestrator),
+      redaction: T.nilable(Glazed::Proto::V1::Redaction),
       requires: T.nilable(T::Array[String]),
       storages: T.nilable(T.any(Google::Protobuf::Map[String, Glazed::Proto::V1::StorageConfig], T::Hash[String, Glazed::Proto::V1::StorageConfig])),
       workflows: T.nilable(T.any(Google::Protobuf::Map[String, Glazed::Proto::V1::Workflow], T::Hash[String, Glazed::Proto::V1::Workflow]))
     ).void
   end
-  def initialize(inventory: T.unsafe(nil), jobs: nil, orchestrator: nil, requires: T.unsafe(nil), storages: T.unsafe(nil), workflows: T.unsafe(nil)); end
+  def initialize(inventory: T.unsafe(nil), jobs: nil, orchestrator: nil, redaction: nil, requires: T.unsafe(nil), storages: T.unsafe(nil), workflows: T.unsafe(nil)); end
 
   sig { void }
   def clear_inventory; end
@@ -26,6 +27,9 @@ class Glazed::Proto::V1::Config < Google::Protobuf::AbstractMessage
 
   sig { void }
   def clear_orchestrator; end
+
+  sig { void }
+  def clear_redaction; end
 
   sig { void }
   def clear_requires; end
@@ -38,6 +42,9 @@ class Glazed::Proto::V1::Config < Google::Protobuf::AbstractMessage
 
   sig { returns(Object) }
   def has_orchestrator?; end
+
+  sig { returns(Object) }
+  def has_redaction?; end
 
   sig { returns(Google::Protobuf::RepeatedField[Glazed::Proto::V1::InventorySource]) }
   def inventory; end
@@ -56,6 +63,12 @@ class Glazed::Proto::V1::Config < Google::Protobuf::AbstractMessage
 
   sig { params(value: T.nilable(Glazed::Proto::V1::Orchestrator)).void }
   def orchestrator=(value); end
+
+  sig { returns(T.nilable(Glazed::Proto::V1::Redaction)) }
+  def redaction; end
+
+  sig { params(value: T.nilable(Glazed::Proto::V1::Redaction)).void }
+  def redaction=(value); end
 
   sig { returns(Google::Protobuf::RepeatedField[String]) }
   def requires; end

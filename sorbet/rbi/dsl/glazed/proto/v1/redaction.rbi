@@ -6,14 +6,23 @@
 
 
 class Glazed::Proto::V1::Redaction < Google::Protobuf::AbstractMessage
-  sig { params(hmac_key: T.nilable(Glazed::Proto::V1::SecretRef), mode: T.nilable(T.any(Symbol, Integer))).void }
-  def initialize(hmac_key: nil, mode: nil); end
+  sig do
+    params(
+      hmac_key: T.nilable(Glazed::Proto::V1::SecretRef),
+      mode: T.nilable(T.any(Symbol, Integer)),
+      secrets: T.nilable(T::Array[Glazed::Proto::V1::ExtraSecret])
+    ).void
+  end
+  def initialize(hmac_key: nil, mode: nil, secrets: T.unsafe(nil)); end
 
   sig { void }
   def clear_hmac_key; end
 
   sig { void }
   def clear_mode; end
+
+  sig { void }
+  def clear_secrets; end
 
   sig { returns(Object) }
   def has_hmac_key?; end
@@ -29,4 +38,10 @@ class Glazed::Proto::V1::Redaction < Google::Protobuf::AbstractMessage
 
   sig { params(value: T.any(Symbol, Integer)).void }
   def mode=(value); end
+
+  sig { returns(Google::Protobuf::RepeatedField[Glazed::Proto::V1::ExtraSecret]) }
+  def secrets; end
+
+  sig { params(value: Google::Protobuf::RepeatedField[Glazed::Proto::V1::ExtraSecret]).void }
+  def secrets=(value); end
 end

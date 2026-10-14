@@ -37,7 +37,7 @@ module Glazed
 
         settings = load_config(config)
         listener = json_listener
-        context = StepContext.from_proto(settings.storages, listener:)
+        context = StepContext.from_proto(settings.storages, redaction: settings.redaction, listener:)
         steps = Workflow.from_proto(select_workflow(settings, workflow), context:)
         nodes = select_nodes(Sources.nodes(settings.inventory.to_a), only || [])
 

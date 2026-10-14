@@ -40,6 +40,15 @@ RSpec.describe Glazed::Steps::Redact do
     expect(context.read(step.call(state_with_raw).artifacts['redacted'])).to match(/\[~REDACTED:dgst=[\w-]{11}~\]/)
   end
 
+  it 'applies the redaction shared through the context' do
+    shared = Glazed::Proto::V1::Redaction.new(secrets: [{regexp: 'vault'}])
+    shared_context = Glazed::StepContext.new(storages: {'vault' => raw, 'staging' => Glazed::Storages::Git.new(path: File.join(@dir, 'staging'))}, redaction: shared)
+    shared_step = described_class.from_proto('redact', settings, context: shared_context)
+    pointer = raw.write(key: 'rt1', content: "password hunter2\nnote vault\n", message: 'raw').pointer
+    state = Glazed::Proto::V1::NodeState.new(node:, artifacts: {'raw' => {storage: 'vault', pointer:}})
+    expect(shared_context.read(shared_step.call(state).artifacts['redacted'])).to eq("password [~REDACTED~]\nnote [~REDACTED~]\n")
+  end
+
   it 'raises MissingArtifact without its input' do
     expect { step.call(Glazed::Proto::V1::NodeState.new(node:)) }.to raise_error(Glazed::Steps::Base::MissingArtifact, /raw/)
   end
