@@ -22,6 +22,12 @@ module Glazed
       prompt(/^\([^)]+\)\s>/)
       comment_prefix '# '
 
+      # Parts of `show run-config commands` page even after `config paging disable`.
+      interact(/--More-- or \(q\)uit/) do |cli, _buffer, match|
+        cli.write(' ')
+        Actions::Replace.new(content: match.pre_match + match.post_match)
+      end
+
       sensitive_pattern(/(?<= )#{ENCRYPTED}/o) { it[0] }
       sensitive_pattern(/^config wlan security wpa akm \S+ set-key (?:ascii|hex) (?!encrypt )(\S+)/) { it[1] }
       sensitive_pattern(/^config (?:radius|tacacs) (?:auth|acct|athr) add \d+ \S+ \d+ (?:ascii|hex) (\S+)/) { it[1] }

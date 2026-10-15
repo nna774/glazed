@@ -27,5 +27,14 @@ RSpec.describe Glazed::Dialects::Aireos do
       Glazed::Collector.new(node:, timeout: 1).call
       expect(device.instances.first.written.first).to eq("config paging disable\n")
     end
+
+    it 'pages through output that ignores config paging disable' do
+      simulation = Simulation.load('aireos/ct3504')
+      device = simulation.shell_device(pager: 3, more: "\r\n--More-- or (q)uit")
+      stub_const('Glazed::Transports::Ssh', device)
+      node = Glazed::Proto::V1::Node.new(name: 'wlc2', dialect: 'aireos', username: 'admin', password: {value: 'pw'})
+      expect(Glazed::Collector.new(node:, timeout: 1).call).to eq(simulation.expected('collected'))
+      expect(device.instances.first.written).to include(' ')
+    end
   end
 end
