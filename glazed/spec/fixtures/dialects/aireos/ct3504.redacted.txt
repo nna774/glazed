@@ -1,0 +1,10 @@
+# Name:"Chassis"   , DESCR:"Cisco 3504 Wireless Controller"
+# PID:AIR-CT3504-K9, VID:V01, SN:FCW23456789
+#
+# Primary Boot Image............................... 8.10.196.0 (default) (active)
+# Backup Boot Image................................ 8.10.185.0
+#
+config sysname wlc2
+config snmp community create [~REDACTED~]
+config radius auth add 1 198.51.100.10 1812 ascii [~REDACTED~]
+config radius auth add encrypt 2 198.51.100.11 1812 password [~REDACTED~]

@@ -13,8 +13,8 @@ module Glazed
   module Dialects
     # Cisco Wireless LAN Controller on AireOS. Ported from oxidized's aireos model.
     #
-    # AireOS asks for the user name and password inside the session, after SSH
-    # authentication as well.
+    # Depending on version and settings, AireOS asks for the user name and
+    # password again inside the session after SSH authentication.
     class Aireos < Base
       # Encrypted secret in the running configuration: key index, IV, HMAC, optional length and ciphertext.
       ENCRYPTED = /1 \h{32} \h{40}(?: \d+)? \h+/ #: Regexp

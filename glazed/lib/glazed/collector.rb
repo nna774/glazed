@@ -83,21 +83,29 @@ module Glazed
     #: () -> bool
     private def exec_only? = @config.exec && @transport.exec?
 
-    # Answers login prompts the dialect declares, then waits for the first prompt.
+    # Answers login prompts the dialect declares until the first prompt appears.
+    # Each login prompt is answered at most once, and none has to appear, as
+    # some devices ask for credentials only under certain settings.
     #
     # @param session [CliSession] session to log in through
     # @return [void]
     #: (CliSession session) -> void
     private def login(session)
+      answers = {} #: Hash[Regexp, ^() -> String?]
       if (username_prompt = @config.username_prompt)
-        session.expect(username_prompt)
-        session.write("#{node.username}\n")
+        answers[username_prompt] = -> { node.username }
       end
       if (password_prompt = @config.password_prompt)
-        session.expect(password_prompt)
-        session.write("#{@secrets.maybe(node.password)&.value}\n")
+        answers[password_prompt] = -> { @secrets.maybe(node.password)&.value }
       end
-      session.expect(session.prompt)
+      # Sorbet cannot check a splat against expect's keyword options (7019).
+      cli = session #: as untyped
+      loop do
+        answer = answers.delete(cli.expect(*answers.keys, session.prompt).regexp)
+        return unless answer
+
+        session.write("#{answer.call}\n")
+      end
     end
 
     # @return [Transports::Base] transport built from the node

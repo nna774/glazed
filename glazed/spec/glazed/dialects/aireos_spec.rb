@@ -16,4 +16,16 @@ RSpec.describe Glazed::Dialects::Aireos do
     expect(written.first(3)).to eq(["admin\n", "pw\n", "config paging disable\n"])
     expect(written.last(2)).to eq(["logout\n", 'n'])
   end
+
+  context 'with a controller authenticating at the SSH layer' do
+    it_behaves_like 'a dialect simulation', 'aireos/ct3504', transport: 'ssh'
+
+    it 'goes straight to the CLI without answering login prompts' do
+      device = Simulation.load('aireos/ct3504').shell_device
+      stub_const('Glazed::Transports::Ssh', device)
+      node = Glazed::Proto::V1::Node.new(name: 'wlc2', dialect: 'aireos', username: 'admin', password: {value: 'pw'})
+      Glazed::Collector.new(node:, timeout: 1).call
+      expect(device.instances.first.written.first).to eq("config paging disable\n")
+    end
+  end
 end

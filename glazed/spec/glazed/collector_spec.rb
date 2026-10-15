@@ -56,8 +56,8 @@ RSpec.describe Glazed::Collector do
       described_class.new(node:, timeout: 1, progress: ->(message) { messages << message }).call
       expect(messages).to eq([
         'connecting to fake over telnet',
-        'waiting for /^Username:\s/',
-        'waiting for /^Password:\s/',
+        'waiting for /^Username:\s/ or /^Password:\s/ or prompt',
+        'waiting for /^Password:\s/ or prompt',
         'waiting for prompt',
         'waiting for prompt after "terminal length 0"',
         'waiting for prompt after "show running-config"',

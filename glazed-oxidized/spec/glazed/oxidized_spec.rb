@@ -74,8 +74,8 @@ RSpec.describe Glazed::Oxidized do
       Glazed::Proto::V1::Node.new(name: 'rt1', dialect:, transport:, username: 'admin', password: {value: 'pw'}, **fields)
     end
 
-    it 'collects with the aireos model as the wlc dialect does' do
-      simulation = Simulation.load('wlc/wlc2504')
+    it 'collects with the aireos model as the aireos dialect does' do
+      simulation = Simulation.load('aireos/ct2504')
       stub_const('Glazed::Transports::Ssh', simulation.shell_device)
       collected = Glazed::Collector.new(node: node('oxidized_aireos'), timeout: 1).call
       # The model leaves blank lines between its comment blocks uncommented.

@@ -1,0 +1,41 @@
+# Hand-written with random values: a controller that authenticates at the SSH
+# layer and shows the CLI prompt without asking User: and Password: again.
+init_prompt: |-
+  \r\n(Cisco Controller) >
+commands:
+  config paging disable: |-
+    config paging disable
+
+    (Cisco Controller) >
+  show udi: |-
+    show udi
+
+    Name:\"Chassis\"   , DESCR:\"Cisco 3504 Wireless Controller\"
+    PID:AIR-CT3504-K9, VID:V01, SN:FCW23456789
+
+    (Cisco Controller) >
+  show boot: |-
+    show boot
+
+    Primary Boot Image............................... 8.10.196.0 (default) (active)
+    Backup Boot Image................................ 8.10.185.0
+
+    (Cisco Controller) >
+  show run-config commands: |-
+    show run-config commands
+
+    config sysname wlc2
+    config snmp community create qbcNBV5K
+    config radius auth add 1 198.51.100.10 1812 ascii kMJnOBReRg
+    config radius auth add encrypt 2 198.51.100.11 1812 password 1 f08c08191bf4b42d7f7ce0a223e960bf 366c8527da7e4b412f5e3f6ef31df43b6523eade 32 a1158aca1b9c6d6521e654903fe9f212b03942ea04519f0e7f4a8a02fa9f6129
+
+    (Cisco Controller) >
+  logout: |-
+    logout
+
+    The system has unsaved changes.
+    Would you like to save them now? (y/N)\x20
+secrets:
+  - qbcNBV5K
+  - kMJnOBReRg
+  - a1158aca1b9c6d6521e654903fe9f212
