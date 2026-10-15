@@ -101,7 +101,7 @@ module Glazed
       # Runs one command outside the interactive session.
       #
       # @param command [String] command line
-      # @param timeout [Numeric] seconds to wait for the command to finish
+      # @param timeout [Numeric] seconds the command may stay silent before it finishes
       # @return [String] command output
       # @raise [NotImplementedError] when the transport has no exec
       #: (String command, timeout: Numeric) -> String

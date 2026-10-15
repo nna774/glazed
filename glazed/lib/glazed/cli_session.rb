@@ -22,7 +22,7 @@ module Glazed
   #   session = Glazed::CliSession.new(transport:, prompt: /^\S+#\s?$/)
   #   session.command('show version').output
   class CliSession
-    # Default seconds to wait for expected output.
+    # Default seconds the device may stay silent while expected output is awaited.
     DEFAULT_TIMEOUT = 60 #: Integer
     # Longest single wait on the transport, so a deadline is checked regularly.
     READ_SLICE = 1.0 #: Float
@@ -32,7 +32,7 @@ module Glazed
     # @param data_filters [Array<Proc>] filters applied to each received fragment, in order
     # @param interactions [Array<Dialect::Interaction>] responders to patterns in the buffer
     # @param exec [Boolean] run {#command} through {Transports::Base#exec} when supported
-    # @param timeout [Numeric] default seconds to wait for expected output
+    # @param timeout [Numeric] default seconds the device may stay silent while output is awaited
     # @param progress [Proc] receives a message whenever the session starts waiting for the device
     #: (transport: Transports::Base, prompt: Regexp, ?data_filters: Array[Dialect::data_filter], ?interactions: Array[Dialect::Interaction], ?exec: bool, ?timeout: Numeric, ?progress: ^(String) -> void) -> void
     def initialize(transport:, prompt:, data_filters: [], interactions: [], exec: false, timeout: DEFAULT_TIMEOUT, progress: ->(_message) {})
@@ -72,9 +72,9 @@ module Glazed
     # the end of the match.
     #
     # @param patterns [Array<Regexp>] patterns tried in order
-    # @param timeout [Numeric] seconds to wait
+    # @param timeout [Numeric] seconds the device may stay silent
     # @return [MatchData] the first match
-    # @raise [TimeoutError] when nothing matches in time
+    # @raise [TimeoutError] when the device stays silent for timeout seconds before a match
     # @raise [ConnectionClosed] when the device closes the connection first
     #: (*Regexp patterns, ?timeout: Numeric) -> MatchData
     def expect(*patterns, timeout: self.timeout)
@@ -87,9 +87,9 @@ module Glazed
     # Runs a command and waits for the prompt.
     #
     # @param line [String] command line, without newline
-    # @param timeout [Numeric] seconds to wait for the prompt
+    # @param timeout [Numeric] seconds the device may stay silent before the prompt
     # @return [CommandResult] output without the echoed command and the prompt
-    # @raise [TimeoutError] when the prompt does not appear in time
+    # @raise [TimeoutError] when the device stays silent for timeout seconds before the prompt
     # @raise [ConnectionClosed] when the device closes the connection first
     #: (String line, ?timeout: Numeric) -> CommandResult
     def command(line, timeout: self.timeout)
@@ -122,11 +122,14 @@ module Glazed
       discarded
     end
 
+    # Waits for a match while the device keeps sending. The timeout restarts
+    # whenever data arrives, so slow but steady output does not time out.
+    #
     # @param description [String] what is awaited, for error messages
-    # @param timeout [Numeric] seconds to wait
+    # @param timeout [Numeric] seconds the device may stay silent
     # @yieldreturn [MatchData, nil] match against the current buffer, or nil to keep waiting
     # @return [MatchData] the first non-nil match
-    # @raise [TimeoutError] when nothing matches in time
+    # @raise [TimeoutError] when the device stays silent for timeout seconds before a match
     # @raise [ConnectionClosed] when the device closes the connection first
     #: (String description, timeout: Numeric) { () -> MatchData? } -> MatchData
     private def wait_until(description, timeout:, &matcher)
@@ -137,12 +140,14 @@ module Glazed
         return match if match
 
         remaining = deadline - now
-        raise TimeoutError, "timed out after #{timeout}s waiting for #{description}; buffer tail: #{(buffer[-200..] || buffer).dump}" unless remaining.positive?
+        raise TimeoutError, "no output for #{timeout}s while waiting for #{description}; buffer tail: #{(buffer[-200..] || buffer).dump}" unless remaining.positive?
 
         data = transport.read(timeout: [remaining, READ_SLICE].min)
         raise ConnectionClosed, "connection closed while waiting for #{description}" if data.nil?
+        next if data.empty?
 
-        feed(data) unless data.empty?
+        deadline = now + timeout.to_f
+        feed(data)
       end
     end
 

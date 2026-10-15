@@ -58,6 +58,9 @@ module Glazed
           password: password&.value,
           timeout: connect_timeout,
           non_interactive: true,
+          # Some devices leave keepalives unanswered while busy, and the idle
+          # timeout of CliSession and #exec already detects a dead connection.
+          keepalive_maxcount: 0,
         )
       end
 
@@ -140,25 +143,29 @@ module Glazed
       # Runs a command on its own exec channel.
       #
       # @param command [String] command line
-      # @param timeout [Numeric] seconds to wait for the channel to close
+      # @param timeout [Numeric] seconds the channel may stay silent before it closes
       # @return [String] combined stdout and stderr
       # @raise [Glazed::Error] when the device refuses the exec request
-      # @raise [Glazed::TimeoutError] when the command does not finish in time
+      # @raise [Glazed::TimeoutError] when the channel stays silent for timeout seconds
       #: (String command, timeout: Numeric) -> String
       def exec(command, timeout:)
         output = +''
         closed = false #: bool
+        deadline = now + timeout.to_f
+        receive = lambda do |data|
+          output << data
+          deadline = now + timeout.to_f
+        end
         session.open_channel do |channel|
           channel.exec(command) do |_, success|
             raise Glazed::Error, "#{host}: exec request refused for #{command.inspect}" unless success
           end
-          channel.on_data { |_, data| output << data }
-          channel.on_extended_data { |_, _, data| output << data }
+          channel.on_data { |_, data| receive.call(data) }
+          channel.on_extended_data { |_, _, data| receive.call(data) }
           channel.on_close { closed = true }
         end
-        deadline = now + timeout.to_f
         session.loop(0.1) do
-          raise Glazed::TimeoutError, "#{host}: #{command.inspect} did not finish in #{timeout}s" if !closed && now > deadline
+          raise Glazed::TimeoutError, "#{host}: #{command.inspect} sent no output for #{timeout}s" if !closed && now > deadline
 
           !closed
         end

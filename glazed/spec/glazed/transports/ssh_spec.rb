@@ -10,7 +10,7 @@ RSpec.describe Glazed::Transports::Ssh do
     let(:transport_options) { nil }
     let(:transport) { described_class.new(host: 'rt1', port: 2222, username: 'admin', password:, transport_options:) }
     let(:session) { instance_double(Net::SSH::Connection::Session) }
-    let(:managed) { {port: 2222, password: 'pw', timeout: 15, non_interactive: true} }
+    let(:managed) { {port: 2222, password: 'pw', timeout: 15, non_interactive: true, keepalive_maxcount: 0} }
 
     before { allow(Net::SSH).to receive(:start).and_return(session) }
 

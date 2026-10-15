@@ -36,6 +36,16 @@ RSpec.describe Glazed::CliSession do
       expect { session.expect(/never/, timeout: 0.05) }.to raise_error(Glazed::TimeoutError, /never/)
     end
 
+    it 'keeps waiting while output arrives within the timeout' do
+      session.expect(prompt)
+      chunks = ['l1', 'l2', 'l3', 'l4', "\r\nrt1#"]
+      transport.define_singleton_method(:read) do |timeout:|
+        sleep([timeout, 0.03].min)
+        chunks.shift.to_s
+      end
+      expect(session.expect(prompt, timeout: 0.05)[0]).to eq('rt1#')
+    end
+
     it 'raises ConnectionClosed at end of stream' do
       session.expect(prompt)
       transport.close

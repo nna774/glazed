@@ -53,7 +53,7 @@ message FetchStep {
   string output = 1 [(buf.validate.field).string.min_len = 1];
   // Storage to write the artifact to, by name in Config.storages.
   string storage = 2 [(buf.validate.field).string.min_len = 1];
-  // Seconds to wait for each expected device output. 60 is used when 0.
+  // Seconds the device may stay silent while each expected output is awaited. 60 is used when 0.
   uint32 timeout_seconds = 3;
 }
 
