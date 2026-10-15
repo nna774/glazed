@@ -5,8 +5,7 @@
 
 require 'glazed'
 require 'glazed/cli_session'
-require 'glazed/dialect/run'
-require 'glazed/dialects'
+require 'glazed/node_session'
 require 'glazed/proto'
 require 'glazed/secrets_resolver'
 require 'glazed/transports'
@@ -18,9 +17,6 @@ module Glazed
   # @example
   #   config = Glazed::Collector.new(node:).call
   class Collector
-    # Transport used when a node names none.
-    DEFAULT_TRANSPORT = 'ssh' #: String
-
     # @param node [Proto::V1::Node] node to collect from
     # @param transport [Transports::Base, nil] transport to use instead of building one from the node
     # @param timeout [Numeric] seconds to wait for each expected output
@@ -28,22 +24,16 @@ module Glazed
     # @param secrets [SecretsResolver] reads the node's password and secrets
     #: (node: Proto::V1::Node, ?transport: Transports::Base?, ?timeout: Numeric, ?progress: ^(String) -> void, ?secrets: SecretsResolver) -> void
     def initialize(node:, transport: nil, timeout: CliSession::DEFAULT_TIMEOUT, progress: ->(_message) {}, secrets: SecretsResolver.new)
-      @secrets = secrets #: SecretsResolver
-      @node = node #: Proto::V1::Node
-      @dialect = Dialects.find(node.dialect) #: singleton(Dialects::Base)
-      @kind = (node.transport.empty? ? DEFAULT_TRANSPORT : node.transport) #: String
-      @transport = transport || build_transport #: Transports::Base
-      @config = @dialect.communication_config(@kind.to_sym) #: Dialect::CommunicationConfig
-      @timeout = timeout #: Numeric
-      @progress = progress #: ^(String) -> void
+      @session = NodeSession.new(node:, transport:, timeout:, progress:, secrets:) #: NodeSession
     end
 
     # @return [Proto::V1::Node] node to collect from
-    #: Proto::V1::Node
-    attr_reader :node
+    #: () -> Proto::V1::Node
+    def node = @session.node
+
     # @return [Class<Dialects::Base>] dialect of the node
-    #: singleton(Dialects::Base)
-    attr_reader :dialect
+    #: () -> singleton(Dialects::Base)
+    def dialect = @session.dialect
 
     # Collects the configuration. The connection is closed even on failure.
     #
@@ -53,73 +43,16 @@ module Glazed
     # @raise [InvalidEncoding] when the configuration is not valid UTF-8
     #: () -> String
     def call
-      session = CliSession.new(
-        transport: @transport,
-        prompt: dialect.prompt_pattern,
-        data_filters: dialect.data_filters,
-        interactions: dialect.interactions,
-        exec: @config.exec,
-        timeout: @timeout,
-        progress: @progress,
-      )
-      run = Dialect::Run.new(cli: session, node:, dialect:, secrets: @secrets)
-      @transport.pty_options = @config.pty_options
-      @progress.call("connecting to #{@transport.host} over #{@kind}")
-      @transport.open
+      @session.open
       begin
-        login(session) unless exec_only?
-        @config.post_login_hooks.each { it.call(run) }
-        output = dialect.runbook_for(:get).execute(run).dup.force_encoding(Encoding::UTF_8)
+        output = dialect.runbook_for(:get).execute(@session.run).dup.force_encoding(Encoding::UTF_8)
         raise InvalidEncoding, "#{node.name}: collected configuration is not valid UTF-8" unless output.valid_encoding?
 
-        @config.pre_logout_hooks.each { it.call(run) }
+        @session.logout
         output
       ensure
-        @transport.close
+        @session.close
       end
-    end
-
-    # @return [Boolean] whether every command runs on exec channels, so the shell is never used
-    #: () -> bool
-    private def exec_only? = @config.exec && @transport.exec?
-
-    # Answers login prompts the dialect declares until the first prompt appears.
-    # Each login prompt is answered at most once, and none has to appear, as
-    # some devices ask for credentials only under certain settings.
-    #
-    # @param session [CliSession] session to log in through
-    # @return [void]
-    #: (CliSession session) -> void
-    private def login(session)
-      answers = {} #: Hash[Regexp, ^() -> String?]
-      if (username_prompt = @config.username_prompt)
-        answers[username_prompt] = -> { node.username }
-      end
-      if (password_prompt = @config.password_prompt)
-        answers[password_prompt] = -> { @secrets.maybe(node.password)&.value }
-      end
-      # Sorbet cannot check a splat against expect's keyword options (7019).
-      cli = session #: as untyped
-      loop do
-        answer = answers.delete(cli.expect(*answers.keys, session.prompt).regexp)
-        return unless answer
-
-        session.write("#{answer.call}\n")
-      end
-    end
-
-    # @return [Transports::Base] transport built from the node
-    # @raise [Finder::NotFound] when the transport is unknown
-    #: () -> Transports::Base
-    private def build_transport
-      Transports.find(@kind).new(
-        host: node.host.empty? ? node.name : node.host,
-        port: node.port.zero? ? nil : node.port,
-        username: node.username,
-        password: @secrets.maybe(node.password),
-        transport_options: node.transport_options,
-        secrets: @secrets,
-      )
     end
   end
 end
