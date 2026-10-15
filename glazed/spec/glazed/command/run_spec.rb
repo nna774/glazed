@@ -117,6 +117,16 @@ RSpec.describe 'glazed run' do
     expect(out.string).to eq("completed 1 of 1 nodes, 1 changed, 0 failed\n")
   end
 
+  it 'runs nodes in parallel with --jobs' do
+    expect(run_command('-j', '8')).to eq(1)
+    expect(out.string).to eq("completed 1 of 2 nodes, 1 changed, 1 failed\n")
+  end
+
+  it 'refuses --jobs that is not a positive integer' do
+    expect { run_command('--jobs', 'many') }.to raise_error(Glazed::Error, /--jobs must be a positive integer, got "many"/)
+    expect { run_command('--jobs', '0') }.to raise_error(Glazed::Error, /--jobs/)
+  end
+
   it 'runs a raw-only workflow' do
     workflows[:backup][:steps].pop(2)
     nodes.pop

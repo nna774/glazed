@@ -26,12 +26,12 @@ module Glazed
       # Runs the orchestrator until a signal stops it.
       #
       # @param config [String, nil] path of the config file; {Base::CONFIG_FILE_ENV} when nil
-      # @param jobs [Integer, nil] parallelism overriding the config
+      # @param jobs [String, nil] parallelism overriding the config
       # @param _options [Hash] other options dry-cli passes, unused
       # @return [void]
       # @raise [Glazed::Error, Google::Protobuf::ParseError] when the config or inventory is invalid, or the state backend fails
       # @raise [Interrupt] when a second TERM or INT interrupts a batch
-      #: (?config: String?, ?jobs: Integer?, **untyped _options) -> void
+      #: (?config: String?, ?jobs: String?, **untyped _options) -> void
       def call(config: nil, jobs: nil, **_options)
         config = config_path(config, 'orchestrate')
 
@@ -43,7 +43,7 @@ module Glazed
         backend = state_backend(orchestration, context)
         orchestrator = Orchestrator.new(
           settings: orchestration, workflows:, backend:, inventory: -> { Sources.nodes(settings.inventory.to_a) },
-          jobs: jobs || default_jobs(settings), listener:,
+          jobs: resolve_jobs(jobs, settings), listener:,
         )
         with_traps(orchestrator) { orchestrator.run }
       ensure

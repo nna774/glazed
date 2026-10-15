@@ -85,10 +85,20 @@ module Glazed
         StateBackends.build(Must.because(orchestration.state) { 'validation requires orchestrator.state' }, context:)
       end
 
+      # dry-cli passes integer options as strings.
+      #
+      # @param option [String, nil] the --jobs option
       # @param config [Proto::V1::Config] the config
       # @return [Integer] nodes processed in parallel
-      #: (Proto::V1::Config config) -> Integer
-      private def default_jobs(config) = config.jobs.zero? ? DEFAULT_JOBS : config.jobs
+      # @raise [Glazed::Error] when --jobs is not a positive integer
+      #: (String? option, Proto::V1::Config config) -> Integer
+      private def resolve_jobs(option, config)
+        return config.jobs.zero? ? DEFAULT_JOBS : config.jobs unless option
+
+        raise Glazed::Error, "--jobs must be a positive integer, got #{option.inspect}" unless option.match?(/\A[1-9]\d*\z/)
+
+        option.to_i
+      end
 
       # Reads the config with {Glazed::Config.load}.
       #

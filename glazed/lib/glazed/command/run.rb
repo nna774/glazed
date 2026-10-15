@@ -27,11 +27,11 @@ module Glazed
       # @param config [String, nil] path of the config file; {Base::CONFIG_FILE_ENV} when nil
       # @param workflow [String, nil] workflow name; the only one when nil
       # @param only [Array<String>, nil] node names to run for; all when nil
-      # @param jobs [Integer, nil] parallelism overriding the config
+      # @param jobs [String, nil] parallelism overriding the config
       # @param _options [Hash] other options dry-cli passes, unused
       # @return [void]
       # @raise [Glazed::Error, Google::Protobuf::ParseError] when the config, inventory or a batch step fails
-      #: (?config: String?, ?workflow: String?, ?only: Array[String]?, ?jobs: Integer?, **untyped _options) -> void
+      #: (?config: String?, ?workflow: String?, ?only: Array[String]?, ?jobs: String?, **untyped _options) -> void
       def call(config: nil, workflow: nil, only: nil, jobs: nil, **_options)
         config = config_path(config, 'run')
 
@@ -41,8 +41,7 @@ module Glazed
         steps = Workflow.from_proto(select_workflow(settings, workflow), context:)
         nodes = select_nodes(Sources.nodes(settings.inventory.to_a), only || [])
 
-        jobs ||= default_jobs(settings)
-        result = Runner.new(workflow: steps, jobs:, listener:).call(nodes)
+        result = Runner.new(workflow: steps, jobs: resolve_jobs(jobs, settings), listener:).call(nodes)
         out.puts "completed #{result.states.size} of #{nodes.size} nodes, #{result.changed.size} changed, #{result.failures.size} failed"
         exit 1 unless result.failures.empty?
       end
