@@ -87,7 +87,7 @@ module Glazed
             'Start' => {'Type' => 'Pass', 'Assign' => {'cycle' => 0}, 'Next' => 'Check'},
             'Check' => invoke(
               {'check' => {
-                'token' => '{% $states.context.Execution.Name %}', 'cycle' => '{% $cycle %}',
+                'token' => '{% $states.context.Execution.Id %}', 'cycle' => '{% $cycle %}',
                 'grace_seconds' => @grace_seconds || 0, 'max_cycles' => @max_cycles || 0,
               }},
               execution_input: '{% $cycle = 0 ? $states.context.Execution.Input : null %}',

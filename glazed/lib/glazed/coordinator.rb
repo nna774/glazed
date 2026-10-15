@@ -36,15 +36,17 @@ module Glazed
     # @param clock [Proc] returns the current time
     # @param random [Random] source of jitter
     # @param owner [String] identifies this process in leases
-    #: (settings: Proto::V1::Orchestrator, backend: StateBackends::Base, ?listener: Runner::listener, ?clock: ^() -> Time, ?random: Random, ?owner: String) -> void
+    # @param waiter_alive [Proc] tells whether the execution of a waiter's token still runs; see {#arm}
+    #: (settings: Proto::V1::Orchestrator, backend: StateBackends::Base, ?listener: Runner::listener, ?clock: ^() -> Time, ?random: Random, ?owner: String, ?waiter_alive: ^(String) -> bool) -> void
     def initialize(settings:, backend:, listener: ->(_event) {}, clock: -> { Time.now }, random: Random.new,
-                   owner: "#{Socket.gethostname}:#{Process.pid}:#{SecureRandom.hex(4)}")
+                   owner: "#{Socket.gethostname}:#{Process.pid}:#{SecureRandom.hex(4)}", waiter_alive: ->(_token) { true })
       @settings = settings #: Proto::V1::Orchestrator
       @backend = backend #: StateBackends::Base
       @listener = listener #: Runner::listener
       @clock = clock #: ^() -> Time
       @random = random #: Random
       @owner = owner #: String
+      @waiter_alive = waiter_alive #: ^(String) -> bool
     end
 
     # @return [Proto::V1::Orchestrator] orchestrator settings
@@ -202,7 +204,8 @@ module Glazed
 
     # Decides whether a coordinator execution waits for the next due node,
     # recording it as the waiter, or ends because another execution already
-    # waits until then. See {Orchestrator::Policy.arm}.
+    # waits until then. A waiter whose execution waiter_alive reports ended
+    # is taken over before its record expires. See {Orchestrator::Policy.arm}.
     #
     # @param token [String] identifies the execution
     # @param cycle [Integer] times the execution has run due nodes already
@@ -215,7 +218,9 @@ module Glazed
       now = @clock.call
       wake = nil #: Time?
       @backend.update_wakeup do |record|
-        kept, wake = Orchestrator::Policy.arm(record, token:, next_due:, now:, gap: poll_seconds, grace: grace || longest_lease, cycle:, max_cycles:)
+        kept, wake = Orchestrator::Policy.arm(
+          record, token:, next_due:, now:, gap: poll_seconds, grace: grace || longest_lease, cycle:, max_cycles:, alive: @waiter_alive,
+        )
         kept
       end
       if wake

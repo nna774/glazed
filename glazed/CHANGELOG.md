@@ -6,6 +6,7 @@
 
 ### Enhancements
 
+- `Glazed::Coordinator` takes `waiter_alive:`, telling whether the execution holding the waiter record still runs, so `arm` takes over from one that ended without giving its record up
 - `aireos` redacts the encrypted secrets AireOS prints in its configuration, along with mgmtuser, netuser, AP mgmtuser and SNMP passwords, and SNMP community names wherever they appear
 
 ## [0.2.0] - 2026-10-15

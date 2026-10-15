@@ -140,8 +140,8 @@ RSpec.describe Glazed::Orchestrator::Policy do
   describe '.arm' do
     def wakeup(owner, wake_at, expires_at = wake_at + 3600) = Glazed::Proto::V1::Wakeup.new(owner:, wake_at: ts(wake_at), expires_at: ts(expires_at))
 
-    def arm(record, token: 'me', next_due: t0 + 60, cycle: 0, now: t0)
-      described_class.arm(record, token:, next_due:, now:, gap: 30, grace: 3600, cycle:, max_cycles: 3)
+    def arm(record, token: 'me', next_due: t0 + 60, cycle: 0, now: t0, alive: ->(_token) { true })
+      described_class.arm(record, token:, next_due:, now:, gap: 30, grace: 3600, cycle:, max_cycles: 3, alive:)
     end
 
     it 'waits for the next due node when nobody waits' do
@@ -171,6 +171,18 @@ RSpec.describe Glazed::Orchestrator::Policy do
 
     it 'takes over from a waiter presumed lost' do
       expect(arm(wakeup('other', t0 - 10, t0)).first.owner).to eq('me')
+    end
+
+    it 'takes over from a waiter whose execution ended before its record expires' do
+      checked = []
+      record, wake = arm(wakeup('other', t0 - 10), alive: ->(token) { checked << token && false })
+      expect([record.owner, wake, checked]).to eq(['me', t0 + 60, ['other']])
+    end
+
+    it 'checks liveness only of a waiter it would defer to' do
+      alive = ->(_token) { raise 'not expected' }
+      expect(arm(wakeup('other', t0 + 600), alive:).first.owner).to eq('me')
+      expect(arm(wakeup('me', t0), alive:, cycle: 1).first.owner).to eq('me')
     end
 
     it 'moves its own wake time later' do

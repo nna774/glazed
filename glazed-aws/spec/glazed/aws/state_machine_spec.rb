@@ -48,7 +48,7 @@ RSpec.describe Glazed::Aws::StateMachine do
       'Workflows' => 'Next cycle', 'Next cycle' => 'Check', 'Done' => 'Succeed',
     )
     expect(states.dig('Check', 'Arguments', 'Payload')).to eq(
-      'task' => {'check' => {'token' => '{% $states.context.Execution.Name %}', 'cycle' => '{% $cycle %}', 'grace_seconds' => 0, 'max_cycles' => 0}},
+      'task' => {'check' => {'token' => '{% $states.context.Execution.Id %}', 'cycle' => '{% $cycle %}', 'grace_seconds' => 0, 'max_cycles' => 0}},
       'execution_input' => '{% $cycle = 0 ? $states.context.Execution.Input : null %}',
     )
     expect(states.dig('Workflows', 'Branches').map { it['StartAt'] }).to eq(['audit: batch', 'backup: batch'])

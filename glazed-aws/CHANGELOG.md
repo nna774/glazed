@@ -1,3 +1,13 @@
+## [Unreleased]
+
+### Breaking changes
+
+- The function needs `states:DescribeExecution` on the executions of the state machine. Generate the state machine definition again: Check passes the execution ARN as its token
+
+### Bug fixes
+
+- A waiter execution that failed or was stopped no longer holds off other executions, and the signals they carry, until its record expires; Check looks up the waiter's execution before deferring to it
+
 ## [0.2.0] - 2026-10-15
 
 ### Enhancements

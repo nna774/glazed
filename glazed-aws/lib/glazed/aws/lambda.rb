@@ -8,6 +8,7 @@ require 'json'
 require 'aws-sdk-s3'
 require 'glazed'
 require 'glazed/aws'
+require 'glazed/aws/execution_liveness'
 require 'glazed/aws/signal_events'
 require 'glazed/aws/state_machine'
 require 'glazed/config'
@@ -64,7 +65,8 @@ module Glazed
             [name, Workflow.from_proto(definition, context:)]
           end
           backend = StateBackends.build(Must.because(settings.state) { 'validation requires orchestrator.state' }, context:)
-          coordinator = Coordinator.new(settings:, backend:, listener:)
+          liveness = ExecutionLiveness.new
+          coordinator = Coordinator.new(settings:, backend:, listener:, waiter_alive: ->(token) { liveness.call(token) })
           runner = Coordinator::TaskRunner.new(coordinator:, workflows:, inventory: -> { Sources.nodes(config.inventory.to_a) }, listener:)
           new(config:, source:, runner:)
         end

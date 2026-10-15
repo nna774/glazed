@@ -5,6 +5,7 @@
 
 require 'aws-sdk-s3'
 require 'aws-sdk-ssm'
+require 'aws-sdk-states'
 require 'dry/cli'
 require 'google/protobuf'
 require 'google/protobuf/descriptor_pb'

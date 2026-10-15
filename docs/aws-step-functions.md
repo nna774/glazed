@@ -26,7 +26,7 @@ Every execution starts with **Check**:
 
 1. Check loads the inventory, adding new nodes and deleting removed ones, and applies the signals.
 2. It finds the earliest time a node becomes due.
-3. The state keeps one *waiter*: the execution that sleeps until that time. If another live waiter wakes at that time or earlier, this execution ends at once. Otherwise it becomes the waiter, and a Wait state sleeps until the time. A Standard workflow costs nothing while it waits.
+3. The state keeps one *waiter*: the execution that sleeps until that time. If another waiter wakes at that time or earlier and its execution is still running, this execution ends at once. Otherwise it becomes the waiter, and a Wait state sleeps until the time. A Standard workflow costs nothing while it waits.
 
 After waking, **Prepare** leases the due nodes of every workflow. Then each workflow's branch runs its steps:
 
@@ -55,7 +55,7 @@ When signals never stop, `max_wait_seconds` caps the delay: a node signalled eve
 
 ### When there is no waiter
 
-An execution stops waiting after `--max-cycles` cycles (20 by default), which keeps its history within the Step Functions limit, or when it fails. Its waiter record expires after the grace period. By default that is the longest `lease_seconds`, so that a waiter busy running a batch still counts as live.
+An execution stops waiting after `--max-cycles` cycles (20 by default), which keeps its history within the Step Functions limit, or when it fails or is stopped. Its waiter record expires after the grace period. By default that is the longest `lease_seconds`, so that a waiter busy running a batch still counts as live. Before deferring to a waiter whose record has not expired, Check looks up its execution, and takes over when that execution is no longer running.
 
 Until the next execution starts, nothing wakes for due nodes. Any signal starts one, and so does a `rate()` schedule. A `rate(1 hour)` schedule with input `{}` bounds how late an interval or retry run can be after a waiter is lost.
 
@@ -106,7 +106,7 @@ Changing workflows or their steps also needs the state machine definition genera
 
 IAM permissions:
 
-- **The function:** S3 read and write for the state and the storages (`s3:ListBucket`, `s3:GetObject`, `s3:PutObject`, and `s3:GetObjectVersion` on a versioned bucket, where steps read the version an earlier step wrote), `s3:GetObject` on the config object, `ssm:GetParameter` on the secret parameters, and `kms:Decrypt` on the key encrypting them when it is not the AWS managed key.
+- **The function:** S3 read and write for the state and the storages (`s3:ListBucket`, `s3:GetObject`, `s3:PutObject`, and `s3:GetObjectVersion` on a versioned bucket, where steps read the version an earlier step wrote), `s3:GetObject` on the config object, `ssm:GetParameter` on the secret parameters, `states:DescribeExecution` on the executions of the state machine (`arn:aws:states:<region>:<account>:execution:<state machine>:*`), and `kms:Decrypt` on the key encrypting them when it is not the AWS managed key.
 - **The state machine role:** `lambda:InvokeFunction` on the function.
 - **The roles of EventBridge rules, Pipes and Scheduler schedules:** `states:StartExecution` on the state machine.
 

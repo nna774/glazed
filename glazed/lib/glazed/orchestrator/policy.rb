@@ -149,7 +149,8 @@ module Glazed
       # Decides whether a coordinator execution waits for the next due node.
       # It does unless another live execution already waits until then, or
       # it has looped max_cycles times; a waiter that stops waiting gives up
-      # its record.
+      # its record. A waiter that ended without giving it up, such as by
+      # failing, is live until its record expires unless alive tells otherwise.
       #
       # @param record [Proto::V1::Wakeup, nil] the current waiter
       # @param token [String] identifies the deciding execution
@@ -159,17 +160,20 @@ module Glazed
       # @param grace [Integer] seconds after waking until another execution may take over
       # @param cycle [Integer] times the execution has run due nodes already
       # @param max_cycles [Integer] cycles after which the execution ends
+      # @param alive [Proc] tells whether the execution of a waiter's token still runs
       # @return [Array(Proto::V1::Wakeup, Time), Array(Proto::V1::Wakeup, nil), Array(nil, nil)] the waiter
       #   record to keep, and when to wake; nil when the execution ends
-      #: (Proto::V1::Wakeup? record, token: String, next_due: Time?, now: Time, gap: Integer, grace: Integer, cycle: Integer, max_cycles: Integer) -> [Proto::V1::Wakeup?, Time?]
-      def self.arm(record, token:, next_due:, now:, gap:, grace:, cycle:, max_cycles:)
+      #: (Proto::V1::Wakeup? record, token: String, next_due: Time?, now: Time, gap: Integer, grace: Integer, cycle: Integer, max_cycles: Integer, ?alive: ^(String) -> bool) -> [Proto::V1::Wakeup?, Time?]
+      def self.arm(record, token:, next_due:, now:, gap:, grace:, cycle:, max_cycles:, alive: ->(_token) { true })
         own = record&.owner == token
         return [own ? nil : record, nil] if next_due.nil? || cycle >= max_cycles
 
         wake = [next_due, cycle.zero? ? now : now + gap].max
         expires_at = time(record&.expires_at)
         wake_at = time(record&.wake_at)
-        return [record, nil] if !own && expires_at && expires_at > now && wake_at && wake_at <= wake
+        if record && !own && expires_at && expires_at > now && wake_at && wake_at <= wake && alive.call(record.owner)
+          return [record, nil]
+        end
 
         [Proto::V1::Wakeup.new(owner: token, wake_at: timestamp(wake), expires_at: timestamp(wake + grace)), wake]
       end
