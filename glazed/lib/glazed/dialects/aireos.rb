@@ -29,14 +29,15 @@ module Glazed
       end
 
       sensitive_pattern(/(?<= )#{ENCRYPTED}/o) { it[0] }
-      sensitive_pattern(/^config wlan security wpa akm \S+ set-key (?:ascii|hex) (?!encrypt )(\S+)/) { it[1] }
-      sensitive_pattern(/^config (?:radius|tacacs) (?:auth|acct|athr) add \d+ \S+ \d+ (?:ascii|hex) (\S+)/) { it[1] }
-      sensitive_pattern(/^config mgmtuser (?:add|password) (?!encrypt)\S+ (\S+)/) { it[1] }
-      sensitive_pattern(/^config netuser (?:add|password) (?!encrypt)\S+ (\S+)/) { it[1] }
+      # Some releases print run-config commands without the leading `config`.
+      sensitive_pattern(/^(?:config )?wlan security wpa akm \S+ set-key (?:ascii|hex) (?!encrypt )(\S+)/) { it[1] }
+      sensitive_pattern(/^(?:config )?(?:radius|tacacs) (?:auth|acct|athr) add \d+ \S+ \d+ (?:ascii|hex) (\S+)/) { it[1] }
+      sensitive_pattern(/^(?:config )?mgmtuser (?:add|password) (?!encrypt)\S+ (\S+)/) { it[1] }
+      sensitive_pattern(/^(?:config )?netuser (?:add|password) (?!encrypt)\S+ (\S+)/) { it[1] }
       # Covers the password, its crypt hash and the enable secret.
-      sensitive_pattern(/^config ap mgmtuser add (?:encrypt )?username \S+ password (.+) \S+$/) { it[1] }
-      sensitive_pattern(/^config snmp community (?:create|mode \S+|accessmode \S+|ipaddr \S+ \S+|ipv6addr \S+ \S+) (\S+)/) { it[1] }
-      sensitive_pattern(/^config snmp v3user create \S+ (?:ro|rw) \S+ \S+ (\S.*)$/) { it[1] }
+      sensitive_pattern(/^(?:config )?ap mgmtuser add (?:encrypt )?username \S+ password (.+) \S+$/) { it[1] }
+      sensitive_pattern(/^(?:config )?snmp community (?:create|mode \S+|accessmode \S+|ipaddr \S+ \S+|ipv6addr \S+ \S+) (\S+)/) { it[1] }
+      sensitive_pattern(/^(?:config )?snmp v3user create \S+ (?:ro|rw) \S+ \S+ (\S.*)$/) { it[1] }
 
       runbook :get do |book|
         book.command('show udi') { comment("#{clean(it.output)}\n") }

@@ -28,6 +28,9 @@ commands:
     config snmp community create qbcNBV5K
     config radius auth add 1 198.51.100.10 1812 ascii kMJnOBReRg
     config radius auth add encrypt 2 198.51.100.11 1812 password 1 f08c08191bf4b42d7f7ce0a223e960bf 366c8527da7e4b412f5e3f6ef31df43b6523eade 32 a1158aca1b9c6d6521e654903fe9f212b03942ea04519f0e7f4a8a02fa9f6129
+    snmp version v2c enable
+    snmp community accessmode ro Hv7pT2xQ
+    radius auth add 3 198.51.100.12 1812 ascii ****
 
     (Cisco Controller) >
   logout: |-
@@ -38,4 +41,5 @@ commands:
 secrets:
   - qbcNBV5K
   - kMJnOBReRg
+  - Hv7pT2xQ
   - a1158aca1b9c6d6521e654903fe9f212

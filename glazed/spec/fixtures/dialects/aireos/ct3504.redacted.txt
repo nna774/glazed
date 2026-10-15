@@ -8,3 +8,6 @@ config sysname wlc2
 config snmp community create [~REDACTED~]
 config radius auth add 1 198.51.100.10 1812 ascii [~REDACTED~]
 config radius auth add encrypt 2 198.51.100.11 1812 password [~REDACTED~]
+snmp version v2c enable
+snmp community accessmode ro [~REDACTED~]
+radius auth add 3 198.51.100.12 1812 ascii [~REDACTED~]
