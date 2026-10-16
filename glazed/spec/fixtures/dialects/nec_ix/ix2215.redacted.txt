@@ -10,6 +10,10 @@ username admin password hash [~REDACTED~] administrator
 snmp-agent ip enable
 snmp-agent ip community [~REDACTED~]
 !
+ppp profile isp
+  authentication myname user@example.net
+  authentication secret-password 1 [~REDACTED~]
+!
 interface GigaEthernet0.0
   ip address 192.0.2.2/24
   ip ospf authentication-key [~REDACTED~]

@@ -26,7 +26,8 @@ module Glazed
       sensitive_pattern(/^ikev2 authentication psk id .+ key \S+ (\S+).*/) { it[1] }
       sensitive_pattern(/^ike policy ike-policy .+ key \S+ (\S+).*/) { it[1] }
       sensitive_pattern(/^radius host .+ key \S+ (\S+).*/) { it[1] }
-      sensitive_pattern(/^\s*authentication (?:secret-)?password \S+ (\S+)/) { it[1] }
+      sensitive_pattern(/^\s*authentication password \S+ (\S+)/) { it[1] }
+      sensitive_pattern(/^\s*authentication secret-password \d+ (.+?)\s*$/) { it[1] }
       sensitive_pattern(/^\s*ngn radius-auth password \S+ (\S+)/) { it[1] }
       sensitive_pattern(/^\s*usbmem authentication .+ password-file \S+ \S+ (\S+)/) { it[1] }
       sensitive_pattern(/^web-auth username \S+ (?:secret-)?password (\S+)/) { it[1] }
