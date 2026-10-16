@@ -150,10 +150,10 @@ In both, `defaults` fill the fields each node leaves unset, with `params` and `s
 `storages` maps names to one backend each:
 
 ```jsonc
-// git: a local working tree, initialised when missing; one commit per write
+// git: a local working tree, initialised when missing; one commit per changed file
 {"git": {"path": "/var/lib/glazed/raw", "branch": "main", "remote": "origin", "author_name": "glazed", "author_email": "glazed@localhost"}}
 
-// github: commits through the Git Data API; the branch is created from base_branch (default: the repository default branch)
+// github: one commit per changed file through the Git Data API; the branch is created from base_branch (default: the repository default branch)
 {"github": {"repository": "example/netconf", "branch": "glazed/auto", "base_branch": "main", "token": {"env": "GITHUB_TOKEN"}}}
 
 // s3 (glazed-aws): one object per node; enable bucket versioning to keep history
@@ -166,7 +166,7 @@ In both, `defaults` fill the fields each node leaves unset, with `params` and `s
 {"memory": {}}
 ```
 
-For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed after each commit when set. For both `git` and `github`, `subdirectory` places files in a directory of the repository, such as `network/glazed`, instead of its root. For `github`, `api_url` points to GitHub Enterprise Server, and `author_name`/`author_email` override the token owner. For `s3`, the region defaults to the SDK's. `memory` content is gone when the process exits, so only steps of the same `glazed run` can read it; an orchestrator running steps as separate processes needs a persistent storage between them.
+For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed after each write when set. For both `git` and `github`, `subdirectory` places files in a directory of the repository, such as `network/glazed`, instead of its root. For `github`, `api_url` points to GitHub Enterprise Server, and `author_name`/`author_email` override the token owner. For `s3`, the region defaults to the SDK's. `memory` content is gone when the process exits, so only steps of the same `glazed run` can read it; an orchestrator running steps as separate processes needs a persistent storage between them.
 
 ### Workflows
 
@@ -174,7 +174,7 @@ For `git`, `branch` defaults to `main`, and `remote` is pulled before and pushed
 
 - `fetch` (per node): `{"output": "raw", "storage": "raw", "timeout_seconds": 60}` collects the configuration
 - `redact` (per node): `{"input": "raw", "output": "redacted", "storage": "...", "redaction": {...}}` hides secrets. `redaction.mode` is `MODE_REMOVE` (default) or `MODE_HMAC`, which needs `hmac_key` holding the key in base64. `redaction.secrets` lists more secrets to hide besides those the dialect locates, each a `ref` (a `SecretRef`: `value`, `env`, `file` or a plugin source) such as `{"ref": {"env": "SNMP_COMMUNITIES"}, "delimiter": ","}`. Every occurrence of the referenced value in the configuration is hidden; with `delimiter`, the value is split into several secrets. With `"regexp": true` the value (or each split piece) is a regular expression instead and every match is hidden, as in `{"ref": {"value": "token-\\d+"}, "regexp": true}`. An entry's optional `note` (letters, digits and `_.@/-`) appears in its replacements, as `[~REDACTED:note=snmp~]` or `[~REDACTED:dgst=…:note=snmp~]`, to tell where an unobvious secret came from
-- `publish` (batch): `{"input": "redacted", "storage": "team"}` writes the artifact of every node as one change, such as one commit naming the changed nodes
+- `publish` (batch): `{"input": "redacted", "storage": "team"}` writes the artifact of every node, one change per changed node, such as a commit titled `glazed: sw1`
 - `command` (per node): `{"run": "sed -e '/^ntp clock-period/d'", "input": "raw", "output": "normalized", "storage": "...", "timeout_seconds": 300}` runs a command with `/bin/sh -c`, or with `"exec": ["bin/normalize", "--strict"]` in place of `run`, a program and its arguments without a shell. The input artifact's content is on stdin and stdout becomes the output artifact, both optional. `GLAZED_STEP`, `GLAZED_NODE_NAME`, `GLAZED_NODE_GROUP`, `GLAZED_NODE_DIALECT`, `GLAZED_NODE_HOST` and `GLAZED_NODE` (the node as ProtoJSON, secrets unresolved) are set, and a non-zero exit fails the node
 - `batch_command` (batch): `{"run": "bin/notify-changes"}` (or `{"exec": [...]}`, as with `command`) runs a command once, with the `glazed.v1.BatchState` of every node that got this far (artifacts and their `changed` flags) as ProtoJSON on stdin. A non-zero exit fails the run
 

@@ -10,15 +10,12 @@ require 'glazed/storages'
 
 module Glazed
   module Steps
-    # Batch: writes an artifact of every node into a storage as one change,
-    # such as one commit naming the nodes.
+    # Batch: writes an artifact of every node into a storage, as one change
+    # per changed node, such as a commit titled "glazed: rt1".
     #
     # @example Step definition
     #   {"name": "publish", "publish": {"input": "redacted", "storage": "team"}}
     class Publish < BatchStep
-      # Node names listed in a commit message before it is shortened.
-      MESSAGE_NAMES = 5 #: Integer
-
       # @param name [String] step name
       # @param input [String] artifact to read from each node
       # @param storage_name [String] storage to write to, by name
@@ -71,7 +68,7 @@ module Glazed
           names[key] = node.name
           [key, @context.read(artifact(state, @input))] #: Storages::Base::file
         end
-        results = @storage.write_all(files, message: ->(changed_keys) { message(changed_keys.map { names.fetch(it, it) }) })
+        results = @storage.write_all(files, message: ->(key) { "glazed: #{names.fetch(key, key)}" })
         output = @output
         return batch unless output
 
@@ -79,15 +76,6 @@ module Glazed
           with_artifacts(state, output => stored(@storage_name, Must.expect(result)))
         end
         Proto::V1::BatchState.new(nodes:)
-      end
-
-      # @param names [Array<String>] names of the nodes whose content changed
-      # @return [String] commit message naming the nodes
-      #: (Array[String] names) -> String
-      private def message(names)
-        listed = names.first(MESSAGE_NAMES).join(', ')
-        rest = names.size - MESSAGE_NAMES
-        rest.positive? ? "#{name}: update #{listed} and #{rest} more" : "#{name}: update #{listed}"
       end
     end
   end

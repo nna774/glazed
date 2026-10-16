@@ -21,7 +21,7 @@ module Glazed
       class Conflict < Glazed::Error; end
 
       #: type file = [String, String]
-      #: type message_builder = ^(Array[String] changed_keys) -> String
+      #: type message_builder = ^(String changed_key) -> String
 
       # Outcome of writing one file.
       class WriteResult
@@ -78,15 +78,16 @@ module Glazed
       # @raise [InvalidKey] for an unsafe key
       #: (key: String, content: String, message: String) -> WriteResult
       def write(key:, content:, message:)
-        write_all([[key, content]], message: ->(_changed_keys) { message }).fetch(0)
+        write_all([[key, content]], message: ->(_changed_key) { message }).fetch(0)
       end
 
-      # Writes several files as one change where the storage supports it. Files
-      # whose content equals what their key holds are not written again.
+      # Writes several files, as one change per changed file where the storage
+      # records changes, such as one commit each. Files whose content equals
+      # what their key holds are not written again.
       #
       # @param files [Array<Array(String, String)>] keys and contents
-      # @param message [Proc] builds the description of the change, such as a
-      #   commit message, from the keys whose content changed; not called when none did
+      # @param message [Proc] builds the description of the change to one key,
+      #   such as a commit message; called only for keys whose content changed
       # @return [Array<WriteResult>] results, in the order of files
       # @raise [InvalidKey] for an unsafe key
       #: (Array[Base::file] files, message: Base::message_builder) -> Array[WriteResult]

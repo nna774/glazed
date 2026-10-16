@@ -12,8 +12,8 @@ require 'glazed/storages/base'
 
 module Glazed
   module Storages
-    # Local git repository driven by the git command. Each write is one commit
-    # on the configured branch, optionally pulled before and pushed after.
+    # Local git repository driven by the git command. Each changed file is one
+    # commit on the configured branch, optionally pulled before and pushed after.
     #
     # @example
     #   storage = Glazed::Storages::Git.new(path: '/var/lib/glazed/raw')
@@ -81,12 +81,13 @@ module Glazed
       #: String?
       attr_reader :subdirectory
 
-      # Writes files in one commit. Nothing is committed when no content
-      # changed, and the pointers then name the existing HEAD.
+      # Writes each changed file in its own commit and pushes once. Nothing is
+      # committed when no content changed, and the pointers then name the
+      # existing HEAD.
       #
       # @param files [Array<Array(String, String)>] keys and contents
-      # @param message [Proc] builds the commit message from the changed keys
-      # @return [Array<WriteResult>] the commit holding each file, and whether the file changed
+      # @param message [Proc] builds the commit message for a changed key
+      # @return [Array<WriteResult>] the last commit, which holds every file, and whether each file changed
       # @raise [InvalidKey] for an unsafe key
       # @raise [CommandFailed] when a git command fails
       #: (Array[Base::file] files, message: Base::message_builder) -> Array[WriteResult]
@@ -104,7 +105,7 @@ module Glazed
           changed_paths = git(['diff', '--cached', '--name-only', '-z', '--', *paths]).split("\0")
           changed = keys.select { changed_paths.include?(repository_path(it)) }
           unless changed.empty?
-            git(['commit', '--quiet', '--no-verify', '-m', message.call(changed)])
+            changed.each { git(['commit', '--quiet', '--no-verify', '-m', message.call(it), '--', repository_path(it)]) }
             git(['push', '--quiet', Must.expect(remote), "HEAD:refs/heads/#{branch}"]) if remote
           end
           commit = git(%w[rev-parse HEAD]).strip

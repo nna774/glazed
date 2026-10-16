@@ -70,7 +70,7 @@ RSpec.describe 'glazed run' do
     redacted = git_show('team', 'HEAD:core/sw1')
     expect(redacted).to include('enable secret 9 [~REDACTED:dgst=')
     simulation.secrets.each { expect(redacted).not_to include(it) }
-    expect(Open3.capture2('git', '-C', path('team'), 'log', '--format=%s').first).to eq("publish: update sw1\n")
+    expect(Open3.capture2('git', '-C', path('team'), 'log', '--format=%s').first).to eq("glazed: sw1\n")
 
     logs, progress = err.string.lines.map { JSON.parse(it) }.partition { it['message'] == 'done' || it['level'] == 'error' }
     expect(progress).to include({'level' => 'info', 'step' => 'fetch', 'node' => 'sw1', 'message' => 'connecting to 127.0.0.1 over telnet'})

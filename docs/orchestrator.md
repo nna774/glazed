@@ -60,7 +60,7 @@ Each workflow's settings (`glazed.v1.Orchestration`):
 | `batch_size` | unlimited | Nodes run together at most |
 | `lease_seconds` | 3600 | Seconds a node stays claimed by an orchestrator; must exceed the time a batch takes |
 
-Each workflow keeps its own due dates. Nodes of a workflow due at the same time run together as one batch, so a `publish` step writes all of them in one commit. Workflows take turns, one batch at a time, so while a batch runs, nodes becoming due wait for the next turn. A workflow removed from `orchestrator.workflows` leaves its records in the state, unused.
+Each workflow keeps its own due dates. Nodes of a workflow due at the same time run together as one batch, so a `publish` step writes all of them in one go, a commit per changed node. Workflows take turns, one batch at a time, so while a batch runs, nodes becoming due wait for the next turn. A workflow removed from `orchestrator.workflows` leaves its records in the state, unused.
 
 ## Signals
 

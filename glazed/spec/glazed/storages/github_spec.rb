@@ -17,7 +17,7 @@ RSpec.describe Glazed::Storages::Github do
   let(:token) { Glazed::SecretsResolver.new.secret(Glazed::Proto::V1::SecretRef.new(value: 'tok')) }
   let(:storage) { described_class.new(repository: 'org/netconf', branch: 'glazed/auto', token:) }
   let(:files) { [['core/rt1', "hostname rt1\n"]] }
-  let(:message) { ->(keys) { "update #{keys.join(', ')}" } }
+  let(:message) { ->(key) { "update #{key}" } }
 
   def reply(body, status: 200) = {status:, body: JSON.generate(body), headers: {'content-type' => 'application/json'}}
 
@@ -67,6 +67,27 @@ RSpec.describe Glazed::Storages::Github do
       results = storage.write_all([['core/rt1', "hostname rt1\n"], ['core/rt2', "hostname rt2\n"]], message:)
       expect(results.map(&:changed?)).to eq([false, true])
       expect(results.map { location(it.pointer).commit }).to all(eq('new-commit'))
+    end
+
+    it 'chains one commit per changed file and moves the branch once' do
+      stub_listing('base-tree', {})
+      stub_tree(base_tree: 'base-tree', entries: [['core/rt1', "hostname rt1\n"]], result: 'tree-1')
+      stub_tree(base_tree: 'tree-1', entries: [['core/rt2', "hostname rt2\n"]], result: 'tree-2')
+      first = stub_request(:post, "#{api}/git/commits")
+              .with(body: {message: 'update core/rt1', tree: 'tree-1', parents: ['head']})
+              .to_return(reply({sha: 'commit-1'}))
+      second = stub_request(:post, "#{api}/git/commits")
+               .with(body: {message: 'update core/rt2', tree: 'tree-2', parents: ['commit-1']})
+               .to_return(reply({sha: 'commit-2'}))
+      ref = stub_request(:patch, "#{api}/git/refs/heads/glazed/auto")
+            .with(body: {sha: 'commit-2', force: false})
+            .to_return(reply({}))
+
+      results = storage.write_all([['core/rt1', "hostname rt1\n"], ['core/rt2', "hostname rt2\n"]], message:)
+      expect(results.map(&:changed?)).to eq([true, true])
+      expect(results.map { location(it.pointer).commit }).to all(eq('commit-2'))
+      expect([first, second]).to all(have_been_requested)
+      expect(ref).to have_been_requested.once
     end
 
     it 'makes no request beyond reading when every file is unchanged' do

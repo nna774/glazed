@@ -28,15 +28,16 @@ RSpec.describe Glazed::Steps::Publish do
 
   def log = Open3.capture2('git', '-C', team.path, 'log', '--format=%s').first
 
-  it 'writes every node in one commit' do
+  it 'commits each node separately, titled after the node' do
     step.call(Glazed::Proto::V1::BatchState.new(nodes: [state('rt1'), state('rt2')]))
-    expect(log).to eq("publish: update rt1, rt2\n")
+    expect(log).to eq("glazed: rt2\nglazed: rt1\n")
     expect(Open3.capture2('git', '-C', team.path, 'show', 'HEAD:core/rt2').first).to eq("hostname rt2\n")
   end
 
-  it 'shortens the message for many nodes' do
-    step.call(Glazed::Proto::V1::BatchState.new(nodes: %w[a b c d e f g].map { state(it) }))
-    expect(log).to eq("publish: update a, b, c, d, e and 2 more\n")
+  it 'commits only nodes whose content changed' do
+    step.call(Glazed::Proto::V1::BatchState.new(nodes: [state('rt1')]))
+    step.call(Glazed::Proto::V1::BatchState.new(nodes: [state('rt1'), state('rt2')]))
+    expect(log).to eq("glazed: rt2\nglazed: rt1\n")
   end
 
   it 'records the written locations when an output is set' do

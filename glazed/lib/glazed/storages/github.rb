@@ -15,8 +15,8 @@ require 'glazed/version'
 
 module Glazed
   module Storages
-    # GitHub repository written through the Git Data API. Each write is one
-    # commit on the branch, which is created from the base branch when missing.
+    # GitHub repository written through the Git Data API. Each changed file is
+    # one commit on the branch, which is created from the base branch when missing.
     #
     # @example
     #   storage = Glazed::Storages::Github.new(repository: 'org/netconf', branch: 'glazed/auto', token:)
@@ -99,12 +99,13 @@ module Glazed
       #: String?
       attr_reader :subdirectory
 
-      # Writes the changed files in one commit. Nothing is committed when no
-      # content changed, and the pointers then name the existing head.
+      # Writes each changed file in its own commit and moves the branch once.
+      # Nothing is committed when no content changed, and the pointers then
+      # name the existing head.
       #
       # @param files [Array<Array(String, String)>] keys and contents
-      # @param message [Proc] builds the commit message from the changed keys
-      # @return [Array<WriteResult>] the commit holding each file, and whether the file changed
+      # @param message [Proc] builds the commit message for a changed key
+      # @return [Array<WriteResult>] the last commit, which holds every file, and whether each file changed
       # @raise [InvalidKey] for an unsafe key
       # @raise [ApiError] when the API fails, or the branch keeps moving under concurrent writers
       #: (Array[Base::file] files, message: Base::message_builder) -> Array[WriteResult]
@@ -147,8 +148,8 @@ module Glazed
       end
 
       # @param files [Array<Array(String, String)>] keys and contents
-      # @param message [Proc] builds the commit message from the changed keys
-      # @return [Array(String, Array<String>)] SHA of the commit holding the files, and the changed keys
+      # @param message [Proc] builds the commit message for a changed key
+      # @return [Array(String, Array<String>)] SHA of the last commit, and the changed keys
       # @raise [ApiError] when the API fails
       #: (Array[Base::file] files, Base::message_builder message) -> [String, Array[String]]
       private def commit_files(files, message)
@@ -158,16 +159,18 @@ module Glazed
         existing = blob_shas(base_tree)
         candidates = existing ? files.reject { |key, content| existing[repository_path(key)] == blob_sha(content) } : files
 
-        commit = parent
+        commit = parent #: String
+        tree = base_tree
         changed = [] #: Array[String]
-        unless candidates.empty?
-          entries = candidates.map { |key, content| {path: repository_path(key), mode: '100644', type: 'blob', content:} }
-          tree = json(post("/repos/#{repository}/git/trees", {base_tree:, tree: entries})).fetch('sha')
-          unless tree == base_tree
-            changed = candidates.map(&:first)
-            body = {message: message.call(changed), tree:, parents: [parent], author: @author}.compact
-            commit = json(post("/repos/#{repository}/git/commits", body)).fetch('sha')
-          end
+        candidates.each do |key, content|
+          entry = {path: repository_path(key), mode: '100644', type: 'blob', content:}
+          new_tree = json(post("/repos/#{repository}/git/trees", {base_tree: tree, tree: [entry]})).fetch('sha')
+          next if new_tree == tree
+
+          body = {message: message.call(key), tree: new_tree, parents: [commit], author: @author}.compact
+          commit = json(post("/repos/#{repository}/git/commits", body)).fetch('sha')
+          tree = new_tree
+          changed << key
         end
 
         if head.nil?

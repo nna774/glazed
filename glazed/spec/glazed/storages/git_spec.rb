@@ -38,10 +38,11 @@ RSpec.describe Glazed::Storages::Git do
     expect(storage.read(first.pointer)).to eq("v1\n")
   end
 
-  it 'writes several files in one commit' do
-    results = storage.write_all([['a/rt1', "1\n"], ['b/rt2', "2\n"]], message: ->(_) { 'batch' })
+  it 'commits each changed file separately' do
+    results = storage.write_all([['a/rt1', "1\n"], ['b/rt2', "2\n"]], message: ->(key) { "update #{key}" })
     expect(results.map { location(it.pointer).path }).to eq(%w[a/rt1 b/rt2])
-    expect(git('rev-list', '--count', 'HEAD')).to eq("1\n")
+    expect(results.map { location(it.pointer).commit }).to all(eq(git('rev-parse', 'HEAD').strip))
+    expect(git('log', '--format=%s', '--name-only')).to eq("update b/rt2\n\nb/rt2\nupdate a/rt1\n\na/rt1\n")
   end
 
   it 'makes no commit for unchanged content and reports it unchanged' do
@@ -52,11 +53,11 @@ RSpec.describe Glazed::Storages::Git do
     expect(git('rev-list', '--count', 'HEAD')).to eq("1\n")
   end
 
-  it 'builds the message from the changed keys only' do
+  it 'builds messages for the changed keys only' do
     storage.write_all([['rt1', "1\n"], ['rt2', "2\n"]], message: ->(_) { 'first' })
     keys = nil
-    results = storage.write_all([['rt1', "1\n"], ['rt2', "3\n"]], message: ->(changed) { 'second'.tap { keys = changed } })
-    expect(keys).to eq(['rt2'])
+    results = storage.write_all([['rt1', "1\n"], ['rt2', "3\n"]], message: ->(key) { 'second'.tap { keys = key } })
+    expect(keys).to eq('rt2')
     expect(results.map(&:changed?)).to eq([false, true])
     expect(git('log', '-1', '--format=%s')).to eq("second\n")
   end
@@ -88,8 +89,8 @@ RSpec.describe Glazed::Storages::Git do
 
     it 'places files under the prefix and names keys without it in the message' do
       keys = nil
-      result = storage.write_all([['core/rt1', "1\n"]], message: ->(changed) { 'x'.tap { keys = changed } }).first
-      expect(keys).to eq(['core/rt1'])
+      result = storage.write_all([['core/rt1', "1\n"]], message: ->(key) { 'x'.tap { keys = key } }).first
+      expect(keys).to eq('core/rt1')
       expect(location(result.pointer).path).to eq('network/glazed/core/rt1')
       expect(git('ls-files')).to eq("network/glazed/core/rt1\n")
       expect(storage.read(result.pointer)).to eq("1\n")

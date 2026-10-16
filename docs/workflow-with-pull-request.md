@@ -63,7 +63,7 @@ What each step does on every run. Every step runs for every node, but a storage 
 
 1. `fetch` logs into each node and writes its configuration to `s3://example-netconf/raw/core/<node>`. The storage compares SHA-256 checksums and skips the put when they match; otherwise it puts conditionally on the version it checked, so concurrent runs cannot overwrite each other unseen.
 2. `redact` reads that object, replaces each secret located by the dialect with `[~REDACTED:dgst=…~]`, and writes `s3://example-netconf/redacted/core/<node>` the same way. It always redacts again, so a new HMAC key or a fixed dialect pattern reaches the redacted copy even when the device did not change.
-3. `publish` commits the redacted configuration of every node that got this far to `glazed/auto`, sending only files that differ from the branch. The commit message names those nodes, `publish: update sw1`. Nothing is committed when none differ, so the branch only moves when a device changed. Every node is offered on every run, so a change that failed to publish once is published by the next run.
+3. `publish` commits the redacted configuration of every node that got this far to `glazed/auto`, sending only files that differ from the branch, one commit per node titled `glazed: sw1`. Nothing is committed when none differ, so the branch only moves when a device changed. Every node is offered on every run, so a change that failed to publish once is published by the next run.
 
 With `MODE_HMAC`, a changed secret still shows up in the diff without being revealed. `GLAZED_HMAC_KEY` holds the key in base64, such as the output of `openssl rand -base64 32`. Keep it stable: a new key changes every digest at once. Use `MODE_REMOVE` to hide secrets entirely.
 
@@ -96,7 +96,7 @@ The environment file provides `GITHUB_TOKEN`, `GLAZED_HMAC_KEY`, `BACKUP_PASSWOR
 ## Opening the pull request
 
 1. An engineer changes a device, for example adding a VLAN on `sw1`.
-2. Within one schedule interval, `glazed/auto` receives a commit containing the change.
+2. Within one schedule interval, `glazed/auto` receives a commit `glazed: <node>` containing the change.
 3. When the change is complete, which may span several devices and runs, the engineer opens a pull request from `glazed/auto` into `main`. The title and description say what was changed and why, and can link the ticket or maintenance window.
 4. Reviewers read the diff of the redacted configuration and approve.
 5. The pull request is merged with any merge method. With "Automatically delete head branches" enabled, `glazed/auto` is deleted.
