@@ -1,0 +1,3 @@
+# Oxidized's simulation in third_party/oxidized/spec/model/data, answered on exec channels without echo or prompt.
+oxidized: routeros:CHR_7.10.1
+exec_raw: true

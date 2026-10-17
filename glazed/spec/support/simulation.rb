@@ -22,6 +22,7 @@ class Simulation
     @init_prompt = undump(data.fetch('init_prompt'))
     @commands = data.fetch('commands').to_h { |command, response| [command, undump(response)] }
     @secrets = data.fetch('secrets', [])
+    @exec_raw = data.fetch('exec_raw', false)
   end
 
   attr_reader :commands, :init_prompt, :secrets
@@ -29,9 +30,10 @@ class Simulation
   # Device answering on an interactive shell.
   def shell_device(**options) = FakeTransport.device(greeting: init_prompt, responses: commands, echo: false, **options)
 
-  # Device answering on exec channels, which carry neither echo nor prompt.
+  # Device answering on exec channels, which carry neither echo nor prompt. Responses of a
+  # simulation with "exec_raw" are already free of both.
   def exec_device
-    FakeTransport.device(exec_responses: commands.transform_values { it.lines[1...-1].join })
+    FakeTransport.device(exec_responses: @exec_raw ? commands : commands.transform_values { it.lines[1...-1].join })
   end
 
   def expected(kind) = File.read(expected_path(kind))

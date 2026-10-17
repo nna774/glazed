@@ -8,6 +8,7 @@
 
 - `aruba_instant` dialect for Aruba Instant (IAP and virtual controller), ported from oxidized's arubainstant model, with secret redaction for management users, SNMP, RADIUS/TACACS keys and passphrases
 - `eos` dialect for Arista EOS, ported from oxidized, redacting hashed and typed secrets, SNMP, AAA, routing, key chain and TerminAttr keys
+- `routeros` dialect for MikroTik RouterOS (SSH exec channel or Telnet), ported from Oxidized, redacting passwords, pre-shared keys, private keys, RADIUS and IPsec secrets, and SNMP community names. Param `routeros_hide_sensitive` runs `/export hide-sensitive`
 - `Glazed::Coordinator` takes `waiter_alive:`, telling whether the execution holding the waiter record still runs, so `arm` takes over from one that ended without giving its record up
 - `aireos` redacts the encrypted secrets AireOS prints in its configuration, along with mgmtuser, netuser, AP mgmtuser and SNMP passwords, and SNMP community names wherever they appear
 - `Glazed::NodeSession` connects to a node, logs in and runs the dialect's post-login and pre-logout hooks, for callers that keep an interactive session open. `exec: false` keeps commands on the shell where the dialect would use exec channels, and `interactions:` adds responders after the dialect's own. `Collector` is built on it
@@ -21,6 +22,8 @@
 - The `shell` and `batch_shell` steps are renamed `command` and `batch_command` (`glazed.v1.CommandStep` and `BatchCommandStep`), as they also run programs without a shell
 
 ### Enhancements
+
+- New `routeros` dialect for MikroTik RouterOS (SSH exec channel or Telnet), ported from Oxidized, redacting passwords, pre-shared keys, private keys, RADIUS and IPsec secrets, and SNMP community names. Param `routeros_hide_sensitive` runs `/export hide-sensitive`
 
 - Redaction hides additional secrets given as secret references, as literal text or regular expressions and optionally split by a delimiter, in a `redact` step or in the top-level `redaction` shared by all of them
 - Storages: `subdirectory` for `git` and `github` places files in a directory of the repository instead of its root
@@ -36,6 +39,8 @@
 Initial release.
 
 ### Enhancements
+
+- New `routeros` dialect for MikroTik RouterOS (SSH exec channel or Telnet), ported from Oxidized, redacting passwords, pre-shared keys, private keys, RADIUS and IPsec secrets, and SNMP community names. Param `routeros_hide_sensitive` runs `/export hide-sensitive`
 
 - Collect configuration over SSH or Telnet, with dialects for Cisco IOS/IOS XE, Cisco WLC (AireOS), Juniper Junos, NEC UNIVERGE IX and Allied Telesis AlliedWare Plus, ported from Oxidized
 - Class-based dialect DSL with inheritance ([docs/dialect-api.md](../docs/dialect-api.md))

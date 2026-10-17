@@ -1,0 +1,44 @@
+#                   version: 6.49.10 (stable)
+#          factory-software: 6.45.9
+#              total-memory: 128.0MiB
+#                       cpu: MIPS 24Kc V7.4
+#                 cpu-count: 1
+#           total-hdd-space: 16.0MiB
+#         architecture-name: mipsbe
+#                board-name: RB750Gr3
+#                  platform: MikroTik
+#   installed-version: 6.49.10
+# software id = ABCD-1234
+#
+/interface pppoe-client
+add disabled=no interface=ether1 name=pppoe-out1 password=[~REDACTED~] user=user
+/interface wireless security-profiles
+set [ find default=yes ] supplicant-identity=MikroTik
+add authentication-types=wpa-psk,wpa2-psk mode=dynamic-keys name=guest wpa-pre-shared-key=[~REDACTED~] wpa2-pre-shared-key="[~REDACTED~]"
+/interface wireguard
+add listen-port=13231 name=wg1 private-key="[~REDACTED~]"
+/interface wireguard peers
+add allowed-address=198.51.100.0/24 interface=wg1 preshared-key="[~REDACTED~]" public-key="pq0uA6RLCWndxnq971Cw="
+/interface vrrp
+add interface=ether2 name=vrrp1 authentication=simple password=[~REDACTED~]
+/ip ipsec identity
+add peer=peer1 secret="[~REDACTED~]"
+/ip ssh
+set always-allow-password-login=yes
+/ppp secret
+add name=vpnuser password=[~REDACTED~] profile=default
+/radius
+add address=192.0.2.10 secret=[~REDACTED~] service=login
+/routing ospf interface
+add authentication=md5 authentication-key=[~REDACTED~] interface=ether3
+/routing bgp peer
+add name=peer1 remote-address=203.0.113.1 remote-as=64500 tcp-md5-key=[~REDACTED~]
+/snmp community
+set [ find default=yes ] addresses=192.0.2.0/24 authentication-password=[~REDACTED~] encryption-password=[~REDACTED~] name=[~REDACTED~]
+add addresses=::/0 name="[~REDACTED~]" security=authorized
+/snmp
+set enabled=yes trap-community=[~REDACTED~]
+/tool e-mail
+set address=192.0.2.25 password=[~REDACTED~] user=mailer
+/system identity
+set name=MikroTik

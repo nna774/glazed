@@ -1,0 +1,100 @@
+# Hand-written telnet session of RouterOS 6: line shapes follow the RouterOS command
+# reference and an /export of 6.49, with random secret values.
+init_prompt: |-
+  MikroTik v6.49.10 (stable)\r
+  Login:\x20
+commands:
+  admin: |-
+    admin\r
+    Password:\x20
+  pw: |-
+    \r
+    \r
+    \x1B[9999B[admin@MikroTik] >\x20
+  "/system resource print": |-
+    /system resource print\r
+    \x20                  uptime: 1w2d3h4m5s\r
+    \x20                 version: 6.49.10 (stable)\r
+    \x20              build-time: Feb/10/2023 12:00:00\r
+    \x20        factory-software: 6.45.9\r
+    \x20             free-memory: 100.0MiB\r
+    \x20            total-memory: 128.0MiB\r
+    \x20                     cpu: MIPS 24Kc V7.4\r
+    \x20               cpu-count: 1\r
+    \x20         total-hdd-space: 16.0MiB\r
+    \x20       architecture-name: mipsbe\r
+    \x20              board-name: RB750Gr3\r
+    \x20                platform: MikroTik\r
+    \x1B[9999B[admin@MikroTik] >\x20
+  "/system package update print": |-
+    /system package update print\r
+    \x20           channel: long-term\r
+    \x20 installed-version: 6.49.10\r
+    \x1B[9999B[admin@MikroTik] >\x20
+  "/system history print without-paging": |-
+    /system history print without-paging\r
+    \x1B[9999B[admin@MikroTik] >\x20
+  "/export": |-
+    /export\r
+    # jan/02/1970 03:04:05 by RouterOS 6.49.10\r
+    # software id = ABCD-1234\r
+    #\r
+    # inactive time\r
+    # received packet from 192.0.2.7 bad format\r
+    # ether2 not ready\r
+    /interface pppoe-client\r
+    add disabled=no interface=ether1 name=pppoe-out1 password=bfkpOnLowr user=user\r
+    /interface wireless security-profiles\r
+    set [ find default=yes ] supplicant-identity=MikroTik\r
+    add authentication-types=wpa-psk,wpa2-psk mode=dynamic-keys name=guest \\\r
+    \x20   wpa-pre-shared-key=pdVSBsuFNf wpa2-pre-shared-key=\"3CN2lF 1CHVlP\"\r
+    /interface wireguard\r
+    add listen-port=13231 name=wg1 private-key=\"waSL5q9KwE\"\r
+    /interface wireguard peers\r
+    add allowed-address=198.51.100.0/24 interface=wg1 preshared-key=\"gUyUAU5GgX\" \\\r
+    \x20   public-key=\"pq0uA6RLCWndxnq971Cw=\"\r
+    /interface vrrp\r
+    add interface=ether2 name=vrrp1 authentication=simple password=LXa0ngtyNW\r
+    /ip ipsec identity\r
+    add peer=peer1 secret=\"2DbWydqiYT\"\r
+    /ip ssh\r
+    set always-allow-password-login=yes\r
+    /ppp secret\r
+    add name=vpnuser password=sjiZYEVJBC profile=default\r
+    /radius\r
+    add address=192.0.2.10 secret=5TPAHmkTcs service=login\r
+    /routing ospf interface\r
+    add authentication=md5 authentication-key=uASa94kYTS interface=ether3\r
+    /routing bgp peer\r
+    add name=peer1 remote-address=203.0.113.1 remote-as=64500 tcp-md5-key=ojLnJIJ2mS\r
+    /snmp community\r
+    set [ find default=yes ] addresses=192.0.2.0/24 authentication-password=avJP3S0Uug \\\r
+    \x20   encryption-password=IWcvszvudX name=y3sSUryv2C\r
+    add addresses=::/0 name=\"RzFKESoTTm\" security=authorized\r
+    /snmp\r
+    set enabled=yes trap-community=2Tt7MKDwwM\r
+    /tool e-mail\r
+    set address=192.0.2.25 password=bcX8PQLCjC user=mailer\r
+    /system identity\r
+    set name=MikroTik\r
+    \x1B[9999B[admin@MikroTik] >\x20
+  quit: |-
+    quit\r
+secrets:
+  - "bfkpOnLowr"
+  - "pdVSBsuFNf"
+  - "sjiZYEVJBC"
+  - "2DbWydqiYT"
+  - "y3sSUryv2C"
+  - "RzFKESoTTm"
+  - "2Tt7MKDwwM"
+  - "waSL5q9KwE"
+  - "gUyUAU5GgX"
+  - "5TPAHmkTcs"
+  - "uASa94kYTS"
+  - "ojLnJIJ2mS"
+  - "bcX8PQLCjC"
+  - "avJP3S0Uug"
+  - "IWcvszvudX"
+  - "LXa0ngtyNW"
+  - "3CN2lF 1CHVlP"
