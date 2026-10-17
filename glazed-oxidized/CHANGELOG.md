@@ -1,3 +1,7 @@
+## [0.3.0] - 2026-10-17
+
+- Require glazed 0.3.0.
+
 ## [0.2.0] - 2026-10-15
 
 - Read the node's password and secrets through the `Glazed::SecretsResolver` of glazed 0.2.0, which it now requires.
