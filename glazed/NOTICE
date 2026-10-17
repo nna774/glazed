@@ -11,6 +11,6 @@ Version 2.0:
 
 Derived from Oxidized as of commit d7f51c2, and modified for glazed:
 
-- lib/glazed/dialects/{aireos,awplus,eos,ios,junos,nec_ix}.rb
+- lib/glazed/dialects/{aireos,aruba_instant,awplus,eos,ios,junos,nec_ix}.rb
   Prompts, command sequences, output cleanup and secret patterns ported
-  from lib/oxidized/model/{awplus,ios,junos,necix,aireos,eos}.rb.
+  from lib/oxidized/model/{awplus,ios,junos,necix,aireos,eos,arubainstant}.rb.

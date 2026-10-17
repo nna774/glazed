@@ -6,6 +6,7 @@
 
 ### Enhancements
 
+- `aruba_instant` dialect for Aruba Instant (IAP and virtual controller), ported from oxidized's arubainstant model, with secret redaction for management users, SNMP, RADIUS/TACACS keys and passphrases
 - `eos` dialect for Arista EOS, ported from oxidized, redacting hashed and typed secrets, SNMP, AAA, routing, key chain and TerminAttr keys
 - `Glazed::Coordinator` takes `waiter_alive:`, telling whether the execution holding the waiter record still runs, so `arm` takes over from one that ended without giving its record up
 - `aireos` redacts the encrypted secrets AireOS prints in its configuration, along with mgmtuser, netuser, AP mgmtuser and SNMP passwords, and SNMP community names wherever they appear
