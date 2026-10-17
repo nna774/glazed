@@ -17,7 +17,7 @@ RSpec.describe Glazed::Dialects do
     expect { described_class.find('nonexistent') }.to raise_error(Glazed::Finder::NotFound, /"nonexistent"/)
   end
 
-  %w[aireos awplus ios junos nec_ix].each do |name|
+  %w[aireos awplus eos ios junos nec_ix].each do |name|
     it "loads #{name} with a get runbook and prompt" do
       dialect = described_class.find(name)
       expect(dialect.runbook_for(:get).steps).not_to be_empty

@@ -1,0 +1,77 @@
+! System information
+!     Model                   Description
+!     ----------------------- ----------------------------------------------------
+!     DCS-7050TX-64-F         64-port 10GBASE-T + 4 QSFP+ switch
+!
+!     HW Version Serial Number Mfg Date
+!     ---------- ------------- ----------
+!     01.00      JPE00000000   2015-01-01
+!
+! System has 2 power supply slots
+!   Slot Model            Serial Number
+!   ---- ---------------- ----------------
+!      1 PWR-460AC-F      EEE00000000
+! Command: show running-config
+! device: switch1 (DCS-7050TX-64-F, EOS-4.28.3M)
+!
+! boot system flash:/EOS-4.28.3M.swi
+!
+daemon TerminAttr
+   exec /usr/bin/TerminAttr -ingestgrpcurl=192.0.2.50:9910 -ingestauth=key,cvkey0000 -taillogs
+   no shutdown
+!
+transceiver qsfp default-mode 4x10G
+!
+service unsupported-transceiver acme 0123456789abcdef
+!
+hostname switch1
+!
+snmp-server community snmpro0 ro
+snmp-server community snmprw0 view all rw acl-mgmt
+snmp-server community 7 070E234F1F rw
+snmp-server user monitor ops v3 auth sha authpass0 priv aes privpass0
+snmp-server user monitor2 ops v3 localized 0102030405 auth sha512 7 0123authhash priv aes256 7 0123privhash
+snmp-server host 192.0.2.60 version 2c hostcomm0
+snmp-server host 192.0.2.61 version 3 priv v3user
+!
+tacacs-server host 192.0.2.70 key 7 0822455D0A16
+radius-server host 192.0.2.71 key 7 0822455D0A17
+radius-server key 7 0822455D0A18
+!
+aaa group server radius corp
+   server 192.0.2.72 vrf MGMT key 7 0822455D0A19
+!
+ntp authentication-key 1 md5 0822455D0A20 7
+!
+username admin privilege 15 role network-admin secret sha512 $6$salt0000$hashhashhashhash
+username ops secret 0 opspass0
+username guest nopassword
+username backup ssh-key ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPUBLICKEYONLY
+!
+enable secret 5 $1$salt0000$hashhash0000
+!
+key chain kc1
+   key 1
+      secret 7 0822455D0A21
+!
+interface Ethernet1
+   description uplink
+   ip address 192.0.2.1/30
+   ip ospf authentication-key 7 0822455D0A22
+   ip ospf message-digest-key 1 md5 7 0822455D0A23
+   isis authentication key 7 0822455D0A24 level-2
+   vrrp 1 authentication text vrrpkey0
+!
+router bgp 65000
+   neighbor 192.0.2.2 remote-as 65001
+   neighbor 192.0.2.2 password 7 0822455D0A25
+!
+ip security
+   ike policy ike1
+      local-id 192.0.2.1
+      pre-shared-key 7 0822455D0A26
+!
+management api http-commands
+   no shutdown
+!
+end
