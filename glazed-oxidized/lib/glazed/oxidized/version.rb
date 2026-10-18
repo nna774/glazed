@@ -6,6 +6,6 @@
 module Glazed
   module Oxidized
     # Gem version.
-    VERSION = '0.3.0' #: String
+    VERSION = '0.4.0' #: String
   end
 end
