@@ -16,8 +16,8 @@ RSpec.describe Glazed::Coordinator::TaskRunner do
   let(:failing) { [] }
   let(:settings) do
     Glazed::Proto::V1::Orchestrator.new(
-      workflows: {'backup' => {schedule: {interval_seconds: 86_400, retry_interval_seconds: 600}, debounce: {delay_seconds: 60, max_wait_seconds: 600}}},
-      poll_seconds: 30,
+      workflows: {'backup' => {schedule: {interval: {seconds: 86_400}, retry_interval: {seconds: 600}}, debounce: {delay: {seconds: 60}, max_wait: {seconds: 600}}}},
+      poll: {seconds: 30},
     )
   end
   let(:fetch) do

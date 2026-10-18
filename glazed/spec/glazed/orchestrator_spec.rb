@@ -16,9 +16,9 @@ RSpec.describe Glazed::Orchestrator do
   let(:failing) { [] }
   let(:settings) do
     Glazed::Proto::V1::Orchestrator.new(
-      workflows: {'backup' => {schedule: {interval_seconds: 3600, retry_interval_seconds: 600}, debounce: {delay_seconds: 60, max_wait_seconds: 300}}},
-      poll_seconds: 30,
-      inventory_refresh_seconds: 300,
+      workflows: {'backup' => {schedule: {interval: {seconds: 3600}, retry_interval: {seconds: 600}}, debounce: {delay: {seconds: 60}, max_wait: {seconds: 300}}}},
+      poll: {seconds: 30},
+      inventory_refresh: {seconds: 300},
     )
   end
   let(:step) do
@@ -182,7 +182,7 @@ RSpec.describe Glazed::Orchestrator do
         batch
       end
     end.new(name: 'audit')
-    settings.workflows['audit'] = Glazed::Proto::V1::Orchestration.new(schedule: {interval_seconds: 600})
+    settings.workflows['audit'] = Glazed::Proto::V1::Orchestration.new(schedule: {interval: {seconds: 600}})
     both = described_class.new(
       settings:, workflows: {'backup' => Glazed::Workflow.new(steps: [step]), 'audit' => Glazed::Workflow.new(steps: [audit])},
       backend:, inventory: -> { inventory }, jobs: 1, clock: -> { clock.fetch(0) },

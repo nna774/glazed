@@ -13,10 +13,10 @@ class Glazed::Proto::V1::CommandStep < Google::Protobuf::AbstractMessage
       output: T.nilable(String),
       run: T.nilable(String),
       storage: T.nilable(String),
-      timeout_seconds: T.nilable(Integer)
+      timeout: T.nilable(Google::Protobuf::Duration)
     ).void
   end
-  def initialize(exec: T.unsafe(nil), input: nil, output: nil, run: nil, storage: nil, timeout_seconds: nil); end
+  def initialize(exec: T.unsafe(nil), input: nil, output: nil, run: nil, storage: nil, timeout: nil); end
 
   sig { void }
   def clear_exec; end
@@ -34,13 +34,16 @@ class Glazed::Proto::V1::CommandStep < Google::Protobuf::AbstractMessage
   def clear_storage; end
 
   sig { void }
-  def clear_timeout_seconds; end
+  def clear_timeout; end
 
   sig { returns(Google::Protobuf::RepeatedField[String]) }
   def exec; end
 
   sig { params(value: Google::Protobuf::RepeatedField[String]).void }
   def exec=(value); end
+
+  sig { returns(Object) }
+  def has_timeout?; end
 
   sig { returns(String) }
   def input; end
@@ -66,9 +69,9 @@ class Glazed::Proto::V1::CommandStep < Google::Protobuf::AbstractMessage
   sig { params(value: String).void }
   def storage=(value); end
 
-  sig { returns(Integer) }
-  def timeout_seconds; end
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def timeout; end
 
-  sig { params(value: Integer).void }
-  def timeout_seconds=(value); end
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def timeout=(value); end
 end

@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Breaking changes
+
+- `ssm` secrets take `cache` as a duration such as `"300s"` in place of `cache_seconds`. Generate the state machine definition again: Check passes `grace` as a duration in place of `grace_seconds`
+
 ## [0.3.0] - 2026-10-17
 
 ### Breaking changes

@@ -32,33 +32,35 @@ Add `orchestrator` to the config (`glazed.v1.Orchestrator` in [`proto/glazed/v1/
     "state": {"sqlite": {"path": "/var/lib/glazed/state.sqlite3"}},
     "workflows": {
       "backup": {
-        "schedule": {"interval_seconds": 3600, "retry_interval_seconds": 600, "jitter_seconds": 300},
-        "debounce": {"delay_seconds": 60, "max_wait_seconds": 600}
+        "schedule": {"interval": "3600s", "retry_interval": "600s", "jitter": "300s"},
+        "debounce": {"delay": "60s", "max_wait": "600s"}
       },
-      "audit": {"schedule": {"interval_seconds": 86400}}
+      "audit": {"schedule": {"interval": "86400s"}}
     }
   }
 }
 ```
 
+Durations are ProtoJSON strings such as `"900s"` or `"1.5s"`. A duration left unset or 0 takes its default.
+
 | Field | Default | Meaning |
 |---|---|---|
 | `state` | (required) | Where due dates and run results of every workflow are kept; see [State](#state) |
 | `workflows` | (required) | Workflows to run, by name in the config's `workflows`, each with the settings below |
-| `poll_seconds` | 30 | Seconds between checks of the state for due nodes |
-| `inventory_refresh_seconds` | 300 | Seconds between inventory reloads |
+| `poll` | 30s | Time between checks of the state for due nodes |
+| `inventory_refresh` | 300s | Time between inventory reloads |
 
 Each workflow's settings (`glazed.v1.Orchestration`):
 
 | Field | Default | Meaning |
 |---|---|---|
-| `schedule.interval_seconds` | 3600 | Seconds from a successful run finishing to the next run |
-| `schedule.retry_interval_seconds` | `interval_seconds` | Seconds from a failed run finishing to the next run |
-| `schedule.jitter_seconds` | 0 | Up to this many seconds are added at random, spreading nodes over time |
-| `debounce.delay_seconds` | 60 | Seconds a signal waits for further signals |
-| `debounce.max_wait_seconds` | 600 | Seconds after the first signal by which the node runs |
+| `schedule.interval` | 1h | Time from a successful run finishing to the next run |
+| `schedule.retry_interval` | `interval` | Time from a failed run finishing to the next run |
+| `schedule.jitter` | 0 | Up to this much time is added at random, spreading nodes over time |
+| `debounce.delay` | 60s | Time a signal waits for further signals |
+| `debounce.max_wait` | 600s | Time after the first signal by which the node runs |
 | `batch_size` | unlimited | Nodes run together at most |
-| `lease_seconds` | 3600 | Seconds a node stays claimed by an orchestrator; must exceed the time a batch takes |
+| `lease` | 1h | Time a node stays claimed by an orchestrator; must exceed the time a batch takes |
 | `schedule_rules` | none | Per-node overrides of `schedule` and `debounce`; see [Per-node settings](#per-node-settings) |
 
 Each workflow keeps its own due dates. Nodes of a workflow due at the same time run together as one batch, so a `publish` step writes all of them in one go, a commit per changed node. Workflows take turns, one batch at a time, so while a batch runs, nodes becoming due wait for the next turn. A workflow removed from `orchestrator.workflows` leaves its records in the state, unused.
@@ -69,17 +71,17 @@ Each workflow keeps its own due dates. Nodes of a workflow due at the same time 
 
 ```json
 "backup": {
-  "schedule": {"interval_seconds": 900, "retry_interval_seconds": 60},
+  "schedule": {"interval": "900s", "retry_interval": "60s"},
   "schedule_rules": [
-    {"match": {"name_regexp": ".*\\.venue"}, "schedule": {"interval_seconds": 604800}},
-    {"match": {"groups": ["lab"], "names": ["sw1", "sw2"]}, "debounce": {"delay_seconds": 600}}
+    {"match": {"name_regexp": ".*\\.venue"}, "schedule": {"interval": "604800s"}},
+    {"match": {"groups": ["lab"], "names": ["sw1", "sw2"]}, "debounce": {"delay": "600s"}}
   ]
 }
 ```
 
 - A rule's `match` takes `names`, `groups` and `name_regexp` (Ruby syntax, matched against the whole name). A node matches when every criterion set is met, and at least one must be set.
 - A rule sets `schedule`, `debounce` or both. Each replaces the workflow's as a whole: fields it leaves unset take the defaults, not the workflow's values.
-- For each of the two, the first rule matching the node that sets it wins; the workflow's own applies when none does. `lease_seconds` and `batch_size` stay per workflow.
+- For each of the two, the first rule matching the node that sets it wins; the workflow's own applies when none does. `lease` and `batch_size` stay per workflow.
 - A node's due date is not recomputed when a rule changes. The new schedule applies from the node's next finished run, and a new debounce from the next signal.
 
 ## Signals
@@ -90,7 +92,7 @@ glazed signal -c glazed.json [-w WORKFLOW,...] [--source SOURCE] [--now] (NAME..
 
 `glazed signal` records the signal in the state for every orchestrated workflow, or those given with `-w`, and prints when each node is due in each; the orchestrator does not need to be reachable. `--all` signals every node in the inventory instead of the named ones. `--source` is recorded as the reason the node is due (default `manual`), and `--now` skips the debounce delay.
 
-Signals are debounced on the trailing edge: with each workflow's `debounce`, each one makes the node due `delay_seconds` after it, but no later than `max_wait_seconds` after the first signal not yet followed by a run. A burst of syslog messages during a configuration session therefore produces one run after the session goes quiet, and a session that never goes quiet still runs every `max_wait_seconds`. A scheduled run due earlier is kept. A signal received while the node is running makes it due again after the run.
+Signals are debounced on the trailing edge: with each workflow's `debounce`, each one makes the node due `delay` after it, but no later than `max_wait` after the first signal not yet followed by a run. A burst of syslog messages during a configuration session therefore produces one run after the session goes quiet, and a session that never goes quiet still runs every `max_wait`. A scheduled run due earlier is kept. A signal received while the node is running makes it due again after the run.
 
 Other programs, such as a syslog or SNMP trap receiver, can send signals by running `glazed signal`, or from Ruby with `Glazed::Coordinator#signal`, which takes `glazed.v1.Signal` messages. A signal names one `node` or sets `all_nodes`, and may list the `workflows` it applies to.
 
@@ -104,7 +106,7 @@ backup    fw1     waiting  17:51:02Z (in 8m52s)    retry     17:41:02Z (20.1s)  
 backup    sw1     running  17:41:50Z               syslog    17:41:51Z (running)         -          lease mafuyu:51753:a003… until 18:41:51Z
 ```
 
-`glazed status` prints each workflow's records from the state. STATUS is `running` while an orchestrator holds the node's lease, `overdue` when it has been due for longer than `poll_seconds` (usually because no orchestrator is running), `due` when it is due within that, and `waiting` otherwise. Times are UTC, with the date only when it is not today.
+`glazed status` prints each workflow's records from the state. STATUS is `running` while an orchestrator holds the node's lease, `overdue` when it has been due for longer than `poll` (usually because no orchestrator is running), `due` when it is due within that, and `waiting` otherwise. Times are UTC, with the date only when it is not today.
 
 - `-w WORKFLOW,...` and `--only NAME,...` narrow the list, and `--failing` shows only nodes whose last run failed.
 - `--json` prints each record as a line of ProtoJSON of `glazed.v1.NodeSchedule` instead.
@@ -156,4 +158,4 @@ WantedBy=multi-user.target
 
 ## Running more than one orchestrator
 
-Orchestrators sharing a state lease each node before running it, so a node runs on one orchestrator at a time. A node leased by an orchestrator that died runs again after `lease_seconds`. With a SQLite state kept in S3, every lease and every result is an upload of the whole database, so this suits a standby orchestrator or a few orchestrators better than many.
+Orchestrators sharing a state lease each node before running it, so a node runs on one orchestrator at a time. A node leased by an orchestrator that died runs again after `lease`. With a SQLite state kept in S3, every lease and every result is an upload of the whole database, so this suits a standby orchestrator or a few orchestrators better than many.

@@ -7,6 +7,7 @@ package glazed.v1;
 import "buf/validate/validate.proto";
 import "glazed/v1/secret.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
 
 option ruby_package = "Glazed::Proto::V1";
 
@@ -169,10 +170,12 @@ message CommandInventory {
   };
   // Command line, run by /bin/sh -c.
   string run = 1;
-  // Seconds before the command is killed. 300 is used when 0.
-  uint32 timeout_seconds = 2;
+  // How long before the command is killed. 300s is used when unset or 0.
+  google.protobuf.Duration timeout = 4 [(buf.validate.field).duration.gte = {}];
   // Program and its arguments, executed without a shell.
   repeated string exec = 3 [(buf.validate.field).repeated.items.string.min_len = 1];
+  reserved 2;
+  reserved "timeout_seconds";
 }
 
 // ProtoJSON files of InventoryFile.

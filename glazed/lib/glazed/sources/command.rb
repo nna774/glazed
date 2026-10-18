@@ -9,6 +9,7 @@ require 'glazed/proto'
 require 'glazed/shell_command'
 require 'glazed/sources'
 require 'glazed/sources/base'
+require 'glazed/durations'
 
 module Glazed
   module Sources
@@ -38,7 +39,7 @@ module Glazed
       #: (Google::Protobuf::MessageExts settings) -> Command
       def self.from_proto(settings)
         command = Must.be_a(settings, Proto::V1::CommandInventory)
-        new(run: ShellCommand.run_of(command.run, command.exec), timeout: command.timeout_seconds.zero? ? DEFAULT_TIMEOUT : command.timeout_seconds)
+        new(run: ShellCommand.run_of(command.run, command.exec), timeout: Durations.seconds(command.timeout, DEFAULT_TIMEOUT))
       end
 
       # @return [String, Array<String>] command line, or program and its arguments

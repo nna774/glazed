@@ -8,19 +8,19 @@
 class Glazed::Proto::V1::Orchestrator < Google::Protobuf::AbstractMessage
   sig do
     params(
-      inventory_refresh_seconds: T.nilable(Integer),
-      poll_seconds: T.nilable(Integer),
+      inventory_refresh: T.nilable(Google::Protobuf::Duration),
+      poll: T.nilable(Google::Protobuf::Duration),
       state: T.nilable(Glazed::Proto::V1::StateBackendConfig),
       workflows: T.nilable(T.any(Google::Protobuf::Map[String, Glazed::Proto::V1::Orchestration], T::Hash[String, Glazed::Proto::V1::Orchestration]))
     ).void
   end
-  def initialize(inventory_refresh_seconds: nil, poll_seconds: nil, state: nil, workflows: T.unsafe(nil)); end
+  def initialize(inventory_refresh: nil, poll: nil, state: nil, workflows: T.unsafe(nil)); end
 
   sig { void }
-  def clear_inventory_refresh_seconds; end
+  def clear_inventory_refresh; end
 
   sig { void }
-  def clear_poll_seconds; end
+  def clear_poll; end
 
   sig { void }
   def clear_state; end
@@ -29,19 +29,25 @@ class Glazed::Proto::V1::Orchestrator < Google::Protobuf::AbstractMessage
   def clear_workflows; end
 
   sig { returns(Object) }
+  def has_inventory_refresh?; end
+
+  sig { returns(Object) }
+  def has_poll?; end
+
+  sig { returns(Object) }
   def has_state?; end
 
-  sig { returns(Integer) }
-  def inventory_refresh_seconds; end
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def inventory_refresh; end
 
-  sig { params(value: Integer).void }
-  def inventory_refresh_seconds=(value); end
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def inventory_refresh=(value); end
 
-  sig { returns(Integer) }
-  def poll_seconds; end
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def poll; end
 
-  sig { params(value: Integer).void }
-  def poll_seconds=(value); end
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def poll=(value); end
 
   sig { returns(T.nilable(Glazed::Proto::V1::StateBackendConfig)) }
   def state; end

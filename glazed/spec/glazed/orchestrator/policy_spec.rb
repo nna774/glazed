@@ -6,8 +6,8 @@ require 'glazed/orchestrator'
 
 RSpec.describe Glazed::Orchestrator::Policy do
   let(:t0) { Time.at(1_800_000_000) }
-  let(:debounce) { Glazed::Proto::V1::Debounce.new(delay_seconds: 60, max_wait_seconds: 300) }
-  let(:schedule) { Glazed::Proto::V1::Schedule.new(interval_seconds: 3600, retry_interval_seconds: 600) }
+  let(:debounce) { Glazed::Proto::V1::Debounce.new(delay: {seconds: 60}, max_wait: {seconds: 300}) }
+  let(:schedule) { Glazed::Proto::V1::Schedule.new(interval: {seconds: 3600}, retry_interval: {seconds: 600}) }
   let(:random) { Random.new(1) }
 
   def ts(time) = Google::Protobuf::Timestamp.from_time(time)
@@ -22,7 +22,7 @@ RSpec.describe Glazed::Orchestrator::Policy do
     end
 
     it 'spreads nodes over the jitter' do
-      due = described_class.discovered('backup', 'rt1', now: t0, schedule: Glazed::Proto::V1::Schedule.new(jitter_seconds: 30), random:).due_at.to_time
+      due = described_class.discovered('backup', 'rt1', now: t0, schedule: Glazed::Proto::V1::Schedule.new(jitter: {seconds: 30}), random:).due_at.to_time
       expect(due).to be_between(t0, t0 + 30)
     end
   end
@@ -96,12 +96,12 @@ RSpec.describe Glazed::Orchestrator::Policy do
   describe '.schedule_for and .debounce_for' do
     let(:orchestration) do
       Glazed::Proto::V1::Orchestration.new(
-        schedule: {interval_seconds: 900},
-        debounce: {delay_seconds: 10},
+        schedule: {interval: {seconds: 900}},
+        debounce: {delay: {seconds: 10}},
         schedule_rules: [
-          {match: {groups: ['venue'], name_regexp: 'es-.*'}, schedule: {interval_seconds: 1}},
-          {match: {groups: ['venue']}, debounce: {delay_seconds: 20}},
-          {match: {names: ['er-01']}, schedule: {interval_seconds: 2}, debounce: {delay_seconds: 30}},
+          {match: {groups: ['venue'], name_regexp: 'es-.*'}, schedule: {interval: {seconds: 1}}},
+          {match: {groups: ['venue']}, debounce: {delay: {seconds: 20}}},
+          {match: {names: ['er-01']}, schedule: {interval: {seconds: 2}}, debounce: {delay: {seconds: 30}}},
         ],
       )
     end
@@ -109,24 +109,24 @@ RSpec.describe Glazed::Orchestrator::Policy do
     def node(name, group) = Glazed::Proto::V1::Node.new(name:, group:)
 
     it 'uses the first rule that matches and sets the field' do
-      expect(described_class.schedule_for(orchestration, node('es-01', 'venue')).interval_seconds).to eq(1)
-      expect(described_class.debounce_for(orchestration, node('es-01', 'venue')).delay_seconds).to eq(20)
+      expect(described_class.schedule_for(orchestration, node('es-01', 'venue')).interval.seconds).to eq(1)
+      expect(described_class.debounce_for(orchestration, node('es-01', 'venue')).delay.seconds).to eq(20)
     end
 
     it 'requires every criterion of a rule to match' do
-      expect(described_class.schedule_for(orchestration, node('es-01', 'hnd')).interval_seconds).to eq(900)
-      expect(described_class.schedule_for(orchestration, node('xes-01', 'venue')).interval_seconds).to eq(900)
+      expect(described_class.schedule_for(orchestration, node('es-01', 'hnd')).interval.seconds).to eq(900)
+      expect(described_class.schedule_for(orchestration, node('xes-01', 'venue')).interval.seconds).to eq(900)
     end
 
     it 'skips a matching rule that does not set the field' do
-      expect(described_class.schedule_for(orchestration, node('er-01', 'venue')).interval_seconds).to eq(2)
-      expect(described_class.debounce_for(orchestration, node('er-01', 'venue')).delay_seconds).to eq(20)
-      expect(described_class.debounce_for(orchestration, node('er-01', 'hnd')).delay_seconds).to eq(30)
+      expect(described_class.schedule_for(orchestration, node('er-01', 'venue')).interval.seconds).to eq(2)
+      expect(described_class.debounce_for(orchestration, node('er-01', 'venue')).delay.seconds).to eq(20)
+      expect(described_class.debounce_for(orchestration, node('er-01', 'hnd')).delay.seconds).to eq(30)
     end
 
     it 'uses the workflow settings when no rule matches' do
-      expect(described_class.schedule_for(orchestration, node('br-01', 'hnd')).interval_seconds).to eq(900)
-      expect(described_class.debounce_for(orchestration, node('br-01', 'hnd')).delay_seconds).to eq(10)
+      expect(described_class.schedule_for(orchestration, node('br-01', 'hnd')).interval.seconds).to eq(900)
+      expect(described_class.debounce_for(orchestration, node('br-01', 'hnd')).delay.seconds).to eq(10)
     end
   end
 

@@ -39,7 +39,7 @@ A node that fails a step, through an error or a Lambda timeout, is carried to Co
 
 ### Signals before, during and after a run
 
-Settings: workflow `backup` (fetch, redact, publish) with `debounce {delay_seconds: 60, max_wait_seconds: 600}`, a daily cron signal at 04:00, and syslog signals for sw1.
+Settings: workflow `backup` (fetch, redact, publish) with `debounce {delay: 60s, max_wait: 600s}`, a daily cron signal at 04:00, and syslog signals for sw1.
 
 | Time | Trigger | Execution | What happens |
 |---|---|---|---|
@@ -48,14 +48,14 @@ Settings: workflow `backup` (fetch, redact, publish) with `debounce {delay_secon
 | 04:00:40 | syslog sw1 | E3 | sw1 is now due at 04:01:40 (trailing debounce). E3 ends. |
 | 04:00:55 | (E1 completes) | E1 | rt1 is due tomorrow. sw1 keeps 04:01:40, as the signal came after its run started. E1 waits until 04:01:40. |
 | 04:01:10 | syslog sw1 | E4 | sw1 is now due at 04:02:10. E1 already waits, and earlier, so E4 ends. |
-| 04:01:40 | (E1 wakes) | E1 | Nothing is due yet. E1 waits until 04:02:10, at least `poll_seconds` later. |
+| 04:01:40 | (E1 wakes) | E1 | Nothing is due yet. E1 waits until 04:02:10, at least `poll` later. |
 | 04:02:10 | (E1 wakes) | E1 | sw1 runs once for all three signals. E1 then waits for tomorrow's runs. |
 
-When signals never stop, `max_wait_seconds` caps the delay: a node signalled every 20s from 10:00:00 still runs at 10:10:00.
+When signals never stop, `max_wait` caps the delay: a node signalled every 20s from 10:00:00 still runs at 10:10:00.
 
 ### When there is no waiter
 
-An execution stops waiting after `--max-cycles` cycles (20 by default), which keeps its history within the Step Functions limit, or when it fails or is stopped. Its waiter record expires after the grace period. By default that is the longest `lease_seconds`, so that a waiter busy running a batch still counts as live. Before deferring to a waiter whose record has not expired, Check looks up its execution, and takes over when that execution is no longer running.
+An execution stops waiting after `--max-cycles` cycles (20 by default), which keeps its history within the Step Functions limit, or when it fails or is stopped. Its waiter record expires after the grace period. By default that is the longest `lease`, so that a waiter busy running a batch still counts as live. Before deferring to a waiter whose record has not expired, Check looks up its execution, and takes over when that execution is no longer running.
 
 Until the next execution starts, nothing wakes for due nodes. Any signal starts one, and so does a `rate()` schedule. A `rate(1 hour)` schedule with input `{}` bounds how late an interval or retry run can be after a waiter is lost.
 
@@ -67,7 +67,7 @@ The prebuilt container image `ghcr.io/sorah/glazed-lambda` holds glazed, glazed-
 
 - **Handler:** `glazed/aws/lambda.Glazed::Aws::Lambda.handler`, or `glazed_lambda_entrypoint.Glazed::Aws::Lambda.handler` in the image
 - **Config:** an S3 object, or a file in the function; see [Config](#config).
-- **Secrets:** keep them in Parameter Store as SecureString parameters and refer to them as `{"ssm": {"name": "/glazed/backup/password"}}`, rather than in the function's environment variables, which anyone allowed `lambda:GetFunctionConfiguration` can read. A warm function reuses a fetched value for `cache_seconds` (default 300), so a rotated value is picked up within that time and without a deploy.
+- **Secrets:** keep them in Parameter Store as SecureString parameters and refer to them as `{"ssm": {"name": "/glazed/backup/password"}}`, rather than in the function's environment variables, which anyone allowed `lambda:GetFunctionConfiguration` can read. A warm function reuses a fetched value for `cache` (default 5m), so a rotated value is picked up within that time and without a deploy.
 - **Timeout:** enough for the slowest node of the slowest step. Each invocation runs one step for one node, or one batch step.
 - **Network:** reach the devices, for example by placing the function in a VPC.
 - **Logs:** JSON lines on standard error, in CloudWatch Logs.
@@ -123,7 +123,7 @@ This prints the Amazon States Language definition of a Standard state machine fo
 | Option | Default | Meaning |
 |---|---|---|
 | `--max-concurrency N` | `jobs` of the config, or 4 | Nodes processed in parallel by each Map |
-| `--grace-seconds N` | longest `lease_seconds` | Seconds after a waiter's wake time until another execution may take over |
+| `--grace-seconds N` | longest `lease` | Seconds after a waiter's wake time until another execution may take over |
 | `--max-cycles N` | 20 | Cycles after which an execution ends |
 
 The deployed function also generates it, from the config it runs with. Invoke it with the event `{"state_machine": {}}`. It returns `{"definition": "<definition as JSON>", "warnings": [...]}`. The definition invokes the ARN the function was invoked with, qualifier included. The event takes the options above as `function_arn`, `max_concurrency`, `grace_seconds` and `max_cycles`.
@@ -180,9 +180,9 @@ The safety net is the same schedule with `rate(1 hour)` and input `{}`.
 
 ## Settings that behave differently
 
-- **`poll_seconds`** is the shortest time a waiter sleeps between cycles, so a node signalled again and again does not make it spin.
-- **`inventory_refresh_seconds`** does not apply. The inventory loads on every Check and Prepare.
+- **`poll`** is the shortest time a waiter sleeps between cycles, so a node signalled again and again does not make it spin.
+- **`inventory_refresh`** does not apply. The inventory loads on every Check and Prepare.
 - **`batch_size`** also bounds the size of the data passed between states. Keep a batch under the 256 KiB Step Functions payload limit, roughly a few hundred nodes.
-- **`lease_seconds`** must cover a whole cycle of a batch: every step for every node.
+- **`lease`** must cover a whole cycle of a batch: every step for every node.
 
 `glazed signal` from a shell records signals in the state but starts no execution. Its signals run when the waiter wakes, or at the next execution. Send signals through EventBridge to have them run on time.

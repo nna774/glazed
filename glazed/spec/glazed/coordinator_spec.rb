@@ -13,7 +13,7 @@ RSpec.describe Glazed::Coordinator do
   let(:events) { [] }
   let(:settings) do
     Glazed::Proto::V1::Orchestrator.new(
-      workflows: {'backup' => {schedule: {interval_seconds: 3600, retry_interval_seconds: 600}, batch_size: 2, lease_seconds: 600}},
+      workflows: {'backup' => {schedule: {interval: {seconds: 3600}, retry_interval: {seconds: 600}}, batch_size: 2, lease: {seconds: 600}}},
     )
   end
   let(:coordinator) do
@@ -45,7 +45,7 @@ RSpec.describe Glazed::Coordinator do
 
   describe '#signal' do
     let(:settings) do
-      Glazed::Proto::V1::Orchestrator.new(workflows: {'backup' => {debounce: {delay_seconds: 60}}, 'audit' => {debounce: {delay_seconds: 120}}})
+      Glazed::Proto::V1::Orchestrator.new(workflows: {'backup' => {debounce: {delay: {seconds: 60}}}, 'audit' => {debounce: {delay: {seconds: 120}}}})
     end
 
     def signal(**fields) = Glazed::Proto::V1::Signal.new(source: 'syslog', **fields)
@@ -111,11 +111,11 @@ RSpec.describe Glazed::Coordinator do
       Glazed::Proto::V1::Orchestrator.new(
         workflows: {
           'backup' => {
-            schedule: {interval_seconds: 3600},
-            debounce: {delay_seconds: 60},
+            schedule: {interval: {seconds: 3600}},
+            debounce: {delay: {seconds: 60}},
             schedule_rules: [
-              {match: {name_regexp: '.*\\.venue'}, schedule: {interval_seconds: 604_800}, debounce: {delay_seconds: 300}},
-              {match: {names: ['rt3']}, schedule: {interval_seconds: 86_400}},
+              {match: {name_regexp: '.*\\.venue'}, schedule: {interval: {seconds: 604_800}}, debounce: {delay: {seconds: 300}}},
+              {match: {names: ['rt3']}, schedule: {interval: {seconds: 86_400}}},
             ],
           },
         },

@@ -19,7 +19,7 @@ RSpec.describe Glazed::Steps::Fetch do
 
   let(:events) { [] }
   let(:context) { Glazed::StepContext.new(storages: {'vault' => Glazed::Storages::Git.new(path: @dir)}, listener: ->(event) { events << event }) }
-  let(:step) { described_class.from_proto('fetch', Glazed::Proto::V1::FetchStep.new(output: 'raw', storage: 'vault', timeout_seconds: 1), context:) }
+  let(:step) { described_class.from_proto('fetch', Glazed::Proto::V1::FetchStep.new(output: 'raw', storage: 'vault', timeout: {seconds: 1}), context:) }
   let(:dialect) do
     Class.new(Glazed::Dialects::Base) do
       prompt(/^rt1#\s?$/)

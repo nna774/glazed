@@ -10,6 +10,7 @@ require 'glazed/proto'
 require 'glazed/runner'
 require 'glazed/steps'
 require 'glazed/workflow'
+require 'glazed/durations'
 
 module Glazed
   class Coordinator
@@ -70,7 +71,7 @@ module Glazed
         @coordinator.signal(task.signals.to_a, nodes:) unless task.signals.empty?
         wake = @coordinator.arm(
           token: task.token, cycle: task.cycle, max_cycles: task.max_cycles.zero? ? DEFAULT_MAX_CYCLES : task.max_cycles,
-          grace: task.grace_seconds.zero? ? nil : task.grace_seconds,
+          grace: Durations.seconds(task.grace, 0).then { it.zero? ? nil : it },
         )
         Proto::V1::Armed.new(wait_until: wake && Google::Protobuf::Timestamp.from_time(wake))
       end

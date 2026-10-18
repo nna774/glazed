@@ -9,6 +9,7 @@ require 'glazed/proto_json'
 require 'glazed/shell_command'
 require 'glazed/steps'
 require 'glazed/storages'
+require 'glazed/durations'
 
 module Glazed
   module Steps
@@ -59,7 +60,7 @@ module Glazed
           input: command.input.empty? ? nil : command.input,
           output: command.output.empty? ? nil : command.output,
           storage_name: command.storage.empty? ? nil : command.storage,
-          timeout: command.timeout_seconds.zero? ? DEFAULT_TIMEOUT : command.timeout_seconds,
+          timeout: Durations.seconds(command.timeout, DEFAULT_TIMEOUT),
         )
       end
 

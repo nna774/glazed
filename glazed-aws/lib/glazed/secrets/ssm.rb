@@ -8,6 +8,7 @@ require 'glazed/must'
 require 'glazed/proto'
 require 'glazed/secret'
 require 'glazed/secrets'
+require 'glazed/durations'
 
 module Glazed
   # Namespace of secret sources; glazed-aws adds {Ssm}.
@@ -24,15 +25,15 @@ module Glazed
 
       # @param name [String] name or ARN of the parameter
       # @param region [String, nil] region of the parameter; the SDK default when nil
-      # @param cache_seconds [Integer] seconds a fetched value is reused
+      # @param cache_seconds [Numeric] seconds a fetched value is reused
       # @param client [Aws::SSM::Client, nil] client to use instead of building one
       # @param clock [Proc] returns monotonic seconds
-      #: (name: String, ?region: String?, ?cache_seconds: Integer, ?client: ::Aws::SSM::Client?, ?clock: ^() -> Float) -> void
+      #: (name: String, ?region: String?, ?cache_seconds: Numeric, ?client: ::Aws::SSM::Client?, ?clock: ^() -> Float) -> void
       def initialize(name:, region: nil, cache_seconds: DEFAULT_CACHE_SECONDS, client: nil, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC).to_f })
         super()
         @name = name #: String
         @region = region #: String?
-        @cache_seconds = cache_seconds #: Integer
+        @cache_seconds = cache_seconds #: Numeric
         @client = client #: ::Aws::SSM::Client?
         @clock = clock #: ^() -> Float
         @value = nil #: String?
@@ -51,7 +52,7 @@ module Glazed
         new(
           name: ssm.name,
           region: ssm.region.empty? ? nil : ssm.region,
-          cache_seconds: ssm.cache_seconds.zero? ? DEFAULT_CACHE_SECONDS : ssm.cache_seconds,
+          cache_seconds: Durations.seconds(ssm.cache, DEFAULT_CACHE_SECONDS),
         )
       end
 
@@ -68,7 +69,7 @@ module Glazed
           now = @clock.call
           cached = @value
           fetched_at = @fetched_at
-          return cached if cached && fetched_at && now - fetched_at < @cache_seconds
+          return cached if cached && fetched_at && now - fetched_at < @cache_seconds.to_f
 
           fetch.tap do |fetched|
             @value = fetched

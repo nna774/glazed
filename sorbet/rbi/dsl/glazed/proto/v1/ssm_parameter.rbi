@@ -6,23 +6,26 @@
 
 
 class Glazed::Proto::V1::SsmParameter < Google::Protobuf::AbstractMessage
-  sig { params(cache_seconds: T.nilable(Integer), name: T.nilable(String), region: T.nilable(String)).void }
-  def initialize(cache_seconds: nil, name: nil, region: nil); end
+  sig { params(cache: T.nilable(Google::Protobuf::Duration), name: T.nilable(String), region: T.nilable(String)).void }
+  def initialize(cache: nil, name: nil, region: nil); end
 
-  sig { returns(Integer) }
-  def cache_seconds; end
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def cache; end
 
-  sig { params(value: Integer).void }
-  def cache_seconds=(value); end
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def cache=(value); end
 
   sig { void }
-  def clear_cache_seconds; end
+  def clear_cache; end
 
   sig { void }
   def clear_name; end
 
   sig { void }
   def clear_region; end
+
+  sig { returns(Object) }
+  def has_cache?; end
 
   sig { returns(String) }
   def name; end

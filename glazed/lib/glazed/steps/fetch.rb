@@ -9,6 +9,7 @@ require 'glazed/must'
 require 'glazed/proto'
 require 'glazed/steps'
 require 'glazed/storages'
+require 'glazed/durations'
 
 module Glazed
   module Steps
@@ -42,7 +43,7 @@ module Glazed
       #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> Fetch
       def self.from_proto(name, settings, context:)
         fetch = Must.be_a(settings, Proto::V1::FetchStep)
-        timeout = fetch.timeout_seconds.zero? ? CliSession::DEFAULT_TIMEOUT : fetch.timeout_seconds
+        timeout = Durations.seconds(fetch.timeout, CliSession::DEFAULT_TIMEOUT)
         new(name:, output: fetch.output, storage_name: fetch.storage, context:, timeout:)
       end
 

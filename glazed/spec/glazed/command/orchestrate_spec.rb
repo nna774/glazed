@@ -17,7 +17,7 @@ RSpec.describe 'glazed orchestrate and glazed signal' do
 
   let(:simulation) { Simulation.load('ios/C9200L-24P-4G_17.09.04a') }
   let(:device) { TelnetDevice.new(simulation, username: 'admin', password: 'pw') }
-  let(:orchestrator) { {state: {sqlite: {path: path('state.sqlite3')}}, workflows: {backup: {debounce: {delay_seconds: 120}}, audit: {}}} }
+  let(:orchestrator) { {state: {sqlite: {path: path('state.sqlite3')}}, workflows: {backup: {debounce: {delay: '120s'}}, audit: {}}} }
   let(:out) { StringIO.new }
   let(:err) { StringIO.new }
 
@@ -36,7 +36,7 @@ RSpec.describe 'glazed orchestrate and glazed signal' do
         storages: {raw: {memory: {}}, latest: {filesystem: {path: path('latest')}}},
         workflows: {
           backup: {steps: [
-            {name: 'fetch', fetch: {output: 'raw', storage: 'raw', timeout_seconds: 2}},
+            {name: 'fetch', fetch: {output: 'raw', storage: 'raw', timeout: '2s'}},
             {name: 'publish', publish: {input: 'raw', storage: 'latest'}},
           ]},
           audit: {steps: [{name: 'count', batch_command: {run: 'cat > /dev/null'}}]},

@@ -1,3 +1,14 @@
+## [Unreleased]
+
+### Breaking changes
+
+- Every `*_seconds` setting is a `google.protobuf.Duration` without the suffix, written as a string such as `"900s"` in ProtoJSON, and the old fields are reserved: `timeout` of the `fetch`, `command` and `batch_command` steps, command inventories and command secrets; `poll`, `inventory_refresh`, `lease`, `schedule.interval`, `schedule.retry_interval`, `schedule.jitter`, `debounce.delay`, `debounce.max_wait` of the orchestrator; `grace` of `glazed.v1.CheckTask`; and `cache` of `ssm` secrets. Configs using the old names are rejected
+- `Glazed::Coordinator#sync_inventory` and `#signal` take `Glazed::Proto::V1::Node`s instead of names, and `#complete` takes the inventory's nodes as `nodes:`
+
+### Enhancements
+
+- `schedule_rules` of an orchestrated workflow give nodes their own `schedule` and `debounce`, selected by `names`, `groups` or `name_regexp`
+
 ## [0.3.0] - 2026-10-17
 
 ### Breaking changes

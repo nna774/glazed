@@ -88,7 +88,7 @@ module Glazed
             'Check' => invoke(
               {'check' => {
                 'token' => '{% $states.context.Execution.Id %}', 'cycle' => '{% $cycle %}',
-                'grace_seconds' => @grace_seconds || 0, 'max_cycles' => @max_cycles || 0,
+                'grace' => "#{@grace_seconds || 0}s", 'max_cycles' => @max_cycles || 0,
               }},
               execution_input: '{% $cycle = 0 ? $states.context.Execution.Input : null %}',
             ).merge('Retry' => [retry_on(LAMBDA_ERRORS + ['States.TaskFailed'])], 'Next' => 'Armed?'),

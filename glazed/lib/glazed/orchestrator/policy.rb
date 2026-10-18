@@ -7,6 +7,7 @@ require 'google/protobuf'
 require 'glazed'
 require 'glazed/proto'
 require 'glazed/must'
+require 'glazed/durations'
 
 module Glazed
   class Orchestrator
@@ -88,7 +89,7 @@ module Glazed
         due = if signal.immediate
           at
         else
-          [at + nonzero(debounce&.delay_seconds, DEFAULT_DELAY), window + nonzero(debounce&.max_wait_seconds, DEFAULT_MAX_WAIT)].min
+          [at + Durations.seconds(debounce&.delay, DEFAULT_DELAY), window + Durations.seconds(debounce&.max_wait, DEFAULT_MAX_WAIT)].min
         end
         scheduled = time(updated.scheduled_at)
         if !running && scheduled && scheduled <= due
@@ -106,9 +107,9 @@ module Glazed
       # @param record [Proto::V1::NodeSchedule, nil] the node's record
       # @param owner [String] identifier of the claiming orchestrator and batch
       # @param now [Time] current time
-      # @param lease_seconds [Integer] seconds the lease lasts
+      # @param lease_seconds [Numeric] seconds the lease lasts
       # @return [Proto::V1::NodeSchedule, nil] the leased record; the record unchanged when it is not due or leased to another
-      #: (Proto::V1::NodeSchedule? record, owner: String, now: Time, lease_seconds: Integer) -> Proto::V1::NodeSchedule?
+      #: (Proto::V1::NodeSchedule? record, owner: String, now: Time, lease_seconds: Numeric) -> Proto::V1::NodeSchedule?
       def self.claim(record, owner:, now:, lease_seconds:)
         return record unless record
         return record if running?(record, now)
@@ -137,8 +138,8 @@ module Glazed
       def self.completed(record, owner:, finished_at:, error:, schedule:, random:)
         return record unless record && record.lease_owner == owner
 
-        interval = nonzero(schedule&.interval_seconds, DEFAULT_INTERVAL)
-        interval = nonzero(schedule&.retry_interval_seconds, interval) if error
+        interval = Durations.seconds(schedule&.interval, DEFAULT_INTERVAL)
+        interval = Durations.seconds(schedule&.retry_interval, interval) if error
         due = finished_at + interval + jitter(schedule, random)
         window = time(record.signal_window_started_at)
         started = time(record.last_started_at)
@@ -186,14 +187,14 @@ module Glazed
       # @param token [String] identifies the deciding execution
       # @param next_due [Time, nil] when a node may next be claimed; nil when never
       # @param now [Time] current time
-      # @param gap [Integer] seconds the execution waits at least after its first cycle
-      # @param grace [Integer] seconds after waking until another execution may take over
+      # @param gap [Numeric] seconds the execution waits at least after its first cycle
+      # @param grace [Numeric] seconds after waking until another execution may take over
       # @param cycle [Integer] times the execution has run due nodes already
       # @param max_cycles [Integer] cycles after which the execution ends
       # @param alive [Proc] tells whether the execution of a waiter's token still runs
       # @return [Array(Proto::V1::Wakeup, Time), Array(Proto::V1::Wakeup, nil), Array(nil, nil)] the waiter
       #   record to keep, and when to wake; nil when the execution ends
-      #: (Proto::V1::Wakeup? record, token: String, next_due: Time?, now: Time, gap: Integer, grace: Integer, cycle: Integer, max_cycles: Integer, ?alive: ^(String) -> bool) -> [Proto::V1::Wakeup?, Time?]
+      #: (Proto::V1::Wakeup? record, token: String, next_due: Time?, now: Time, gap: Numeric, grace: Numeric, cycle: Integer, max_cycles: Integer, ?alive: ^(String) -> bool) -> [Proto::V1::Wakeup?, Time?]
       def self.arm(record, token:, next_due:, now:, gap:, grace:, cycle:, max_cycles:, alive: ->(_token) { true })
         own = record&.owner == token
         return [own ? nil : record, nil] if next_due.nil? || cycle >= max_cycles
@@ -229,18 +230,12 @@ module Glazed
 
       # @param schedule [Proto::V1::Schedule, nil] the schedule
       # @param random [Random] source of jitter
-      # @return [Integer] seconds of jitter
-      #: (Proto::V1::Schedule? schedule, Random random) -> Integer
+      # @return [Float, Integer] seconds of jitter
+      #: (Proto::V1::Schedule? schedule, Random random) -> (Float | Integer)
       private_class_method def self.jitter(schedule, random)
-        max = schedule&.jitter_seconds || 0
-        max.zero? ? 0 : random.rand(max + 1)
+        max = Durations.seconds(schedule&.jitter, 0)
+        max.zero? ? 0 : random.rand * max
       end
-
-      # @param value [Integer, nil] configured value
-      # @param default [Integer] value used when unset or 0
-      # @return [Integer] the value
-      #: (Integer? value, Integer default) -> Integer
-      private_class_method def self.nonzero(value, default) = value.nil? || value.zero? ? default : value
     end
   end
 end

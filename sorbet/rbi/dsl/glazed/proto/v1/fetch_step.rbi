@@ -6,8 +6,14 @@
 
 
 class Glazed::Proto::V1::FetchStep < Google::Protobuf::AbstractMessage
-  sig { params(output: T.nilable(String), storage: T.nilable(String), timeout_seconds: T.nilable(Integer)).void }
-  def initialize(output: nil, storage: nil, timeout_seconds: nil); end
+  sig do
+    params(
+      output: T.nilable(String),
+      storage: T.nilable(String),
+      timeout: T.nilable(Google::Protobuf::Duration)
+    ).void
+  end
+  def initialize(output: nil, storage: nil, timeout: nil); end
 
   sig { void }
   def clear_output; end
@@ -16,7 +22,10 @@ class Glazed::Proto::V1::FetchStep < Google::Protobuf::AbstractMessage
   def clear_storage; end
 
   sig { void }
-  def clear_timeout_seconds; end
+  def clear_timeout; end
+
+  sig { returns(Object) }
+  def has_timeout?; end
 
   sig { returns(String) }
   def output; end
@@ -30,9 +39,9 @@ class Glazed::Proto::V1::FetchStep < Google::Protobuf::AbstractMessage
   sig { params(value: String).void }
   def storage=(value); end
 
-  sig { returns(Integer) }
-  def timeout_seconds; end
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def timeout; end
 
-  sig { params(value: Integer).void }
-  def timeout_seconds=(value); end
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def timeout=(value); end
 end

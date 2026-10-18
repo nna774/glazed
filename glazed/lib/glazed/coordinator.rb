@@ -12,6 +12,7 @@ require 'glazed/orchestrator/policy'
 require 'glazed/proto'
 require 'glazed/runner'
 require 'glazed/state_backends/base'
+require 'glazed/durations'
 
 module Glazed
   # Changes node schedules in a state backend as the orchestrated workflows
@@ -63,13 +64,13 @@ module Glazed
     #: () -> Array[String]
     def workflows = @settings.workflows.keys
 
-    # @return [Integer] seconds between checks for due nodes
-    #: () -> Integer
-    def poll_seconds = @settings.poll_seconds.zero? ? DEFAULT_POLL : @settings.poll_seconds
+    # @return [Float] seconds between checks for due nodes
+    #: () -> Float
+    def poll_seconds = Durations.seconds(@settings.poll, DEFAULT_POLL)
 
-    # @return [Integer] the longest seconds a lease of any workflow lasts
-    #: () -> Integer
-    def longest_lease = @settings.workflows.values.map { lease_seconds(it) }.max || DEFAULT_LEASE
+    # @return [Float] the longest seconds a lease of any workflow lasts
+    #: () -> Float
+    def longest_lease = @settings.workflows.values.map { lease_seconds(it) }.max || DEFAULT_LEASE.to_f
 
     # @param workflow [String] workflow name
     # @return [Proto::V1::Orchestration] how the workflow is orchestrated
@@ -240,9 +241,9 @@ module Glazed
     end
 
     # @param settings [Proto::V1::Orchestration] how a workflow is orchestrated
-    # @return [Integer] seconds a lease of the workflow lasts
-    #: (Proto::V1::Orchestration settings) -> Integer
-    private def lease_seconds(settings) = settings.lease_seconds.zero? ? DEFAULT_LEASE : settings.lease_seconds
+    # @return [Float] seconds a lease of the workflow lasts
+    #: (Proto::V1::Orchestration settings) -> Float
+    private def lease_seconds(settings) = Durations.seconds(settings.lease, DEFAULT_LEASE)
 
     # @param signal [Proto::V1::Signal] a signal for one node or every node
     # @param node [String] node name

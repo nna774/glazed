@@ -8,6 +8,7 @@ require 'glazed/proto'
 require 'glazed/proto_json'
 require 'glazed/shell_command'
 require 'glazed/steps'
+require 'glazed/durations'
 
 module Glazed
   module Steps
@@ -40,7 +41,7 @@ module Glazed
       #: (String name, Google::Protobuf::MessageExts settings, context: StepContext) -> BatchCommand
       def self.from_proto(name, settings, context:)
         command = Must.be_a(settings, Proto::V1::BatchCommandStep)
-        new(name:, run: ShellCommand.run_of(command.run, command.exec), timeout: command.timeout_seconds.zero? ? DEFAULT_TIMEOUT : command.timeout_seconds)
+        new(name:, run: ShellCommand.run_of(command.run, command.exec), timeout: Durations.seconds(command.timeout, DEFAULT_TIMEOUT))
       end
 
       # @param batch [Proto::V1::BatchState] node states

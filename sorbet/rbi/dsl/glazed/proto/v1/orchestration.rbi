@@ -10,12 +10,12 @@ class Glazed::Proto::V1::Orchestration < Google::Protobuf::AbstractMessage
     params(
       batch_size: T.nilable(Integer),
       debounce: T.nilable(Glazed::Proto::V1::Debounce),
-      lease_seconds: T.nilable(Integer),
+      lease: T.nilable(Google::Protobuf::Duration),
       schedule: T.nilable(Glazed::Proto::V1::Schedule),
       schedule_rules: T.nilable(T::Array[Glazed::Proto::V1::ScheduleRule])
     ).void
   end
-  def initialize(batch_size: nil, debounce: nil, lease_seconds: nil, schedule: nil, schedule_rules: T.unsafe(nil)); end
+  def initialize(batch_size: nil, debounce: nil, lease: nil, schedule: nil, schedule_rules: T.unsafe(nil)); end
 
   sig { returns(Integer) }
   def batch_size; end
@@ -30,7 +30,7 @@ class Glazed::Proto::V1::Orchestration < Google::Protobuf::AbstractMessage
   def clear_debounce; end
 
   sig { void }
-  def clear_lease_seconds; end
+  def clear_lease; end
 
   sig { void }
   def clear_schedule; end
@@ -48,13 +48,16 @@ class Glazed::Proto::V1::Orchestration < Google::Protobuf::AbstractMessage
   def has_debounce?; end
 
   sig { returns(Object) }
+  def has_lease?; end
+
+  sig { returns(Object) }
   def has_schedule?; end
 
-  sig { returns(Integer) }
-  def lease_seconds; end
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def lease; end
 
-  sig { params(value: Integer).void }
-  def lease_seconds=(value); end
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def lease=(value); end
 
   sig { returns(T.nilable(Glazed::Proto::V1::Schedule)) }
   def schedule; end

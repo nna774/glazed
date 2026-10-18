@@ -29,7 +29,7 @@ RSpec.describe 'glazed run' do
     {
       backup: {
         steps: [
-          {name: 'fetch', fetch: {output: 'raw', storage: 'vault', timeout_seconds: 2}},
+          {name: 'fetch', fetch: {output: 'raw', storage: 'vault', timeout: '2s'}},
           {name: 'redact', redact: {input: 'raw', output: 'redacted', storage: 'staging',
                                       redaction: {mode: 'MODE_HMAC', hmac_key: {value: 'aw=='}}}},
           {name: 'publish', publish: {input: 'redacted', storage: 'team'}},

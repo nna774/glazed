@@ -8,37 +8,46 @@
 class Glazed::Proto::V1::Schedule < Google::Protobuf::AbstractMessage
   sig do
     params(
-      interval_seconds: T.nilable(Integer),
-      jitter_seconds: T.nilable(Integer),
-      retry_interval_seconds: T.nilable(Integer)
+      interval: T.nilable(Google::Protobuf::Duration),
+      jitter: T.nilable(Google::Protobuf::Duration),
+      retry_interval: T.nilable(Google::Protobuf::Duration)
     ).void
   end
-  def initialize(interval_seconds: nil, jitter_seconds: nil, retry_interval_seconds: nil); end
+  def initialize(interval: nil, jitter: nil, retry_interval: nil); end
 
   sig { void }
-  def clear_interval_seconds; end
+  def clear_interval; end
 
   sig { void }
-  def clear_jitter_seconds; end
+  def clear_jitter; end
 
   sig { void }
-  def clear_retry_interval_seconds; end
+  def clear_retry_interval; end
 
-  sig { returns(Integer) }
-  def interval_seconds; end
+  sig { returns(Object) }
+  def has_interval?; end
 
-  sig { params(value: Integer).void }
-  def interval_seconds=(value); end
+  sig { returns(Object) }
+  def has_jitter?; end
 
-  sig { returns(Integer) }
-  def jitter_seconds; end
+  sig { returns(Object) }
+  def has_retry_interval?; end
 
-  sig { params(value: Integer).void }
-  def jitter_seconds=(value); end
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def interval; end
 
-  sig { returns(Integer) }
-  def retry_interval_seconds; end
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def interval=(value); end
 
-  sig { params(value: Integer).void }
-  def retry_interval_seconds=(value); end
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def jitter; end
+
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def jitter=(value); end
+
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def retry_interval; end
+
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def retry_interval=(value); end
 end

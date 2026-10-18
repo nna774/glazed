@@ -9,6 +9,7 @@ require 'glazed/proto'
 require 'glazed/proto_json'
 require 'glazed/state_backends/base'
 require 'glazed/step_context'
+require 'glazed/durations'
 
 module Glazed
   module Command
@@ -51,7 +52,7 @@ module Glazed
         records.select!(&:last_failed) if failing
 
         now = Time.now
-        poll_seconds = orchestration.poll_seconds.zero? ? Orchestrator::DEFAULT_POLL : orchestration.poll_seconds
+        poll_seconds = Durations.seconds(orchestration.poll, Orchestrator::DEFAULT_POLL)
         if json
           records.each { out.puts ProtoJson.dump(it) }
         else
@@ -75,9 +76,9 @@ module Glazed
 
       # @param record [Proto::V1::NodeSchedule] the record
       # @param now [Time] current time
-      # @param poll_seconds [Integer] seconds between the orchestrator's checks for due nodes
+      # @param poll_seconds [Numeric] seconds between the orchestrator's checks for due nodes
       # @return [Array<String>] the cells, then the notes
-      #: (Proto::V1::NodeSchedule record, now: Time, poll_seconds: Integer) -> Status::row
+      #: (Proto::V1::NodeSchedule record, now: Time, poll_seconds: Numeric) -> Status::row
       private def row(record, now:, poll_seconds:)
         status = status(record, now:, poll_seconds:)
         due = time(record.due_at)
@@ -88,16 +89,16 @@ module Glazed
 
       # @param record [Proto::V1::NodeSchedule] the record
       # @param now [Time] current time
-      # @param poll_seconds [Integer] seconds between the orchestrator's checks for due nodes
+      # @param poll_seconds [Numeric] seconds between the orchestrator's checks for due nodes
       # @return [String] "running", "overdue" when due for more than a poll interval, "due", or "waiting"
-      #: (Proto::V1::NodeSchedule record, now: Time, poll_seconds: Integer) -> String
+      #: (Proto::V1::NodeSchedule record, now: Time, poll_seconds: Numeric) -> String
       private def status(record, now:, poll_seconds:)
         return 'running' if Orchestrator::Policy.running?(record, now)
 
         due = time(record.due_at)
         return 'waiting' if due.nil? || due > now
 
-        now - due > poll_seconds ? 'overdue' : 'due'
+        now - due > poll_seconds.to_f ? 'overdue' : 'due'
       end
 
       # @param record [Proto::V1::NodeSchedule] the record

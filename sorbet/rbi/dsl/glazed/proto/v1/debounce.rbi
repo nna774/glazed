@@ -6,24 +6,30 @@
 
 
 class Glazed::Proto::V1::Debounce < Google::Protobuf::AbstractMessage
-  sig { params(delay_seconds: T.nilable(Integer), max_wait_seconds: T.nilable(Integer)).void }
-  def initialize(delay_seconds: nil, max_wait_seconds: nil); end
+  sig { params(delay: T.nilable(Google::Protobuf::Duration), max_wait: T.nilable(Google::Protobuf::Duration)).void }
+  def initialize(delay: nil, max_wait: nil); end
 
   sig { void }
-  def clear_delay_seconds; end
+  def clear_delay; end
 
   sig { void }
-  def clear_max_wait_seconds; end
+  def clear_max_wait; end
 
-  sig { returns(Integer) }
-  def delay_seconds; end
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def delay; end
 
-  sig { params(value: Integer).void }
-  def delay_seconds=(value); end
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def delay=(value); end
 
-  sig { returns(Integer) }
-  def max_wait_seconds; end
+  sig { returns(Object) }
+  def has_delay?; end
 
-  sig { params(value: Integer).void }
-  def max_wait_seconds=(value); end
+  sig { returns(Object) }
+  def has_max_wait?; end
+
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def max_wait; end
+
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def max_wait=(value); end
 end

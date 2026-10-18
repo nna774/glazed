@@ -7,6 +7,7 @@ package glazed.v1;
 import "buf/validate/validate.proto";
 import "glazed/v1/orchestrator.proto";
 import "glazed/v1/steps.proto";
+import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
 option ruby_package = "Glazed::Proto::V1";
@@ -40,11 +41,13 @@ message CheckTask {
   string token = 2 [(buf.validate.field).string.min_len = 1];
   // Times the execution has run due nodes already.
   uint32 cycle = 3;
-  // Seconds after waking until another execution may take over. The longest
-  // lease_seconds of the orchestrated workflows is used when 0.
-  uint32 grace_seconds = 4;
+  // How long after waking until another execution may take over. The longest
+  // lease of the orchestrated workflows is used when unset or 0.
+  google.protobuf.Duration grace = 6 [(buf.validate.field).duration.gte = {}];
   // Cycles after which the execution ends. 20 is used when 0.
   uint32 max_cycles = 5;
+  reserved 4;
+  reserved "grace_seconds";
 }
 
 // Outcome of a CheckTask.

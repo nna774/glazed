@@ -29,7 +29,7 @@ RSpec.describe Glazed::Aws::Lambda do
         ]}},
         orchestrator: {
           state: {sqlite: {path: File.join(@dir, 'state.sqlite3')}},
-          workflows: {'backup' => {debounce: {delay_seconds: 60}}},
+          workflows: {'backup' => {debounce: {delay: '60s'}}},
         },
       ))
     end

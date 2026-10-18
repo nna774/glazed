@@ -9,19 +9,19 @@ class Glazed::Proto::V1::CheckTask < Google::Protobuf::AbstractMessage
   sig do
     params(
       cycle: T.nilable(Integer),
-      grace_seconds: T.nilable(Integer),
+      grace: T.nilable(Google::Protobuf::Duration),
       max_cycles: T.nilable(Integer),
       signals: T.nilable(T::Array[Glazed::Proto::V1::Signal]),
       token: T.nilable(String)
     ).void
   end
-  def initialize(cycle: nil, grace_seconds: nil, max_cycles: nil, signals: T.unsafe(nil), token: nil); end
+  def initialize(cycle: nil, grace: nil, max_cycles: nil, signals: T.unsafe(nil), token: nil); end
 
   sig { void }
   def clear_cycle; end
 
   sig { void }
-  def clear_grace_seconds; end
+  def clear_grace; end
 
   sig { void }
   def clear_max_cycles; end
@@ -38,11 +38,14 @@ class Glazed::Proto::V1::CheckTask < Google::Protobuf::AbstractMessage
   sig { params(value: Integer).void }
   def cycle=(value); end
 
-  sig { returns(Integer) }
-  def grace_seconds; end
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def grace; end
 
-  sig { params(value: Integer).void }
-  def grace_seconds=(value); end
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def grace=(value); end
+
+  sig { returns(Object) }
+  def has_grace?; end
 
   sig { returns(Integer) }
   def max_cycles; end

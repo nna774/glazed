@@ -6,8 +6,14 @@
 
 
 class Glazed::Proto::V1::BatchCommandStep < Google::Protobuf::AbstractMessage
-  sig { params(exec: T.nilable(T::Array[String]), run: T.nilable(String), timeout_seconds: T.nilable(Integer)).void }
-  def initialize(exec: T.unsafe(nil), run: nil, timeout_seconds: nil); end
+  sig do
+    params(
+      exec: T.nilable(T::Array[String]),
+      run: T.nilable(String),
+      timeout: T.nilable(Google::Protobuf::Duration)
+    ).void
+  end
+  def initialize(exec: T.unsafe(nil), run: nil, timeout: nil); end
 
   sig { void }
   def clear_exec; end
@@ -16,7 +22,7 @@ class Glazed::Proto::V1::BatchCommandStep < Google::Protobuf::AbstractMessage
   def clear_run; end
 
   sig { void }
-  def clear_timeout_seconds; end
+  def clear_timeout; end
 
   sig { returns(Google::Protobuf::RepeatedField[String]) }
   def exec; end
@@ -24,15 +30,18 @@ class Glazed::Proto::V1::BatchCommandStep < Google::Protobuf::AbstractMessage
   sig { params(value: Google::Protobuf::RepeatedField[String]).void }
   def exec=(value); end
 
+  sig { returns(Object) }
+  def has_timeout?; end
+
   sig { returns(String) }
   def run; end
 
   sig { params(value: String).void }
   def run=(value); end
 
-  sig { returns(Integer) }
-  def timeout_seconds; end
+  sig { returns(T.nilable(Google::Protobuf::Duration)) }
+  def timeout; end
 
-  sig { params(value: Integer).void }
-  def timeout_seconds=(value); end
+  sig { params(value: T.nilable(Google::Protobuf::Duration)).void }
+  def timeout=(value); end
 end

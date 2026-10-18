@@ -10,6 +10,7 @@ require 'glazed/proto'
 require 'glazed/runner'
 require 'glazed/state_backends/base'
 require 'glazed/workflow'
+require 'glazed/durations'
 
 module Glazed
   # Runs workflows for nodes as they become due, until stopped. Due dates
@@ -128,12 +129,12 @@ module Glazed
       next_wait
     end
 
-    # @return [Integer] seconds between inventory reloads
-    #: () -> Integer
-    private def inventory_refresh_seconds = @settings.inventory_refresh_seconds.zero? ? DEFAULT_INVENTORY_REFRESH : @settings.inventory_refresh_seconds
+    # @return [Float] seconds between inventory reloads
+    #: () -> Float
+    private def inventory_refresh_seconds = Durations.seconds(@settings.inventory_refresh, DEFAULT_INVENTORY_REFRESH)
 
-    # @return [Integer] seconds between checks for due nodes
-    #: () -> Integer
+    # @return [Float] seconds between checks for due nodes
+    #: () -> Float
     private def poll_seconds = @coordinator.poll_seconds
 
     # @param request [String] one byte naming the request
