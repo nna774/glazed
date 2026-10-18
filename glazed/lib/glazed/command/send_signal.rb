@@ -53,8 +53,8 @@ module Glazed
         settings = load_config(config)
         orchestration = orchestrator_settings(settings, config)
         workflows = select_orchestrated(orchestration, workflow)
-        inventory = Sources.nodes(settings.inventory.to_a).map(&:name)
-        select_nodes(inventory.map { Proto::V1::Node.new(name: it) }, nodes)
+        inventory = Sources.nodes(settings.inventory.to_a)
+        select_nodes(inventory, nodes)
         context = StepContext.from_proto(settings.storages, listener: json_listener)
         backend = state_backend(orchestration, context)
         at = Time.now

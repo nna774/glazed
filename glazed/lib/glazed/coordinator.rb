@@ -82,24 +82,26 @@ module Glazed
     # Adds records for nodes new to the inventory, due within the schedule's
     # jitter, and deletes those of nodes gone, in every workflow.
     #
-    # @param nodes [Array<String>] names of every node in the inventory
+    # @param nodes [Array<Proto::V1::Node>] every node in the inventory
     # @return [void]
-    #: (Array[String] nodes) -> void
+    #: (Array[Proto::V1::Node] nodes) -> void
     def sync_inventory(nodes)
       now = @clock.call
+      by_name = nodes.to_h { [it.name, it] }
       workflows.each do |workflow|
         known = @backend.list(workflow).map(&:node)
-        added = nodes - known
-        removed = known - nodes
+        added = by_name.keys - known
+        removed = known - by_name.keys
         next if added.empty? && removed.empty?
 
-        schedule = orchestration(workflow).schedule
+        orchestration = orchestration(workflow)
         @backend.update_all(workflow, added + removed) do |node, record|
           next nil if removed.include?(node)
 
+          schedule = Orchestrator::Policy.schedule_for(orchestration, by_name.fetch(node))
           record || Orchestrator::Policy.discovered(workflow, node, now:, schedule:, random: @random)
         end
-        notify(level: 'info', workflow:, message: 'inventory changed', nodes: nodes.size, added:, removed:)
+        notify(level: 'info', workflow:, message: 'inventory changed', nodes: by_name.size, added:, removed:)
       end
     end
 
@@ -107,11 +109,13 @@ module Glazed
     # Signals naming a node or workflow unknown here are reported and skipped.
     #
     # @param signals [Array<Proto::V1::Signal>] the signals
-    # @param nodes [Array<String>] names of every node in the inventory, which all_nodes signals stand for
+    # @param nodes [Array<Proto::V1::Node>] every node in the inventory, which all_nodes signals stand for
     # @return [Hash{String => Hash{String => Proto::V1::NodeSchedule}}] the resulting records, by workflow and node name
-    #: (Array[Proto::V1::Signal] signals, nodes: Array[String]) -> Hash[String, Hash[String, Proto::V1::NodeSchedule]]
+    #: (Array[Proto::V1::Signal] signals, nodes: Array[Proto::V1::Node]) -> Hash[String, Hash[String, Proto::V1::NodeSchedule]]
     def signal(signals, nodes:)
       now = @clock.call
+      by_name = nodes.to_h { [it.name, it] }
+      nodes = by_name.keys
       pending = {} #: Hash[String, Hash[String, Array[Proto::V1::Signal]]]
       signals.each do |signal|
         targets = signal.all_nodes ? nodes : [signal.node]
@@ -131,8 +135,9 @@ module Glazed
       end
 
       pending.to_h do |workflow, by_node|
-        debounce = orchestration(workflow).debounce
+        orchestration = orchestration(workflow)
         records = @backend.update_all(workflow, by_node.keys) do |node, record|
+          debounce = Orchestrator::Policy.debounce_for(orchestration, by_name.fetch(node))
           by_node.fetch(node).inject(record) { |current, signal| Orchestrator::Policy.signal(current, signal, workflow:, now:, debounce:) }
         end
         [workflow, records]
@@ -166,12 +171,15 @@ module Glazed
     # @param owner [String] identifier of the batch
     # @param names [Array<String>] names of the nodes the batch ran
     # @param errors [Hash{String => String}] why nodes failed, by node name
+    # @param nodes [Hash{String => Proto::V1::Node}] nodes of the inventory, by name; those missing follow the workflow's schedule
     # @return [void]
-    #: (String workflow, owner: String, names: Array[String], errors: Hash[String, String]) -> void
-    def complete(workflow, owner:, names:, errors:)
+    #: (String workflow, owner: String, names: Array[String], errors: Hash[String, String], nodes: Hash[String, Proto::V1::Node]) -> void
+    def complete(workflow, owner:, names:, errors:, nodes:)
       finished_at = @clock.call
-      schedule = orchestration(workflow).schedule
+      orchestration = orchestration(workflow)
       @backend.update_all(workflow, names) do |node, record|
+        found = nodes[node]
+        schedule = found ? Orchestrator::Policy.schedule_for(orchestration, found) : orchestration.schedule
         Orchestrator::Policy.completed(record, owner:, finished_at:, error: errors[node], schedule:, random: @random)
       end
     end

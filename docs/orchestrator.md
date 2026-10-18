@@ -59,8 +59,28 @@ Each workflow's settings (`glazed.v1.Orchestration`):
 | `debounce.max_wait_seconds` | 600 | Seconds after the first signal by which the node runs |
 | `batch_size` | unlimited | Nodes run together at most |
 | `lease_seconds` | 3600 | Seconds a node stays claimed by an orchestrator; must exceed the time a batch takes |
+| `schedule_rules` | none | Per-node overrides of `schedule` and `debounce`; see [Per-node settings](#per-node-settings) |
 
 Each workflow keeps its own due dates. Nodes of a workflow due at the same time run together as one batch, so a `publish` step writes all of them in one go, a commit per changed node. Workflows take turns, one batch at a time, so while a batch runs, nodes becoming due wait for the next turn. A workflow removed from `orchestrator.workflows` leaves its records in the state, unused.
+
+## Per-node settings
+
+`schedule_rules` give some nodes a schedule or debounce of their own, such as hosts that are shut down between events:
+
+```json
+"backup": {
+  "schedule": {"interval_seconds": 900, "retry_interval_seconds": 60},
+  "schedule_rules": [
+    {"match": {"name_regexp": ".*\\.venue"}, "schedule": {"interval_seconds": 604800}},
+    {"match": {"groups": ["lab"], "names": ["sw1", "sw2"]}, "debounce": {"delay_seconds": 600}}
+  ]
+}
+```
+
+- A rule's `match` takes `names`, `groups` and `name_regexp` (Ruby syntax, matched against the whole name). A node matches when every criterion set is met, and at least one must be set.
+- A rule sets `schedule`, `debounce` or both. Each replaces the workflow's as a whole: fields it leaves unset take the defaults, not the workflow's values.
+- For each of the two, the first rule matching the node that sets it wins; the workflow's own applies when none does. `lease_seconds` and `batch_size` stay per workflow.
+- A node's due date is not recomputed when a rule changes. The new schedule applies from the node's next finished run, and a new debounce from the next signal.
 
 ## Signals
 

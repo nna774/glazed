@@ -11,10 +11,11 @@ class Glazed::Proto::V1::Orchestration < Google::Protobuf::AbstractMessage
       batch_size: T.nilable(Integer),
       debounce: T.nilable(Glazed::Proto::V1::Debounce),
       lease_seconds: T.nilable(Integer),
-      schedule: T.nilable(Glazed::Proto::V1::Schedule)
+      schedule: T.nilable(Glazed::Proto::V1::Schedule),
+      schedule_rules: T.nilable(T::Array[Glazed::Proto::V1::ScheduleRule])
     ).void
   end
-  def initialize(batch_size: nil, debounce: nil, lease_seconds: nil, schedule: nil); end
+  def initialize(batch_size: nil, debounce: nil, lease_seconds: nil, schedule: nil, schedule_rules: T.unsafe(nil)); end
 
   sig { returns(Integer) }
   def batch_size; end
@@ -33,6 +34,9 @@ class Glazed::Proto::V1::Orchestration < Google::Protobuf::AbstractMessage
 
   sig { void }
   def clear_schedule; end
+
+  sig { void }
+  def clear_schedule_rules; end
 
   sig { returns(T.nilable(Glazed::Proto::V1::Debounce)) }
   def debounce; end
@@ -57,4 +61,10 @@ class Glazed::Proto::V1::Orchestration < Google::Protobuf::AbstractMessage
 
   sig { params(value: T.nilable(Glazed::Proto::V1::Schedule)).void }
   def schedule=(value); end
+
+  sig { returns(Google::Protobuf::RepeatedField[Glazed::Proto::V1::ScheduleRule]) }
+  def schedule_rules; end
+
+  sig { params(value: Google::Protobuf::RepeatedField[Glazed::Proto::V1::ScheduleRule]).void }
+  def schedule_rules=(value); end
 end

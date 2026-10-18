@@ -6,6 +6,7 @@
 require 'google/protobuf'
 require 'glazed'
 require 'glazed/proto'
+require 'glazed/must'
 
 module Glazed
   class Orchestrator
@@ -19,6 +20,35 @@ module Glazed
       DEFAULT_DELAY = 60 #: Integer
       # Seconds after the first signal by which a node runs when the debounce sets none.
       DEFAULT_MAX_WAIT = 600 #: Integer
+
+      # @param orchestration [Proto::V1::Orchestration] how the workflow is orchestrated
+      # @param node [Proto::V1::Node] the node
+      # @return [Proto::V1::Schedule, nil] schedule of the first rule matching the node that sets one, else the workflow's
+      #: (Proto::V1::Orchestration orchestration, Proto::V1::Node node) -> Proto::V1::Schedule?
+      def self.schedule_for(orchestration, node)
+        orchestration.schedule_rules.find { it.schedule && matches?(Must.because(it.match) { 'validation requires match' }, node) }&.schedule ||
+          orchestration.schedule
+      end
+
+      # @param orchestration [Proto::V1::Orchestration] how the workflow is orchestrated
+      # @param node [Proto::V1::Node] the node
+      # @return [Proto::V1::Debounce, nil] debounce of the first rule matching the node that sets one, else the workflow's
+      #: (Proto::V1::Orchestration orchestration, Proto::V1::Node node) -> Proto::V1::Debounce?
+      def self.debounce_for(orchestration, node)
+        orchestration.schedule_rules.find { it.debounce && matches?(Must.because(it.match) { 'validation requires match' }, node) }&.debounce ||
+          orchestration.debounce
+      end
+
+      # @param match [Proto::V1::NodeMatch] the criteria
+      # @param node [Proto::V1::Node] the node
+      # @return [Boolean] whether the node meets every criterion set
+      #: (Proto::V1::NodeMatch match, Proto::V1::Node node) -> bool
+      def self.matches?(match, node)
+        return false unless match.names.empty? || match.names.include?(node.name)
+        return false unless match.groups.empty? || match.groups.include?(node.group)
+
+        match.name_regexp.empty? || Regexp.new("\\A(?:#{match.name_regexp})\\z").match?(node.name)
+      end
 
       # Record of a node new to the inventory, due within the schedule's jitter.
       #

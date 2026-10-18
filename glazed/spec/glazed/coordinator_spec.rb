@@ -23,20 +23,22 @@ RSpec.describe Glazed::Coordinator do
   after { backend.close }
 
   def advance(seconds) = clock[0] += seconds
+  def nodes(*names) = names.map { Glazed::Proto::V1::Node.new(name: it) }
+  def inventory(*names) = nodes(*names).to_h { [it.name, it] }
   def record(node) = backend.list('backup').find { it.node == node }
 
   describe '#sync_inventory' do
     it 'adds new nodes due now and deletes nodes gone' do
-      coordinator.sync_inventory(%w[rt1 rt2])
-      coordinator.sync_inventory(%w[rt2 rt3])
+      coordinator.sync_inventory(nodes('rt1', 'rt2'))
+      coordinator.sync_inventory(nodes('rt2', 'rt3'))
       expect(backend.list('backup').map { [it.node, it.due_reason] }).to eq([%w[rt2 inventory], %w[rt3 inventory]])
       expect(events.last).to include(workflow: 'backup', message: 'inventory changed', added: ['rt3'], removed: ['rt1'])
     end
 
     it 'reports nothing when the inventory is unchanged' do
-      coordinator.sync_inventory(%w[rt1])
+      coordinator.sync_inventory(nodes('rt1'))
       events.clear
-      coordinator.sync_inventory(%w[rt1])
+      coordinator.sync_inventory(nodes('rt1'))
       expect(events).to be_empty
     end
   end
@@ -49,19 +51,19 @@ RSpec.describe Glazed::Coordinator do
     def signal(**fields) = Glazed::Proto::V1::Signal.new(source: 'syslog', **fields)
 
     it 'applies a signal to every workflow with its debounce' do
-      result = coordinator.signal([signal(node: 'rt1')], nodes: %w[rt1 rt2])
+      result = coordinator.signal([signal(node: 'rt1')], nodes: nodes('rt1', 'rt2'))
       expect(result.transform_values { |records| records.transform_values { it.due_at.to_time } })
         .to eq('backup' => {'rt1' => t0 + 60}, 'audit' => {'rt1' => t0 + 120})
     end
 
     it 'expands a signal of every node to the chosen workflows' do
-      result = coordinator.signal([signal(all_nodes: true, workflows: ['audit'], immediate: true)], nodes: %w[rt1 rt2])
+      result = coordinator.signal([signal(all_nodes: true, workflows: ['audit'], immediate: true)], nodes: nodes('rt1', 'rt2'))
       expect(result.keys).to eq(['audit'])
       expect(backend.list('audit').map { [it.node, it.due_at.to_time, it.due_reason] }).to eq([['rt1', t0, 'syslog'], ['rt2', t0, 'syslog']])
     end
 
     it 'skips unknown nodes and workflows' do
-      expect(coordinator.signal([signal(node: 'nope'), signal(node: 'rt1', workflows: ['gone'])], nodes: ['rt1'])).to be_empty
+      expect(coordinator.signal([signal(node: 'nope'), signal(node: 'rt1', workflows: ['gone'])], nodes: nodes('rt1'))).to be_empty
       expect(events).to contain_exactly(include(message: 'signal for unknown nodes skipped', nodes: ['nope']),
         include(message: 'signal for workflows not orchestrated skipped', workflows: ['gone']))
     end
@@ -69,7 +71,7 @@ RSpec.describe Glazed::Coordinator do
 
   describe '#claim' do
     it 'leases due nodes up to the batch size' do
-      coordinator.sync_inventory(%w[rt1 rt2 rt3])
+      coordinator.sync_inventory(nodes('rt1', 'rt2', 'rt3'))
       owner, names = coordinator.claim('backup')
       expect(owner).to start_with('me:')
       expect(names).to eq(%w[rt1 rt2])
@@ -88,25 +90,62 @@ RSpec.describe Glazed::Coordinator do
 
   describe '#complete' do
     it 'schedules the next run of each node by its outcome' do
-      coordinator.sync_inventory(%w[rt1 rt2])
+      coordinator.sync_inventory(nodes('rt1', 'rt2'))
       owner, names = coordinator.claim('backup')
       advance(10)
-      coordinator.complete('backup', owner:, names:, errors: {'rt2' => 'fetch: timeout'})
+      coordinator.complete('backup', owner:, names:, errors: {'rt2' => 'fetch: timeout'}, nodes: inventory('rt1', 'rt2'))
       expect([record('rt1').lease_owner, record('rt1').due_reason, record('rt1').due_at.to_time]).to eq(['', 'schedule', t0 + 3610])
       expect(record('rt2').to_h).to include(last_failed: true, last_error: 'fetch: timeout', due_at: {seconds: t0.to_i + 610})
     end
 
     it 'leaves records leased to another batch' do
-      coordinator.sync_inventory(%w[rt1])
+      coordinator.sync_inventory(nodes('rt1'))
       coordinator.claim('backup')
-      coordinator.complete('backup', owner: 'other', names: ['rt1'], errors: {})
+      coordinator.complete('backup', owner: 'other', names: ['rt1'], errors: {}, nodes: inventory('rt1'))
       expect(record('rt1').lease_owner).to start_with('me:')
+    end
+  end
+
+  describe 'schedule_rules' do
+    let(:settings) do
+      Glazed::Proto::V1::Orchestrator.new(
+        workflows: {
+          'backup' => {
+            schedule: {interval_seconds: 3600},
+            debounce: {delay_seconds: 60},
+            schedule_rules: [
+              {match: {name_regexp: '.*\\.venue'}, schedule: {interval_seconds: 604_800}, debounce: {delay_seconds: 300}},
+              {match: {names: ['rt3']}, schedule: {interval_seconds: 86_400}},
+            ],
+          },
+        },
+      )
+    end
+    let(:inventory_nodes) { nodes('rt1.hnd', 'rt2.venue', 'rt3') }
+
+    it 'schedules the next run of each node by the rule matching it' do
+      coordinator.sync_inventory(inventory_nodes)
+      owner, names = coordinator.claim('backup')
+      coordinator.complete('backup', owner:, names:, errors: {}, nodes: inventory('rt1.hnd', 'rt2.venue', 'rt3'))
+      expect(names.to_h { [it, record(it).due_at.to_time - t0] }).to eq('rt1.hnd' => 3600, 'rt2.venue' => 604_800, 'rt3' => 86_400)
+    end
+
+    it 'falls back to the workflow schedule for a node missing from the inventory' do
+      coordinator.sync_inventory(inventory_nodes)
+      owner, names = coordinator.claim('backup')
+      coordinator.complete('backup', owner:, names:, errors: {}, nodes: {})
+      expect(record('rt2.venue').due_at.to_time).to eq(t0 + 3600)
+    end
+
+    it 'debounces a signal by the rule matching the node, and the workflow when the rule sets none' do
+      result = coordinator.signal([Glazed::Proto::V1::Signal.new(source: 'syslog', all_nodes: true)], nodes: inventory_nodes)
+      expect(result.fetch('backup').transform_values { it.due_at.to_time - t0 }).to eq('rt1.hnd' => 60, 'rt2.venue' => 300, 'rt3' => 60)
     end
   end
 
   describe '#release' do
     it 'gives up leases without recording a run' do
-      coordinator.sync_inventory(%w[rt1])
+      coordinator.sync_inventory(nodes('rt1'))
       owner, names = coordinator.claim('backup')
       coordinator.release('backup', owner:, names:)
       expect([record('rt1').lease_owner, record('rt1').due_reason]).to eq(['', 'inventory'])
@@ -120,7 +159,7 @@ RSpec.describe Glazed::Coordinator do
     end
 
     it 'is the earliest due date, or lease end of a leased node' do
-      coordinator.sync_inventory(%w[rt1 rt2 rt3])
+      coordinator.sync_inventory(nodes('rt1', 'rt2', 'rt3'))
       coordinator.claim('backup')
       expect(coordinator.next_due).to eq(t0)
       coordinator.claim('backup')

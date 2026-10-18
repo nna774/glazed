@@ -65,7 +65,7 @@ module Glazed
       # @return [Proto::V1::Armed] when to wake up, if at all
       #: (Proto::V1::CheckTask task) -> Proto::V1::Armed
       private def check(task)
-        nodes = load_inventory.keys
+        nodes = load_inventory.values
         @coordinator.sync_inventory(nodes)
         @coordinator.signal(task.signals.to_a, nodes:) unless task.signals.empty?
         wake = @coordinator.arm(
@@ -79,7 +79,7 @@ module Glazed
       #: () -> Proto::V1::PreparedBatches
       private def prepare
         inventory = load_inventory
-        @coordinator.sync_inventory(inventory.keys)
+        @coordinator.sync_inventory(inventory.values)
         batches = @workflows.keys.to_h do |workflow|
           owner, names = @coordinator.claim(workflow)
           nodes = names.filter_map { inventory[it] }.map { Proto::V1::NodeOutcome.new(state: Proto::V1::NodeState.new(node: it)) }
@@ -147,7 +147,7 @@ module Glazed
           error = failure ? "#{failure.step}: #{failure.error}" : batch.error
           errors[outcome.state&.node&.name.to_s] = error unless error.empty?
         end
-        @coordinator.complete(batch.workflow, owner: batch.owner, names:, errors:)
+        @coordinator.complete(batch.workflow, owner: batch.owner, names:, errors:, nodes: load_inventory)
         notify(level: 'info', workflow: batch.workflow, message: 'batch finished', nodes: names.size, failed: errors.size)
         batch
       end

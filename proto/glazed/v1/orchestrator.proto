@@ -37,6 +37,41 @@ message Orchestration {
   // Seconds a node stays claimed by an orchestrator, after which another one
   // may run it. Must exceed the time a batch takes. 3600 is used when 0.
   uint32 lease_seconds = 4;
+  // Per-node overrides of schedule and debounce, in order of precedence.
+  repeated ScheduleRule schedule_rules = 5;
+}
+
+// Replaces the schedule and debounce of the nodes it matches. For each of the
+// two, the first rule that matches the node and sets it wins, and the
+// workflow's own applies when none does.
+message ScheduleRule {
+  option (buf.validate.message).cel = {
+    id: "schedule_rule.settings"
+    message: "set schedule, debounce or both"
+    expression: "has(this.schedule) || has(this.debounce)"
+  };
+  // Nodes the rule applies to.
+  NodeMatch match = 1 [(buf.validate.field).required = true];
+  // Replaces the workflow's schedule as a whole; unset fields take the
+  // defaults, not the workflow's values.
+  Schedule schedule = 2;
+  // Replaces the workflow's debounce as a whole.
+  Debounce debounce = 3;
+}
+
+// Selects nodes. A node matches when every criterion set here matches.
+message NodeMatch {
+  option (buf.validate.message).cel = {
+    id: "node_match.criteria"
+    message: "set at least one of names, groups and name_regexp"
+    expression: "this.names.size() > 0 || this.groups.size() > 0 || this.name_regexp != ''"
+  };
+  // Exact node names.
+  repeated string names = 1 [(buf.validate.field).repeated.items.string.min_len = 1];
+  // Exact node groups.
+  repeated string groups = 2 [(buf.validate.field).repeated.items.string.min_len = 1];
+  // Regular expression (Ruby syntax) matched against the whole node name.
+  string name_regexp = 3;
 }
 
 // Interval schedule. A node is due again a fixed time after its last run finished.

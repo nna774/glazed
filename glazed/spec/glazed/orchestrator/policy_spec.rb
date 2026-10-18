@@ -93,6 +93,43 @@ RSpec.describe Glazed::Orchestrator::Policy do
     end
   end
 
+  describe '.schedule_for and .debounce_for' do
+    let(:orchestration) do
+      Glazed::Proto::V1::Orchestration.new(
+        schedule: {interval_seconds: 900},
+        debounce: {delay_seconds: 10},
+        schedule_rules: [
+          {match: {groups: ['venue'], name_regexp: 'es-.*'}, schedule: {interval_seconds: 1}},
+          {match: {groups: ['venue']}, debounce: {delay_seconds: 20}},
+          {match: {names: ['er-01']}, schedule: {interval_seconds: 2}, debounce: {delay_seconds: 30}},
+        ],
+      )
+    end
+
+    def node(name, group) = Glazed::Proto::V1::Node.new(name:, group:)
+
+    it 'uses the first rule that matches and sets the field' do
+      expect(described_class.schedule_for(orchestration, node('es-01', 'venue')).interval_seconds).to eq(1)
+      expect(described_class.debounce_for(orchestration, node('es-01', 'venue')).delay_seconds).to eq(20)
+    end
+
+    it 'requires every criterion of a rule to match' do
+      expect(described_class.schedule_for(orchestration, node('es-01', 'hnd')).interval_seconds).to eq(900)
+      expect(described_class.schedule_for(orchestration, node('xes-01', 'venue')).interval_seconds).to eq(900)
+    end
+
+    it 'skips a matching rule that does not set the field' do
+      expect(described_class.schedule_for(orchestration, node('er-01', 'venue')).interval_seconds).to eq(2)
+      expect(described_class.debounce_for(orchestration, node('er-01', 'venue')).delay_seconds).to eq(20)
+      expect(described_class.debounce_for(orchestration, node('er-01', 'hnd')).delay_seconds).to eq(30)
+    end
+
+    it 'uses the workflow settings when no rule matches' do
+      expect(described_class.schedule_for(orchestration, node('br-01', 'hnd')).interval_seconds).to eq(900)
+      expect(described_class.debounce_for(orchestration, node('br-01', 'hnd')).delay_seconds).to eq(10)
+    end
+  end
+
   describe '.completed' do
     let(:claimed) do
       record(due_at: ts(t0), due_reason: 'syslog', signal_window_started_at: ts(t0 - 60), last_started_at: ts(t0),

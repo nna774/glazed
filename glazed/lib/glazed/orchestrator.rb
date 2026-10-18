@@ -178,7 +178,7 @@ module Glazed
       @nodes = nodes.to_h { [it.name, it] }
       @inventory_loaded_at = now
       notify(level: 'info', message: 'inventory loaded', nodes: @nodes.size)
-      @coordinator.sync_inventory(@nodes.keys)
+      @coordinator.sync_inventory(@nodes.values)
     end
 
     # Runs the workflow for leased nodes and records the outcomes. When
@@ -202,7 +202,7 @@ module Glazed
         raise
       end
       # Records of nodes gone from the inventory are deleted by the next reload.
-      @coordinator.complete(workflow, owner:, names: names & @nodes.keys, errors:)
+      @coordinator.complete(workflow, owner:, names: names & @nodes.keys, errors:, nodes: @nodes)
       notify(level: 'info', workflow:, message: 'batch finished', nodes: nodes.size, failed: errors.size)
     end
 
