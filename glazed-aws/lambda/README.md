@@ -6,8 +6,9 @@ A container image of the AWS Lambda function that runs glazed's orchestrated wor
 
 `ghcr.io/sorah/glazed-lambda` holds glazed, glazed-aws and glazed-oxidized, built from one commit of this repository:
 
-- `:YYYY.MM.DD.NN` and `:latest`, released by pushing a `lambda/YYYY.MM.DD.NN` tag, such as `lambda/2026.10.14.01`
-- `:main` and `:<commit SHA>`, built from every commit to `main`
+- `:YYYY.MM.DD.NN`, released by pushing a `lambda/YYYY.MM.DD.NN` tag, such as `lambda/2026.10.14.01`
+- `:<commit SHA>`, built from every commit to `main`
+- `:latest`, moved by both of the above, so it is the most recent build
 
 Image releases are independent of the gem releases, so a change to any of the gems can ship in an image.
 

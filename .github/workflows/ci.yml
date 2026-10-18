@@ -22,5 +22,5 @@ jobs:
       packages: write
     uses: ./.github/workflows/_lambda-image.yml # zizmor: ignore[self-repository]
     with:
-      tags: "${{ github.sha }},main"
+      tags: "${{ github.sha }},latest"
       cache: true
