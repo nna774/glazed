@@ -12,9 +12,11 @@ require 'glazed/aws/execution_liveness'
 require 'glazed/aws/signal_events'
 require 'glazed/aws/state_machine'
 require 'glazed/config'
+require 'glazed/durations'
 require 'glazed/coordinator'
 require 'glazed/coordinator/task_runner'
 require 'glazed/must'
+require 'glazed/orchestrator'
 require 'glazed/proto'
 require 'glazed/proto_json'
 require 'glazed/runner'
@@ -34,7 +36,10 @@ module Glazed
     # <glazed.v1.CoordinatorTask>, "execution_input": <execution input>}`;
     # signals in the execution input are added to a check task. The result is
     # the task's result as ProtoJSON. The event `{"state_machine": {}}` returns
-    # the definition of the state machine invoking this function instead.
+    # the definition of the state machine invoking this function instead, and
+    # `{"status": {}}` returns the orchestration state of the nodes, as
+    # `glazed status --json` prints it, with the version of the stored state
+    # it was read from.
     module Lambda
       # Environment variable naming the config file.
       CONFIG_FILE_ENV = 'GLAZED_CONFIG_FILE' #: String
@@ -68,17 +73,23 @@ module Glazed
           liveness = ExecutionLiveness.new
           coordinator = Coordinator.new(settings:, backend:, listener:, waiter_alive: ->(token) { liveness.call(token) })
           runner = Coordinator::TaskRunner.new(coordinator:, workflows:, inventory: -> { Sources.nodes(config.inventory.to_a) }, listener:)
-          new(config:, source:, runner:)
+          new(config:, source:, runner:, backend:, workflows: settings.workflows.keys, poll_seconds: Durations.seconds(settings.poll, Orchestrator::DEFAULT_POLL))
         end
 
         # @param config [Proto::V1::Config] the config
         # @param source [String] where the config comes from
         # @param runner [Coordinator::TaskRunner] performs the tasks
-        #: (config: Proto::V1::Config, source: String, runner: Coordinator::TaskRunner) -> void
-        def initialize(config:, source:, runner:)
+        # @param backend [StateBackends::Base] the state backend
+        # @param workflows [Array<String>] orchestrated workflows
+        # @param poll_seconds [Numeric] seconds between the orchestrator's checks for due nodes
+        #: (config: Proto::V1::Config, source: String, runner: Coordinator::TaskRunner, backend: StateBackends::Base, workflows: Array[String], poll_seconds: Numeric) -> void
+        def initialize(config:, source:, runner:, backend:, workflows:, poll_seconds:)
           @config = config #: Proto::V1::Config
           @source = source #: String
           @runner = runner #: Coordinator::TaskRunner
+          @backend = backend #: StateBackends::Base
+          @workflows = workflows #: Array[String]
+          @poll_seconds = poll_seconds #: Numeric
         end
 
         # @return [Proto::V1::Config] the config
@@ -90,6 +101,15 @@ module Glazed
         # @return [Coordinator::TaskRunner] performs the tasks
         #: Coordinator::TaskRunner
         attr_reader :runner
+        # @return [StateBackends::Base] the state backend
+        #: StateBackends::Base
+        attr_reader :backend
+        # @return [Array<String>] orchestrated workflows
+        #: Array[String]
+        attr_reader :workflows
+        # @return [Numeric] seconds between the orchestrator's checks for due nodes
+        #: Numeric
+        attr_reader :poll_seconds
       end
 
       @function = nil #: Function?
@@ -123,11 +143,29 @@ module Glazed
         end
         return state_machine(function.config, event.fetch('state_machine'), invoked_function_arn:) if event.key?('state_machine')
 
+        return status(function) if event.key?('status')
+
         task = ProtoJson.load(Proto::V1::CoordinatorTask, JSON.generate(event.fetch('task')))
         if (check = task.check) && event.key?('execution_input')
           SignalEvents.extract(event['execution_input'], listener:).each { check.signals << it }
         end
         JSON.parse(ProtoJson.dump(function.runner.perform(task)))
+      end
+
+      # Reads the orchestration state of every orchestrated workflow.
+      #
+      # @param function [Function] the loaded function
+      # @return [Hash] `version`, the storage version (ETag on S3) of the state the records were read from, `generated_at` (UTC, ISO 8601),
+      #   `poll_seconds` and `nodes`, the NodeSchedule records as ProtoJSON
+      #: (Function function) -> Hash[String, untyped]
+      private_class_method def self.status(function)
+        snapshot = function.backend.snapshot(function.workflows)
+        {
+          'version' => snapshot.version,
+          'generated_at' => Time.now.utc.iso8601,
+          'poll_seconds' => function.poll_seconds,
+          'nodes' => snapshot.records.map { JSON.parse(ProtoJson.dump(it)) },
+        }
       end
 
       # Generates the state machine definition, as `glazed-aws state-machine` does.

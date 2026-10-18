@@ -18,6 +18,25 @@ module Glazed
     class Base
       #: type updater = ^(String node, Proto::V1::NodeSchedule? record) -> Proto::V1::NodeSchedule?
 
+      # Records read at one moment.
+      class Snapshot
+        # @param version [String, nil] version of the stored database the records come from, or nil when the backend does not keep one
+        # @param records [Array<Proto::V1::NodeSchedule>] the records of the workflows, by workflow then node name
+        #: (version: String?, records: Array[Proto::V1::NodeSchedule]) -> void
+        def initialize(version:, records:)
+          @version = version #: String?
+          @records = records #: Array[Proto::V1::NodeSchedule]
+        end
+
+        # @return [String, nil] version of the stored database the records come from, or nil when the backend does not keep one
+        #: String?
+        attr_reader :version
+
+        # @return [Array<Proto::V1::NodeSchedule>] the records of the workflows, by workflow then node name
+        #: Array[Proto::V1::NodeSchedule]
+        attr_reader :records
+      end
+
       # Builds a state backend from its settings message.
       #
       # @param settings [Google::Protobuf::MessageExts] backend settings from {Proto::V1::StateBackendConfig}
@@ -62,6 +81,14 @@ module Glazed
       # @return [Array<Proto::V1::NodeSchedule>] every record of the workflow, by node name
       #: (String workflow) -> Array[Proto::V1::NodeSchedule]
       def list(workflow) = raise NotImplementedError
+
+      # Reads the records of workflows from a single version of the database,
+      # so concurrent changes cannot mix into the result.
+      #
+      # @param workflows [Array<String>] workflow names
+      # @return [Snapshot] the records, with the version they were read at
+      #: (Array[String] workflows) -> Snapshot
+      def snapshot(workflows) = Snapshot.new(version: nil, records: workflows.flat_map { list(it) })
 
       # Replaces the record of the waiting coordinator execution with what the
       # block returns, with the same guarantees as {#update_all}.

@@ -178,6 +178,12 @@ An EventBridge Scheduler schedule for a daily run of every node:
 
 The safety net is the same schedule with `rate(1 hour)` and input `{}`.
 
+### Reading the status
+
+Invoke the function with `{"status": {}}` to read what `glazed status --json` prints. It returns `{"version": "<ETag or null>", "generated_at": "<UTC time>", "poll_seconds": <number>, "nodes": [<glazed.v1.NodeSchedule as ProtoJSON>, ...]}`. All nodes come from one version of the state object, and `version` is that version's ETag (`null` for a local file). The `running`, `overdue`, `due` and `waiting` statuses are not included; derive them from `due_at`, `lease_until` and `poll_seconds` at the time of viewing.
+
+The state object is rewritten on every change, so an EventBridge rule on its `Object Created` event can refresh a dashboard. Events and the schedule can overlap, so a publisher must not let a stale snapshot win: read the published copy's ETag before invoking, and when writing, check that the state object still has `version` and write with `If-Match` on that ETag. Give up on either mismatch; a newer run is on its way.
+
 ## Settings that behave differently
 
 - **`poll`** is the shortest time a waiter sleeps between cycles, so a node signalled again and again does not make it spin.

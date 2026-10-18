@@ -58,6 +58,18 @@ RSpec.describe Glazed::Aws::Lambda do
     expect(armed).to eq({})
   end
 
+  it 'returns the orchestration state as status' do
+    invoke('task' => {'check' => {'token' => 'E1'}}, 'execution_input' => {'signals' => [{'all_nodes' => true, 'source' => 'daily', 'immediate' => true}]})
+
+    status = invoke('status' => {})
+    expect(status).to include('version' => nil)
+    expect(status.fetch('poll_seconds')).to be_positive
+    expect(Time.iso8601(status.fetch('generated_at'))).to be_within(5).of(Time.now)
+    expect(status.fetch('nodes').map { it.slice('workflow', 'node') }).to contain_exactly(
+      {'workflow' => 'backup', 'node' => 'rt1'}, {'workflow' => 'backup', 'node' => 'sw1'},
+    )
+  end
+
   it 'loads the config once' do
     invoke('task' => {'prepare' => {}})
     File.write(config, '{')

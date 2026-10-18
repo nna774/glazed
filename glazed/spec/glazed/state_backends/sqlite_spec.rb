@@ -27,6 +27,13 @@ RSpec.describe Glazed::StateBackends::Sqlite do
 
     it_behaves_like 'a state backend'
 
+    it 'snapshots records without a version' do
+      backend.update('backup', 'rt1') { schedule('rt1') }
+      snapshot = backend.snapshot(['backup'])
+      expect(snapshot.version).to be_nil
+      expect(snapshot.records.map(&:node)).to eq(['rt1'])
+    end
+
     it 'shares the file with another backend' do
       backend.update('backup', 'rt1') { schedule('rt1') }
       other = described_class.new(path:)
@@ -71,6 +78,16 @@ RSpec.describe Glazed::StateBackends::Sqlite do
       expect(version).not_to be_nil
       backend.update('backup', 'rt1') { it }
       expect(storage.version_of('state/db')).to eq(version)
+    end
+
+    it 'snapshots records with the version of the stored database' do
+      backend.update('backup', 'rt1') { schedule('rt1') }
+      other = described_class.new(storage:, key: 'state/db')
+      other.update('backup', 'rt2') { schedule('rt2') }
+      snapshot = backend.snapshot(['backup'])
+      expect(snapshot.records.map(&:node)).to eq(%w[rt1 rt2])
+      expect(snapshot.version).to eq(storage.version_of('state/db'))
+      other.close
     end
 
     it 'reads changes uploaded by another backend' do

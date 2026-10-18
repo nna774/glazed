@@ -157,6 +157,20 @@ module Glazed
       #: (String workflow) -> Array[Proto::V1::NodeSchedule]
       def list(workflow) = query('select record from schedules where workflow = ? order by node', [workflow])
 
+      # @param workflows [Array<String>] workflow names
+      # @return [Base::Snapshot] every record of the workflows, with the storage version of the database they were read from
+      #: (Array[String] workflows) -> Base::Snapshot
+      def snapshot(workflows)
+        @lock.synchronize do
+          db = connection
+          records = workflows.flat_map do |workflow|
+            rows = db.execute('select record from schedules where workflow = ? order by node', [workflow]) #: Array[[String]]
+            rows.map { |(record)| Proto::V1::NodeSchedule.decode(record) }
+          end
+          Base::Snapshot.new(version: @version, records:)
+        end
+      end
+
       # Closes the database and removes the private copy, if any.
       #
       # @return [void]
