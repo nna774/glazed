@@ -1,0 +1,66 @@
+! System information
+!   Model                    Description
+!   ------------------------ ----------------------------------------------------
+!   cEOSLab                  cEOSLab
+!
+!   HW Version  Serial Number                    Mfg Date   Epoch
+!   ----------- -------------------------------- ---------- -----
+!               01E01B7E385BA4EAED3B431199519634
+!
+! System has 1 port
+!   Type               Count
+!   ------------------ ----
+!   Management         1
+!
+! Command: show running-config
+! device: leaf1 (cEOSLab, EOS-4.32.2F-38195967.4322F (engineering build))
+!
+enable password sha512 [~REDACTED~]
+no aaa root
+!
+username admin privilege 15 role network-admin secret sha512 [~REDACTED~]
+username backup secret sha512 [~REDACTED~]
+!
+management api http-commands
+   no shutdown
+!
+no service interface inactive port-id allocation disabled
+!
+transceiver qsfp default-mode 4x10G
+!
+service routing protocols model multi-agent
+!
+hostname leaf1
+!
+snmp-server community [~REDACTED~] ro
+!
+spanning-tree mode mstp
+!
+system l1
+   unsupported speed action error
+   unsupported error-correction action error
+!
+radius-server host 192.0.2.51 key 7 [~REDACTED~]
+!
+tacacs-server host 192.0.2.50 key 7 [~REDACTED~]
+!
+aaa authorization exec default local
+!
+interface Management0
+   ip address 172.20.20.15/24
+   ipv6 address 3fff:172:20:20::f/64
+!
+no ip routing
+!
+router bgp 65001
+   neighbor 192.0.2.2 remote-as 65002
+   neighbor 192.0.2.2 password 7 [~REDACTED~]
+!
+router multicast
+   ipv4
+      software-forwarding kernel
+   !
+   ipv6
+      software-forwarding kernel
+!
+end
