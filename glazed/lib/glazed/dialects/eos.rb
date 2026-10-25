@@ -29,7 +29,9 @@ module Glazed
       sensitive_pattern(/^snmp-server user .*? priv \w+ (?:(?:0|7|8a) )?(\S+)/) { it[1] }
       sensitive_pattern(/^enable (?:secret|password)(?: level \d+)? #{SECRET_TYPE}(\S+)/) { it[1] }
       sensitive_pattern(/^username \S+ .*?(?:secret|password) #{SECRET_TYPE}(\S+)/) { it[1] }
-      sensitive_pattern(/^\s+(?:secret|password) #{SECRET_TYPE}(\S+)/) { it[1] }
+      sensitive_pattern(/^aaa root secret #{SECRET_TYPE}(\S+)/) { it[1] }
+      # Session shared-secret profiles put a key ID before the type, as in `secret 1 7 <key> infinite infinite`.
+      sensitive_pattern(/^\s+(?:secret|password) (?:\d+ (?=(?:0|7|8a) ))?#{SECRET_TYPE}(\S+)/) { it[1] }
       sensitive_pattern(/^(?:tacacs|radius)-server (?:.+ )?key (?:(?:0|7|8a) )?(\S+)/) { it[1] }
       sensitive_pattern(/^\s+server \S+(?: .+)? key (?:(?:0|7|8a) )?(\S+)/) { it[1] }
       sensitive_pattern(/^\s*key (?:\h+ )?(?:0|7|8a) (\S+)/) { it[1] }
@@ -37,7 +39,7 @@ module Glazed
       sensitive_pattern(/^\s*(?:isis |ip ospf )?authentication(?:-key| key) (?:(?:0|7|8a) )?(\S+)/) { it[1] }
       sensitive_pattern(/^\s*ip ospf message-digest-key \d+ \S+ (?:(?:0|7|8a) )?(\S+)/) { it[1] }
       sensitive_pattern(/^\s*neighbor \S+ password (?:(?:0|7|8a) )?(\S+)/) { it[1] }
-      sensitive_pattern(/^\s*vrrp \d+ authentication text (\S+)/) { it[1] }
+      sensitive_pattern(/^\s*vrrp \d+ (?:peer )?authentication (?:text |ietf-md5 key-string (?:(?:0|7|8a) )?)(\S+)/) { it[1] }
       sensitive_pattern(/^ntp authentication-key \d+ \S+ (?:(?:0|7|8a) )?(\S+)/) { it[1] }
       sensitive_pattern(/^service unsupported-transceiver \S+ (\S+)/) { it[1] }
       sensitive_pattern(/-(?:cv|ingest)auth=key,(\S+)/) { it[1] }

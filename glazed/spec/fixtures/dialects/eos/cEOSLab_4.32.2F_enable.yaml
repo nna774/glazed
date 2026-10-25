@@ -1,0 +1,99 @@
+# Captured from cEOS-lab 4.32.2F on containerlab over SSH, as user backup (privilege 1)
+# going through enable. Secrets, the community and keys are replaced with dummy values.
+init_prompt: |-
+  Last login: Fri Oct 23 05:02:18 2026 from 172.20.20.1\r\r
+  \e[5nleaf1>
+commands:
+  "enable": |-
+    enable\r
+    Password:\x20
+  "Xq7enable": |-
+    \r
+    leaf1#
+  "terminal length 0": |-
+    terminal length 0\r
+    Pagination disabled.\r
+    leaf1#
+  "show inventory | no-more": |-
+    show inventory | no-more\r
+    System information\r
+      Model                    Description                                         \r
+      ------------------------ ----------------------------------------------------\r
+      cEOSLab                  cEOSLab                                             \r
+    \r
+      HW Version  Serial Number                    Mfg Date   Epoch\r
+      ----------- -------------------------------- ---------- -----\r
+                  01E01B7E385BA4EAED3B431199519634                 \r
+    \r
+    System has 1 port\r
+      Type               Count\r
+      ------------------ ----\r
+      Management         1   \r
+    \r
+    leaf1#
+  "show running-config | no-more | exclude ! Time:": |-
+    show running-config | no-more | exclude ! Time:\r
+    ! Command: show running-config\r
+    ! device: leaf1 (cEOSLab, EOS-4.32.2F-38195967.4322F (engineering build))\r
+    !\r
+    enable password sha512 $6$Rk3vQm9wZbT1aE2c$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\r
+    no aaa root\r
+    !\r
+    username admin privilege 15 role network-admin secret sha512 $6$Hn5pLs8dXq2yWc4v$BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\r
+    username backup secret sha512 $6$Tf7gJk1mNb3oPr6s$CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r
+    !\r
+    management api http-commands\r
+       no shutdown\r
+    !\r
+    no service interface inactive port-id allocation disabled\r
+    !\r
+    transceiver qsfp default-mode 4x10G\r
+    !\r
+    service routing protocols model multi-agent\r
+    !\r
+    hostname leaf1\r
+    !\r
+    snmp-server community Bt5cmty ro\r
+    !\r
+    spanning-tree mode mstp\r
+    !\r
+    system l1\r
+       unsupported speed action error\r
+       unsupported error-correction action error\r
+    !\r
+    radius-server host 192.0.2.51 key 7 0207165218120E1B70\r
+    !\r
+    tacacs-server host 192.0.2.50 key 7 1511021F0725283D2F\r
+    !\r
+    aaa authorization exec default local\r
+    !\r
+    interface Management0\r
+       ip address 172.20.20.15/24\r
+       ipv6 address 3fff:172:20:20::f/64\r
+    !\r
+    no ip routing\r
+    !\r
+    router bgp 65001\r
+       neighbor 192.0.2.2 remote-as 65002\r
+       neighbor 192.0.2.2 password 7 q8VxTn2rLm4sKd6wJb0yHg==\r
+    !\r
+    router multicast\r
+       ipv4\r
+          software-forwarding kernel\r
+       !\r
+       ipv6\r
+          software-forwarding kernel\r
+    !\r
+    end\r
+    leaf1#
+  "exit": |-
+    exit\r\n
+# Strings that must not survive redaction.
+secrets:
+  - "$6$Rk3vQm9wZbT1aE2c$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  - "$6$Hn5pLs8dXq2yWc4v$BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+  - "$6$Tf7gJk1mNb3oPr6s$CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+  - "0207165218120E1B70"
+  - "1511021F0725283D2F"
+  - "q8VxTn2rLm4sKd6wJb0yHg=="
+  - "Bt5cmty"
