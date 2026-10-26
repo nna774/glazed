@@ -254,7 +254,7 @@ Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.Batch
 
 ## Caveats
 
-- Not production-tested yet. The `ios`, `junos`, `aruba_instant` and `routeros` dialects are tested against device captures from Oxidized's test suite; the `aireos`, `nec_ix`, `awplus` and `eos` fixtures are written from command references and need checking against real devices.
+- Not production-tested yet. The `ios`, `junos`, `aruba_instant` and `routeros` dialects are tested against device captures from Oxidized's test suite, and `eos` against cEOS-lab 4.32.2F captures with and without enable; the `aireos`, `nec_ix` and `awplus` fixtures are written from command references and need checking against real devices.
 - SSH host keys are verified with net-ssh's defaults and `~/.ssh/known_hosts` unless the node sets `transport_options.ssh.verify_host_key` or the known_hosts files.
 - A node removed from the inventory leaves its file in the storages.
 - Not yet available: opening pull requests automatically, and receivers turning syslog messages or SNMP traps into signals.
