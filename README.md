@@ -25,8 +25,9 @@ If you need a web UI or a REST API, Oxidized is the better choice for now. Oxidi
 | `aruba_instant` | Aruba Instant (IAP, virtual controller) | SSH, Telnet |
 | `eos` | Arista EOS | SSH, Telnet |
 | `routeros` | MikroTik RouterOS | SSH (exec channel), Telnet |
+| `edgeos` | Ubiquiti EdgeOS (EdgeRouter, Vyatta-based) | SSH, Telnet |
 
-All eight are ported from Oxidized models. Other gems can add dialects as `Glazed::Dialects::<Name>` in `glazed/dialects/<name>.rb`, or resolve names with `Glazed::Dialects.add_resolver`.
+All nine are ported from Oxidized models. Other gems can add dialects as `Glazed::Dialects::<Name>` in `glazed/dialects/<name>.rb`, or resolve names with `Glazed::Dialects.add_resolver`.
 
 Any other Oxidized model runs through `glazed-oxidized` as the `oxidized_<model>` dialect, such as `oxidized_fortios`. See [docs/oxidized-shim.md](docs/oxidized-shim.md).
 
@@ -254,7 +255,7 @@ Steps take and return protobuf messages (`glazed.v1.NodeState`, `glazed.v1.Batch
 
 ## Caveats
 
-- Not production-tested yet. The `ios`, `junos`, `aruba_instant` and `routeros` dialects are tested against device captures from Oxidized's test suite, and `eos` against cEOS-lab 4.32.2F captures with and without enable; the `aireos`, `nec_ix` and `awplus` fixtures are written from command references and need checking against real devices.
+- Not production-tested yet. The `ios`, `junos`, `aruba_instant` and `routeros` dialects are tested against device captures from Oxidized's test suite, and `eos` against cEOS-lab 4.32.2F captures with and without enable; the `aireos`, `nec_ix`, `awplus` and `edgeos` fixtures are written from command references and need checking against real devices.
 - SSH host keys are verified with net-ssh's defaults and `~/.ssh/known_hosts` unless the node sets `transport_options.ssh.verify_host_key` or the known_hosts files.
 - A node removed from the inventory leaves its file in the storages.
 - Not yet available: opening pull requests automatically, and receivers turning syslog messages or SNMP traps into signals.

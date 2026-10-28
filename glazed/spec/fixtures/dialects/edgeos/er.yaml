@@ -1,0 +1,66 @@
+# Hand-written from the EdgeOS CLI reference and the line shapes of `show configuration commands`; not a device capture.
+# Every value is made up (documentation address ranges, random-looking strings).
+init_prompt: |-
+  \r\nWelcome to EdgeOS\r\n\r\nrt1@er:~$\x20
+commands:
+  show version | no-more: |-
+    show version | no-more
+    Version:      v2.0.9
+    Build ID:     5402463
+    Build on:     01/08/21 12:48
+    Copyright:    2012-2021 Ubiquiti Networks, Inc.
+    HW model:     EdgeRouter X 5-Port
+    HW S/N:       FAKE00000001
+    Uptime:       10:11:12 up 5 days, 2:03, 1 user, load average: 0.01, 0.02, 0.00
+    rt1@er:~$\x20
+  show configuration commands | no-more: |-
+    show configuration commands | no-more
+    set firewall name WAN_IN default-action 'drop'
+    set interfaces ethernet eth0 address '192.0.2.2/24'
+    set interfaces ethernet eth0 pppoe 0 password 'ppp-fake-secret-01'
+    set interfaces ethernet eth1 vrrp vrrp-group 10 authentication password 'vrrpfake02'
+    set interfaces wireguard wg0 private-key 'wgPrivFake0000000000000000000000000003='
+    set policy route-map IN rule 10 match community community-list '100'
+    set protocols bgp 64512 neighbor 198.51.100.1 password 'bgp-fake-md5-04'
+    set protocols bgp 64512 neighbor 198.51.100.1 remote-as '64496'
+    set protocols ospf area 0 authentication md5 key-id 1 md5-key 'ospffakekey05'
+    set protocols ospf interface eth1 authentication plaintext-password 'ospfplainfake06'
+    set protocols static route 0.0.0.0/0 next-hop '192.0.2.1'
+    set service dns dynamic interface eth0 service dyndns login 'ddnsuser'
+    set service dns dynamic interface eth0 service dyndns password 'ddns-fake-07'
+    set service snmp community 'snmpcommfake08' authorization 'ro'
+    set service snmp trap-target 192.0.2.50 community 'trapcommfake09'
+    set service snmp v3 user monitor auth plaintext-key 'snmpv3authfake10'
+    set service snmp v3 user monitor privacy encrypted-key 'snmpv3privfake11'
+    set service ssh disable-password-authentication
+    set service ssh listen-address '192.0.2.2'
+    set service unms connection 'wss://unms.example.net:443+unmstokenfake12+allowSelfSignedCertificate'
+    set system config-management commit-archive location 'scp://backup:archivepwfake13@192.0.2.60/backups'
+    set system login radius-server 192.0.2.70 secret 'radiusfake14'
+    set system login user admin authentication encrypted-password '$6$fakesalt$fakehashfakehashfakehashfakehash15'
+    set system login user admin authentication plaintext-password 'plainfake16'
+    set system login user admin authentication public-keys k1 key 'AAAAC3NzaC1lZDI1NTE5AAAAIFAKEPUBLICKEYnotasecret'
+    set system login user admin authentication public-keys k1 type 'ssh-ed25519'
+    set vpn ipsec site-to-site peer 203.0.113.9 authentication pre-shared-secret 'ipsecpskfake17'
+    set vpn pptp remote-access authentication local-users username u1 password 'pptpfake18'
+    rt1@er:~$\x20
+  exit: ''
+secrets:
+  - ppp-fake-secret-01
+  - vrrpfake02
+  - wgPrivFake0000000000000000000000000003=
+  - bgp-fake-md5-04
+  - ospffakekey05
+  - ospfplainfake06
+  - ddns-fake-07
+  - snmpcommfake08
+  - trapcommfake09
+  - snmpv3authfake10
+  - snmpv3privfake11
+  - unmstokenfake12
+  - archivepwfake13
+  - radiusfake14
+  - fakehashfakehashfakehashfakehash15
+  - plainfake16
+  - ipsecpskfake17
+  - pptpfake18

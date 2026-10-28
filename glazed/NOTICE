@@ -11,6 +11,7 @@ Version 2.0:
 
 Derived from Oxidized as of commit d7f51c2, and modified for glazed:
 
-- lib/glazed/dialects/{aireos,aruba_instant,awplus,eos,ios,junos,nec_ix,routeros}.rb
+- lib/glazed/dialects/{aireos,aruba_instant,awplus,edgeos,eos,ios,junos,nec_ix,routeros}.rb
   Prompts, command sequences, output cleanup and secret patterns ported
-  from lib/oxidized/model/{awplus,ios,junos,necix,aireos,eos,arubainstant,routeros}.rb.
+  from lib/oxidized/model/{awplus,ios,junos,necix,aireos,eos,arubainstant,routeros,edgeos}.rb
+  (edgeos was read from commit 3137b17, newer than the commit above).
